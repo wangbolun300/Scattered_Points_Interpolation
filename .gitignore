@@ -1,0 +1,5 @@
+3rdparty*
+*.sublime-*
+bin*
+*build*
+external*
