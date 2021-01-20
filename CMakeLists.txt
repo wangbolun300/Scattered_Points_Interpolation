@@ -18,8 +18,8 @@ option(LIBIGL_WITH_EMBREE            "Use Embree"                   OFF)
 option(LIBIGL_WITH_LIM               "Use LIM"                      OFF)
 option(LIBIGL_WITH_MATLAB            "Use Matlab"                   OFF)
 option(LIBIGL_WITH_MOSEK             "Use MOSEK"                    OFF)
-option(LIBIGL_WITH_OPENGL            "Use OpenGL"                   OFF)
-option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"                     OFF)
+option(LIBIGL_WITH_OPENGL            "Use OpenGL"                   ON)
+option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"                     ON)
 option(LIBIGL_WITH_OPENGL_GLFW_IMGUI "Use ImGui"                    OFF)
 option(LIBIGL_WITH_PNG               "Use PNG"                      OFF)
 option(LIBIGL_WITH_PYTHON            "Use Python"                   OFF)
@@ -39,7 +39,7 @@ set(SPARSE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/sparse_interp)
 include(Warnings)
 include(UseColors)
 include(${PROJECT_NAME}Dependencies)
-
+include(Sparse_InterpUtils)
 
 #add_library(${PROJECT_NAME}
 #  src/main.cpp
@@ -50,14 +50,21 @@ add_subdirectory(sparse_interp)
 add_library(${PROJECT_NAME}  
 ${SPARSE_SOURCES}
 )
+target_link_libraries(${PROJECT_NAME} PUBLIC igl::core igl::triangle)
+############################
+# B spline library
+include(B_spline/SOURCE.cmake)
+prepend_current_path(SPLINE_SOURCES)
+add_library(SPLINE_LIB ${SPLINE_SOURCES})
+SI_copy_headers(${SPLINE_SOURCES})
+SI_set_source_group(${SPLINE_SOURCES})
+target_sources(SPLINE_LIB PRIVATE ${SPLINE_SOURCES})
+target_include_directories(SPLINE_LIB PUBLIC B_spline/)
 
-
-target_link_libraries(${PROJECT_NAME} PUBLIC SPARSE_INTERP)
-
-#target_include_directories(${PROJECT_NAME} PUBLIC src)
 
 add_executable(${PROJECT_NAME}_bin
     src/main.cpp
   )
-  target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME})
-  target_link_libraries(${PROJECT_NAME} PUBLIC igl::core igl::triangle)
+  # target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME}_bin PUBLIC SPLINE_LIB igl::core igl::opengl_glfw)
+

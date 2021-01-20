@@ -7,7 +7,8 @@ namespace workClean {
 		//get distance of every two neighbouring points,and the total distance 
 		void get_border_pp_length(const std::vector<Vector3>&border, std::vector<Scalar>& length, Scalar& dis);
 
-		void get_local_curvature(const std::vector<Vector3>& border, std::vector<Scalar> &cur);
+		void get_local_curvature(const std::vector<Vector3>& border, std::vector<Scalar> &cur,
+			std::vector<Scalar>& length, Scalar &dis);
 	}
 	
 }
