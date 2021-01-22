@@ -41,10 +41,7 @@ include(UseColors)
 include(${PROJECT_NAME}Dependencies)
 include(Sparse_InterpUtils)
 
-#add_library(${PROJECT_NAME}
-#  src/main.cpp
-#
-#)
+
 
 add_subdirectory(sparse_interp)
 add_library(${PROJECT_NAME}  
@@ -52,7 +49,8 @@ ${SPARSE_SOURCES}
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC igl::core igl::triangle)
 ############################
-# B spline library
+# B spline library.
+# igl -> SPLINE_LIB
 include(B_spline/SOURCE.cmake)
 prepend_current_path(SPLINE_SOURCES)
 add_library(SPLINE_LIB ${SPLINE_SOURCES})
@@ -60,11 +58,11 @@ SI_copy_headers(${SPLINE_SOURCES})
 SI_set_source_group(${SPLINE_SOURCES})
 target_sources(SPLINE_LIB PRIVATE ${SPLINE_SOURCES})
 target_include_directories(SPLINE_LIB PUBLIC B_spline/)
-
+target_link_libraries(SPLINE_LIB PUBLIC igl::core)
 
 add_executable(${PROJECT_NAME}_bin
     src/main.cpp
   )
-  # target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME}_bin PUBLIC SPLINE_LIB igl::core igl::opengl_glfw)
 

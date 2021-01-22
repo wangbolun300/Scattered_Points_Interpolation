@@ -1,4 +1,5 @@
 #include"basis.h"
+#include"curve.h"
 #include <igl/opengl/glfw/Viewer.h>
 #include<iostream>
 #include<array>
@@ -39,16 +40,7 @@ void test_opengl() {
 	viewer.data().set_face_based(true);
 	viewer.launch();
 }
-Eigen::Vector3d BsplinePoint(const int degree, const std::vector<double>& U, const double para,
-	const std::vector<Eigen::Vector3d> pts){ 
-	Eigen::Vector3d result = Eigen::Vector3d(0, 0, 0);
-	for (int i = 0; i < pts.size(); i++) {
-		double base = Nip(i, degree, para, U);
-		//std::cout << "base " << base << std::endl;
-		result += base * pts[i];
-	}
-	return result;
-}
+
 
 void draw_a_line() {
 	Eigen::MatrixXd pts(3,3),Color(3,3);
@@ -70,15 +62,15 @@ void draw_a_curve() {
 	// 8 control points
 	std::vector<double>U = { {0,0,0,0,0.1,0.4,0.7,0.9,1,1,1,1} };
 	std::array<double, 8> us = { {0.1,0.2,0.3,0.5,0.6,0.7,0.8,0.9} };
-	std::vector<Eigen::Vector3d> pts(8);
-	pts[0] = Eigen::Vector3d(0, 0, 0);
-	pts[1] = Eigen::Vector3d(0, 1, 0);
-	pts[2] = Eigen::Vector3d(0, 1, 2);
-	pts[3] = Eigen::Vector3d(0, 1, 1);
-	pts[4] = Eigen::Vector3d(0, 2, 1);
-	pts[5] = Eigen::Vector3d(0, 2, 0);
-	pts[6] = Eigen::Vector3d(0, 3, 1);
-	pts[7] = Eigen::Vector3d(0, 3, 3);
+	std::vector<Vector3d> pts(8);
+	pts[0] = Vector3d(0, 0, 0);
+	pts[1] = Vector3d(0, 1, 0);
+	pts[2] = Vector3d(0, 1, 2);
+	pts[3] = Vector3d(0, 1, 1);
+	pts[4] = Vector3d(0, 2, 1);
+	pts[5] = Vector3d(0, 2, 0);
+	pts[6] = Vector3d(0, 3, 1);
+	pts[7] = Vector3d(0, 3, 3);
 	igl::opengl::glfw::Viewer viewer;
 	Eigen::MatrixXd  Color(8, 3), Hcolor(100, 3), OneColor(1, 3), PTS(8, 3), Curve(100, 3);
 	OneColor(0, 0) = 0; OneColor(0, 1) = 0; OneColor(0, 2) = 0;
