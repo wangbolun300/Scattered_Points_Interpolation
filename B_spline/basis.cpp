@@ -43,3 +43,35 @@ double kth_derivate_Nip(const int k, const int i,
 	double result2 = handle_division(p, U[i + p + 1] - U[i + 1])*kth_derivate_Nip(k-1, i + 1, p - 1, u, U);
 	return result1 - result2;
 }
+std::vector<double> Centripetal_parameterization(std::vector<Vector3d>& pts) {
+	int nbr = pts.size();
+	std::vector<double> paras(nbr);
+	double total = 0;
+	std::vector<double> distances(nbr - 1);
+	for (int i = 0; i < nbr - 1; i++) {
+		distances[i] = sqrt((pts[i + 1] - pts[i]).norm());
+		total += distances[i];
+	}
+	paras[0] = 0;
+	for (int i = 0; i < nbr - 1; i++) {
+		paras[i + 1] = paras[i] + distances[i] / total;
+	}
+	return paras;
+}
+
+std::vector<double> Chord_parameterization(std::vector<Vector3d>& pts) {
+	int nbr = pts.size();
+	std::vector<double> paras(nbr);
+	double total = 0;
+	std::vector<double> distances(nbr - 1);
+	for (int i = 0; i < nbr - 1; i++) {
+		// the only difference with Centripetal_parameterization is here
+		distances[i] = (pts[i + 1] - pts[i]).norm();
+		total += distances[i];
+	}
+	paras[0] = 0;
+	for (int i = 0; i < nbr - 1; i++) {
+		paras[i + 1] = paras[i] + distances[i] / total;
+	}
+	return paras;
+}

@@ -4,6 +4,8 @@ B_spline/basis.cpp
 B_spline/curve.h
 B_spline/curve.cpp
 B_spline/Types.hpp
+B_spline/test.h
+B_spline/test.cpp
 )
 ################################################################################
 # Subfolders

@@ -3,6 +3,7 @@
 #include <igl/opengl/glfw/Viewer.h>
 #include<iostream>
 #include<array>
+#include"test.h"
 void show_basis(const std::vector<double>&b_vec) {
 	for (int i = 0; i < b_vec.size(); i++) {
 		std::cout << b_vec[i] << " ";
@@ -100,6 +101,7 @@ int main() {
 	//int p = 3;
 	//std::vector<double>U = { {0,0,0,0,0.1,0.4,0.7,0.9,1,1,1,1} };
 	//draw_a_line();
-	draw_a_curve();
+	//draw_a_curve();
+	test_fitting();
 	return 0;
 }
