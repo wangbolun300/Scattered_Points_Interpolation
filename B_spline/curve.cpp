@@ -23,6 +23,8 @@ Vector3d BsplinePoint(const int degree, const std::vector<double>& U, const doub
 	}
 	return result;
 }
+
+//TODO this error is not what we want
 Eigen::MatrixXd slove_linear_system(const Eigen::MatrixXd& A, const Eigen::MatrixXd &b,
 	const bool check_error, double &relative_error) {
 	Eigen::MatrixXd x = A.colPivHouseholderQr().solve(b);

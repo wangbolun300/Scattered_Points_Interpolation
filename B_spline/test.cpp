@@ -9,15 +9,20 @@ Eigen::MatrixXd vector_to_matrix_3d(const std::vector<Vector3d>& v) {
 	}
 	return result;
 }
-
+void vertices_to_edges(const Eigen::MatrixXd& pts, Eigen::MatrixXi &edges) {
+	edges.resize(pts.rows() - 1, 2);
+	for (int i = 0; i < edges.rows(); i++) {
+		edges(i, 0) = i; edges(i, 1) = i + 1;
+	}
+}
 void test_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control_pts_color,
 	Eigen::MatrixXd& curve_pts, Eigen::MatrixXd& curve_pts_color, 
 	Eigen::MatrixXd& target_pts, Eigen::MatrixXd& target_pts_color) {
-	int nbr_curve_pts = 100;
+	int nbr_curve_pts = 500;
 	// 8 control points
 	std::vector<double> U = { {0,0,0,0,0.1,0.4,0.7,0.9,1,1,1,1} };
 
-	int Qnbr = 8;
+	int Qnbr = 12;
 	int degree = 3;
 	std::vector<Vector3d> pts(Qnbr);
 	pts[0] = Vector3d(0, 0, 0);
@@ -28,7 +33,10 @@ void test_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control_pts_col
 	pts[5] = Vector3d(0, 2, 0);
 	pts[6] = Vector3d(0, 3, 1);
 	pts[7] = Vector3d(0, 3, 3);
-	
+	pts[8] = Vector3d(0, 2, 3);
+	pts[9] = Vector3d(0, 3, 0);
+	pts[10] = Vector3d(0, 2, 2);
+	pts[11] = Vector3d(0, 4, 0);
 	std::vector<double> paras = Centripetal_parameterization(pts);
 	for (int i = 0; i < paras.size(); i++) {
 		std::cout << paras[i] << std::endl;
@@ -42,7 +50,7 @@ void test_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control_pts_col
 	target_pts = vector_to_matrix_3d(pts);
 
 	target_pts_color.resize(Qnbr, 3);
-	for (int i = 0; i < Control.rows(); i++) {
+	for (int i = 0; i < Qnbr; i++) {
 		target_pts_color.row(i) = color3;
 	}
 	// target points and color
