@@ -79,7 +79,28 @@ Eigen::MatrixXd build_matrix_R(const int degree, const std::vector<double>& U,
 	}
 	return result; 
 }
-
+// build matrix A for curve interpolation (Ax=b)
+Eigen::MatrixXd build_matrix_A(const int degree, const std::vector<double>& U,
+	const std::vector<double>& paras) {
+	int n = U.size() - 2 - degree;// n + 1 = number of control points
+	int m = paras.size() - 1;// m + 1 = the number of data points
+	Eigen::MatrixXd result(m+1,n+1);
+	for (int i = 0; i < n + 1; i++) {
+		for (int j = 0; j < m + 1; j++) {
+			result(i, j) = Nip(i, degree, paras[j], U);
+		}
+	}
+	return result;
+}
+// build vector b for curve interpolation (Ax=b)
+Eigen::VectorXd build_Vector_b(const std::vector<Vector3d>& points, const int dimension) {
+	Eigen::VectorXd result;
+	result.resize(points.size());
+	for (int i = 0; i < result.size(); i++) {
+		result(i) = points[i][dimension];
+	}
+	return result;
+}
 Eigen::MatrixXd solve_curve_control_points(const int degree, const std::vector<double>& U,
 	const std::vector<double>& paras, const std::vector<Vector3d>& points) {
 	int npoints = points.size();
@@ -99,4 +120,28 @@ Eigen::MatrixXd solve_curve_control_points(const int degree, const std::vector<d
 	result.row(n) = points[npoints - 1];
 	result.middleRows(1,n-1) = interior;
 	return result;
+}
+int rank(Eigen::MatrixXd& matrix) {
+	return matrix.fullPivLu().rank();
+}
+// this function takes an initial knot vector which may not satisfy the interpolation condition,
+// and returns a knot vector which can. the 3 dimensions are evaluated separately.
+std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const std::vector<double>& init_vec, 
+	const std::vector<double>& paras, const std::vector<Vector3d>& points, const int dimension) {
+	std::vector<double> expanded_U = init_vec;
+	assert(points.size() == paras.size());
+	int n = expanded_U.size() - 2 - degree;// n + 1 = number of control points
+	int m = paras.size() - 1;// m + 1 = the number of data points
+	Eigen::MatrixXd A, Ab;
+	Eigen::VectorXd b;
+	
+	A = build_matrix_A(degree, expanded_U, paras);
+	b = build_Vector_b(points, dimension);
+	Ab.resize(m + 1, n + 2);
+	Ab << A, b;
+	int rankA = rank(A);
+	int rankAb = rank(Ab);
+	if (rankA == rank(Ab)) {
+		return xxx
+	}
 }
