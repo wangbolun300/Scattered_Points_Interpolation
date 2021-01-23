@@ -1,8 +1,19 @@
 #include"test.h"
 #include"curve.h"
 #include<iostream>
-void test_fitting() {
-	int p = 3;
+
+Eigen::MatrixXd vector_to_matrix_3d(const std::vector<Vector3d>& v) {
+	Eigen::MatrixXd result(v.size(),3);
+	for (int i = 0; i < v.size(); i++) {
+		result.row(i) = v[i];
+	}
+	return result;
+}
+
+void test_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control_pts_color,
+	Eigen::MatrixXd& curve_pts, Eigen::MatrixXd& curve_pts_color, 
+	Eigen::MatrixXd& target_pts, Eigen::MatrixXd& target_pts_color) {
+	int nbr_curve_pts = 100;
 	// 8 control points
 	std::vector<double> U = { {0,0,0,0,0.1,0.4,0.7,0.9,1,1,1,1} };
 
@@ -23,20 +34,44 @@ void test_fitting() {
 		std::cout << paras[i] << std::endl;
 	}
 	Eigen::MatrixXd Control = solve_curve_control_points(degree, U, paras, pts);
+	std::cout << "control points:" << std::endl << Control << std::endl;
 
-	/*Eigen::MatrixXd  Color(8, 3), Hcolor(100, 3), OneColor(1, 3), PTS(8, 3), Curve(100, 3);
-	OneColor(0, 0) = 0; OneColor(0, 1) = 0; OneColor(0, 2) = 0;
-	for (int i = 0; i < 8; i++) {
-		for (int j = 0; j < 3; j++) {
-			Color(i, j) = 0;
+	Vector3d color1(0, 0, 0), color2(0.5, 0.5, 0.5), color3(1, 0, 0);
+	//////////////////////
+	// target points and color
+	target_pts = vector_to_matrix_3d(pts);
 
-		}
-		PTS.row(i) = pts[i];
-
+	target_pts_color.resize(Qnbr, 3);
+	for (int i = 0; i < Control.rows(); i++) {
+		target_pts_color.row(i) = color3;
 	}
-	for (int i = 0; i < 100; i++) {
-		Curve.row(i) = BsplinePoint(3, U, i / double(100), pts);
-		Hcolor(i, 0) = 0.5; Hcolor(i, 1) = 0.5; Hcolor(i, 2) = 0.5;
-	}*/
+	// target points and color
+	////////////////////////
+	//////////////////////
+	// control points and color
+	control_pts = Control;
+
+	control_pts_color.resize(Control.rows(), 3);
+	for (int i = 0; i < Control.rows(); i++) {
+		control_pts_color.row(i) = color1;
+	}
+	// control points and color
+	////////////////////////
+	////////////////////////
+	//set curve points and color
+	curve_pts.resize(nbr_curve_pts, 3);
+	for (int i = 0; i < nbr_curve_pts; i++) {
+		double temp_para = i / double(nbr_curve_pts);
+		curve_pts.row(i) = BsplinePoint(degree, U, temp_para, control_pts);
+	}
+
+	curve_pts_color.resize(nbr_curve_pts, 3);
+	for (int i = 0; i < nbr_curve_pts; i++) {
+		curve_pts_color.row(i) = color2;
+	}
+	//set curve points and color
+	/////////////////////////
+
+
 }
 

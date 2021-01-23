@@ -1,8 +1,9 @@
 #include"curve.h"
 #include <Eigen/Dense>
+#include<iostream>
 // return a point position of a given curve
 Vector3d BsplinePoint(const int degree, const std::vector<double>& U, const double para,
-	const std::vector<Vector3d> pts) {
+	const std::vector<Vector3d> &pts) {
 	Eigen::Vector3d result = Eigen::Vector3d(0, 0, 0);
 	for (int i = 0; i < pts.size(); i++) {
 		double base = Nip(i, degree, para, U);
@@ -11,7 +12,17 @@ Vector3d BsplinePoint(const int degree, const std::vector<double>& U, const doub
 	}
 	return result;
 }
-
+// return a point position of a given curve
+Vector3d BsplinePoint(const int degree, const std::vector<double>& U, const double para,
+	const Eigen::MatrixXd& pts) {
+	Eigen::Vector3d result = Eigen::Vector3d(0, 0, 0);
+	for (int i = 0; i < pts.rows(); i++) {
+		double base = Nip(i, degree, para, U);
+		//std::cout << "base " << base << std::endl;
+		result += base * pts.row(i);
+	}
+	return result;
+}
 Eigen::MatrixXd slove_linear_system(const Eigen::MatrixXd& A, const Eigen::MatrixXd &b,
 	const bool check_error, double &relative_error) {
 	Eigen::MatrixXd x = A.colPivHouseholderQr().solve(b);
@@ -80,7 +91,7 @@ Eigen::MatrixXd solve_curve_control_points(const int degree, const std::vector<d
 	bool check_error = true;
 	double error;
 	Eigen::MatrixXd interior = slove_linear_system(NTN, R, check_error, error);
-
+	std::cout << "error, " << error << std::endl;
 	
 	result.row(0) = points[0];
 	result.row(n) = points[npoints - 1];
