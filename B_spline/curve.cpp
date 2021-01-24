@@ -124,9 +124,76 @@ Eigen::MatrixXd solve_curve_control_points(const int degree, const std::vector<d
 int rank(Eigen::MatrixXd& matrix) {
 	return matrix.fullPivLu().rank();
 }
+
+// check if the knot vector satisfy the curve interpolation condition
+bool equation_has_solution(const Eigen::MatrixXd& A,
+	const Eigen::VectorXd& b) {
+	Eigen::MatrixXd  Ab;
+	int rankA = rank(A);
+	Ab.resize(A.rows(), A.cols() + 1);
+	Ab << A, b;
+	int rankAb = rank(Ab);
+	if (rankA == rankAb) {
+		return true;
+	}
+	return false;
+}
+
+std::vector<double> knot_vector_insert_one_value(const std::vector<double>& U, const double u) {
+
+}
+
+// 
+void parameter_knot_interval_check(const int degree, const std::vector<double>& Uin,
+	const std::vector<double>& paras, std::vector<double>& Uout) {
+	// Uin has n+degree+2 values, there are n-degree+2 different values, n-degree+1 intervals
+	int n = Uin.size() - 2 - degree;
+	std::vector<int> multiplicity(Uin.size() - 1);
+	std::vector<std::vector<int>> para_ids(Uin.size() - 1);
+	for (int i = 0; i < paras.size(); i++) {
+		for (int j = 0; j < Uin.size() - 1; j++) {
+			if (paras[i] >= Uin[j] && paras[i] < Uin[j + 1]) {
+				para_ids[j].push_back(i);
+				break;
+			}
+		}
+	}
+	std::vector<int> need_fix_intervals;
+	// check multiplicity. if larger than n+1, then need to fix
+	for (int j = 0; j < Uin.size() - 1; j++) {
+		if (para_ids[j].size() > n + 1) {
+			need_fix_intervals.push_back(j);
+		}
+	}
+	if (need_fix_intervals.size() == 0) {
+		Uout = Uin;
+		return;
+	}
+
+
+}
 // this function takes an initial knot vector which may not satisfy the interpolation condition,
 // and returns a knot vector which can. the 3 dimensions are evaluated separately.
-std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const std::vector<double>& init_vec, 
+//std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const std::vector<double>& init_vec, 
+//	const std::vector<double>& paras, const std::vector<Vector3d>& points, const int dimension) {
+//	std::vector<double> expanded_U = init_vec;
+//	assert(points.size() == paras.size());
+//	int n = expanded_U.size() - 2 - degree;// n + 1 = number of control points
+//	int m = paras.size() - 1;// m + 1 = the number of data points
+//	Eigen::MatrixXd A, Ab;
+//	Eigen::VectorXd b;
+//	
+//	A = build_matrix_A(degree, expanded_U, paras);
+//	b = build_Vector_b(points, dimension);
+//	Ab.resize(m + 1, n + 2);
+//	Ab << A, b;
+//	int rankA = rank(A);
+//	int rankAb = rank(Ab);
+//	if (rankA == rank(Ab)) {
+//		return xxx
+//	}
+//}
+std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const std::vector<double>& init_vec,
 	const std::vector<double>& paras, const std::vector<Vector3d>& points, const int dimension) {
 	std::vector<double> expanded_U = init_vec;
 	assert(points.size() == paras.size());
@@ -134,14 +201,11 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 	int m = paras.size() - 1;// m + 1 = the number of data points
 	Eigen::MatrixXd A, Ab;
 	Eigen::VectorXd b;
-	
+
 	A = build_matrix_A(degree, expanded_U, paras);
 	b = build_Vector_b(points, dimension);
-	Ab.resize(m + 1, n + 2);
-	Ab << A, b;
-	int rankA = rank(A);
-	int rankAb = rank(Ab);
-	if (rankA == rank(Ab)) {
-		return xxx
+	if (equation_has_solution(A, b)) {
+		return expanded_U;
 	}
+
 }
