@@ -260,6 +260,24 @@ void fix_stairs_row_too_many(const int degree, const std::vector<double>& Uin,
 //		return xxx
 //	}
 //}
+// TODO i think recursive fixing the knot vector is practical. 
+// if no solution, check 1st sub matrix. if it has solution, modify knot vector;
+// if the 1st sub matrix do not have solution, the knot vector is still modified.
+// but, remind that the modified part is within the stairs related to the 1st sub matrix.
+// Then, check if the 2st sub matrix has solution (which is a bigger one). if it has one,
+// then modify knot vector, otherwise, knot vector will still be modified inside the checking 
+// of matrix 2. finally, return the modified vector.
+// here, we need to be careful of the defination of 2 sub matrixes. and everytime we check this level,
+// we insert knots, and should check this level again. xxx
+
+// TODO if we use while() iteration, we better do:
+// while there is no solution, we check solution of this level, 
+// if no solution, we check sub_matrix_1 and sub_matrix_2. there will
+// be 2 cases: 1 has no solution and 2 has no solution, we change the current 
+// matrix to sub_matrix_1; 1 or 2 has solution, we update the knots and matrix. Then 
+// restart the iteration.
+
+
 std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const std::vector<double>& init_vec,
 	const std::vector<double>& paras, const std::vector<Vector3d>& points, const int dimension, 
 	const int sub_matrix_start_row, const int nbr_sub_matrix_rows, bool& have_solution) {
@@ -300,3 +318,29 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 	}
 
 }
+
+//std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const std::vector<double>& init_vec,
+//	const std::vector<double>& paras, const std::vector<Vector3d>& points, const int dimension,
+//	const int sub_matrix_start_row, const int nbr_sub_matrix_rows, bool& have_solution) {
+//	std::vector<double> expanded_U;
+//		// take init_vec as input, detect if there is any stair whose row is too many (>n+1).
+//		// if there are such stairs, insert knots to init_vec, the result is expanded_U
+//		fix_stairs_row_too_many(degree, init_vec, paras, expanded_U);
+//	
+//		assert(points.size() == paras.size());
+//		int n = expanded_U.size() - 2 - degree;// n + 1 = number of control points
+//		int m = paras.size() - 1;// m + 1 = the number of data points
+//		
+//		Eigen::MatrixXd A, Ab;
+//		Eigen::VectorXd b;
+//	
+//		A = build_matrix_A(degree, expanded_U, paras, sub_matrix_start_row, nbr_sub_matrix_rows);
+//		b = build_Vector_b(points, dimension, sub_matrix_start_row, nbr_sub_matrix_rows);
+//		have_solution = equation_has_solution(A, b);
+//		if (have_solution) {
+//			return expanded_U;
+//		}
+//
+//		bool 
+//
+//}
