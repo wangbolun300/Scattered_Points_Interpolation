@@ -119,6 +119,7 @@ int main() {
 	//draw_a_line();
 	//draw_a_curve();
 	//test_fitting();
-	plot_fitting_result();
+	//plot_fitting_result();
+	test_curve_knot_fixing();
 	return 0;
 }

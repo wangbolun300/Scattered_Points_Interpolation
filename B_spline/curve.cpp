@@ -84,10 +84,11 @@ Eigen::MatrixXd build_matrix_A(const int degree, const std::vector<double>& U,
 	const std::vector<double>& paras) {
 	int n = U.size() - 2 - degree;// n + 1 = number of control points
 	int m = paras.size() - 1;// m + 1 = the number of data points
+	
 	Eigen::MatrixXd result(m + 1, n + 1);
 	for (int i = 0; i < n + 1; i++) {
 		for (int j = 0; j < m + 1; j++) {
-			result(i, j) = Nip(i, degree, paras[j], U);
+			result(j, i) = Nip(i, degree, paras[j], U);
 		}
 	}
 	return result;
@@ -101,8 +102,8 @@ Eigen::MatrixXd build_matrix_A(const int degree, const std::vector<double>& U,
 	int m = paras.size() - 1;// m + 1 = the number of data points
 	Eigen::MatrixXd result(nbr_rows, n + 1);
 	for (int i = start_row; i < start_row + nbr_rows; i++) {
-		for (int j = 0; j < m + 1; j++) {
-			result(i - start_row, j) = Nip(i, degree, paras[j], U);
+		for (int j = 0; j < n + 1; j++) {
+			result(i - start_row, j) = Nip(j, degree, paras[i], U);
 		}
 	}
 
@@ -192,7 +193,7 @@ double get_the_mean_value(const std::vector<double>&paras, const std::vector<int
 std::vector<double> knot_vector_insert_one_value(const std::vector<double>& U, const double value) {
 	std::vector<double> result;
 	result.reserve(U.size() + 1);
-	for (int i = 0; i < U.size() - 1; i++) {
+	for (int i = 0; i < U.size(); i++) {
 		result.push_back(U[i]);
 		if (value >= U[i] && value < U[i + 1]) {
 			result.push_back(value);
@@ -207,11 +208,14 @@ std::vector<double> knot_vector_insert_values(const std::vector<double>& U, cons
 
 	// for each interval we need to fix, we insert one value
 	std::vector<double> insert_values(need_fix_intervals.size());
+
 	for (int i = 0; i < need_fix_intervals.size(); i++) {
+		
 		insert_values.push_back(get_the_mean_value(paras, para_ids[need_fix_intervals[i]]));
 	}
 	// now need to insert insert_values[i] to U
 	std::vector<double> result = U;
+
 	for (int i = 0; i < insert_values.size(); i++) {
 		result = knot_vector_insert_one_value(result, insert_values[i]);
 	}
@@ -259,18 +263,23 @@ void fix_stairs_row_too_many(const int degree, const std::vector<double>& Uin,
 // and insert one knot to this stair
 void insert_a_knot_to_a_stair(const int degree, const double pro_row_id, const std::vector<double>& Uin,
 	const std::vector<double>& paras, std::vector<double>& Uout) {
+
 	// Uin has n+degree+2 values, there are n-degree+2 different values, n-degree+1 intervals
 	int n = Uin.size() - 2 - degree;
+
 	Uout.clear();
+
 	/*std::vector<int> multiplicity(Uin.size() - 1);*/
 	std::vector<std::vector<int>> para_ids(Uin.size() - 1);
+
 	int which_interval = -1; // gives which interval does pro_row_id corresponding to
+
 	for (int i = 0; i < paras.size(); i++) {
 		for (int j = 0; j < Uin.size() - 1; j++) {
 			if (paras[i] >= Uin[j] && paras[i] < Uin[j + 1]) {
 				para_ids[j].push_back(i);
 				if (i == pro_row_id) {
-					which_interval == j;
+					which_interval = j;
 				}
 				break;
 			}
@@ -373,8 +382,9 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 	std::vector<double> expanded_U;
 	// take init_vec as input, detect if there is any stair whose row is too many (>n+1).
 	// if there are such stairs, insert knots to init_vec, the result is expanded_U
+	
 	fix_stairs_row_too_many(degree, init_vec, paras, expanded_U);
-
+	
 	assert(points.size() == paras.size());
 	int n = expanded_U.size() - 2 - degree;// n + 1 = number of control points
 	int m = paras.size() - 1;// m + 1 = the number of data points
@@ -382,13 +392,16 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 	Eigen::MatrixXd A;
 	Eigen::VectorXd b;
 
+
 	A = build_matrix_A(degree, expanded_U, paras);
+
 	b = build_Vector_b(points, dimension);
-
+	
 	bool have_solution = equation_has_solution(A, b);
-
+	
 	int start_row = 0;// initialized row nbr is 0
 	int nbr_rows = m + 1;// initialized block has m+1 rows
+	
 	while (!have_solution) {
 
 		Eigen::MatrixXd sub_A1, sub_A2;
@@ -403,7 +416,7 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 		sub_A2 = build_matrix_A(degree, expanded_U, paras, start_row + 1, nbr_rows - 1);
 		sub_b2 = build_Vector_b(points, dimension, start_row + 1, nbr_rows - 1);
 		bool have_solution2 = equation_has_solution(sub_A2, sub_b2, rank_diff2);
-
+		
 		if ((!have_solution1) && (!have_solution2)) {// if no solution, check next level;
 			if (rank_diff1 <= rank_diff2) {
 				start_row = start_row;
@@ -413,24 +426,32 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 				start_row = start_row + 1;
 				nbr_rows = nbr_rows - 1;
 			}
+
 			continue;
 		}
+		std::vector<double> tempU;
 		if (have_solution1 && (!have_solution2)) {
 			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
 			// the problematic row is start_row + nbr_rows
-			insert_a_knot_to_a_stair(degree, start_row + nbr_rows, expanded_U, paras, expanded_U);
 
+			
+			insert_a_knot_to_a_stair(degree, start_row + nbr_rows, expanded_U, paras, tempU);
+			
 		}
 		if ((!have_solution1) && have_solution2) {
 			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
-			insert_a_knot_to_a_stair(degree, start_row, expanded_U, paras, expanded_U);
 
+			insert_a_knot_to_a_stair(degree, start_row, expanded_U, paras, tempU);
+			
 		}
 		if (have_solution1 && have_solution2) {
 			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
 			// if both of them have solution, pick a random one to solve
-			insert_a_knot_to_a_stair(degree, start_row + nbr_rows, expanded_U, paras, expanded_U);
+
+			insert_a_knot_to_a_stair(degree, start_row + nbr_rows, expanded_U, paras, tempU);
+			
 		}
+		expanded_U = tempU;
 		start_row = 0; nbr_rows = m + 1;
 		A = build_matrix_A(degree, expanded_U, paras);
 		b = build_Vector_b(points, dimension);

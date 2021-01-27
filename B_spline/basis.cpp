@@ -75,3 +75,13 @@ std::vector<double> Chord_parameterization(std::vector<Vector3d>& pts) {
 	}
 	return paras;
 }
+void print_vector(const std::vector<double>& input) {
+	for (int i = 0; i < input.size(); i++) {
+		std::cout << input[i] << ", ";
+	}
+}
+void print_vector(const std::vector<int>& input) {
+	for (int i = 0; i < input.size(); i++) {
+		std::cout << input[i] << ", ";
+	}
+}
