@@ -210,7 +210,7 @@ std::vector<double> knot_vector_insert_values(const std::vector<double>& U, cons
 	std::vector<double> insert_values;
 
 	for (int i = 0; i < need_fix_intervals.size(); i++) {
-		
+		std::cout << "stair size, " << para_ids[need_fix_intervals[i]].size() << std::endl;
 		std::cout << "get_the_mean_value " << get_the_mean_value(paras, para_ids[need_fix_intervals[i]]) << std::endl;
 
 		insert_values.push_back(get_the_mean_value(paras, para_ids[need_fix_intervals[i]]));
@@ -263,8 +263,10 @@ void fix_stairs_row_too_many(const int degree, const std::vector<double>& Uin,
 
 // given a problematic row number (this row must be on a stair whose multiplicity is larger than 1)
 // and insert one knot to this stair
+// since one block (sub_A*x=sub_b) may split one stair into two, construct_method can select from
+// STAIR_FORWARD or STAIR_BACKWARD to select certain rows that count into mean value calculation
 void insert_a_knot_to_a_stair(const int degree, const double pro_row_id, const std::vector<double>& Uin,
-	const std::vector<double>& paras, std::vector<double>& Uout) {
+	const std::vector<double>& paras, std::vector<double>& Uout, const int construct_method= STAIR_WHOLE) {
 
 	// Uin has n+degree+2 values, there are n-degree+2 different values, n-degree+1 intervals
 	int n = Uin.size() - 2 - degree;
@@ -275,14 +277,29 @@ void insert_a_knot_to_a_stair(const int degree, const double pro_row_id, const s
 	std::vector<std::vector<int>> para_ids(Uin.size() - 1);
 
 	int which_interval = -1; // gives which interval does pro_row_id corresponding to
-
+	bool j_pushed = false;
 	for (int i = 0; i < paras.size(); i++) {
 		for (int j = 0; j < Uin.size() - 1; j++) {
 			if (paras[i] >= Uin[j] && paras[i] < Uin[j + 1]) {
-				para_ids[j].push_back(i);
+				
 				if (i == pro_row_id) {
 					which_interval = j;
+					if (construct_method == STAIR_BACKWARD) {
+						para_ids[j].clear();// if check backward, clear the forward part
+					}
 				}
+				if (construct_method == STAIR_FORWARD) {
+					if (j == which_interval) {
+						if (j_pushed == false) {
+							j_pushed = true;
+						}
+						else{
+							continue;// if which_interval is already set, and check forward, then clear backward part
+						}
+						
+					}
+				}
+				para_ids[j].push_back(i);
 				break;
 			}
 		}
@@ -405,9 +422,9 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 	int nbr_rows = m + 1;// initialized block has m+1 rows
 	int dbg_flag = 0;
 	while (!have_solution) {
-		if (dbg_flag > 50) exit(0);
+		/*if (dbg_flag > 50) exit(0);
 		dbg_flag++;
-		std::cout << "U now, "; print_vector(expanded_U);
+		std::cout << "U now, "; print_vector(expanded_U);*/
 		Eigen::MatrixXd sub_A1, sub_A2;
 		Eigen::VectorXd sub_b1, sub_b2;
 		int rank_diff1, rank_diff2;
@@ -438,21 +455,21 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
 			// the problematic row is start_row + nbr_rows
 
-			
-			insert_a_knot_to_a_stair(degree, start_row + nbr_rows, expanded_U, paras, tempU);
+			//TODO fix it by selecting forward or backward check
+			insert_a_knot_to_a_stair(degree, start_row + nbr_rows, expanded_U, paras, tempU,STAIR_FORWARD);
 			
 		}
 		if ((!have_solution1) && have_solution2) {
 			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
 
-			insert_a_knot_to_a_stair(degree, start_row, expanded_U, paras, tempU);
+			insert_a_knot_to_a_stair(degree, start_row, expanded_U, paras, tempU,STAIR_BACKWARD);
 			
 		}
 		if (have_solution1 && have_solution2) {
 			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
 			// if both of them have solution, pick a random one to solve
 
-			insert_a_knot_to_a_stair(degree, start_row + nbr_rows, expanded_U, paras, tempU);
+			insert_a_knot_to_a_stair(degree, start_row + nbr_rows, expanded_U, paras, tempU, STAIR_FORWARD);
 			
 		}
 		expanded_U = tempU;
