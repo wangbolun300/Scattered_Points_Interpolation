@@ -205,17 +205,19 @@ std::vector<double> knot_vector_insert_one_value(const std::vector<double>& U, c
 
 std::vector<double> knot_vector_insert_values(const std::vector<double>& U, const std::vector<double>& paras,
 	std::vector<int> need_fix_intervals, std::vector<std::vector<int>> para_ids) {
-
+	std::cout << "need_fix_intervals.size() " << need_fix_intervals.size() << std::endl;
 	// for each interval we need to fix, we insert one value
-	std::vector<double> insert_values(need_fix_intervals.size());
+	std::vector<double> insert_values;
 
 	for (int i = 0; i < need_fix_intervals.size(); i++) {
 		
+		std::cout << "get_the_mean_value " << get_the_mean_value(paras, para_ids[need_fix_intervals[i]]) << std::endl;
+
 		insert_values.push_back(get_the_mean_value(paras, para_ids[need_fix_intervals[i]]));
 	}
 	// now need to insert insert_values[i] to U
 	std::vector<double> result = U;
-
+	std::cout << "insert_values.size() " << insert_values.size() << std::endl;
 	for (int i = 0; i < insert_values.size(); i++) {
 		result = knot_vector_insert_one_value(result, insert_values[i]);
 	}
@@ -401,9 +403,11 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 	
 	int start_row = 0;// initialized row nbr is 0
 	int nbr_rows = m + 1;// initialized block has m+1 rows
-	
+	int dbg_flag = 0;
 	while (!have_solution) {
-
+		if (dbg_flag > 50) exit(0);
+		dbg_flag++;
+		std::cout << "U now, "; print_vector(expanded_U);
 		Eigen::MatrixXd sub_A1, sub_A2;
 		Eigen::VectorXd sub_b1, sub_b2;
 		int rank_diff1, rank_diff2;
