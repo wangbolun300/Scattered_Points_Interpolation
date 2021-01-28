@@ -162,8 +162,7 @@ bool equation_has_solution(const Eigen::MatrixXd& A,
 	Ab.resize(A.rows(), A.cols() + 1);
 	Ab << A, b;
 	int rankAb = rank(Ab);
-	std::cout << "rankA, " << rankA<<", rankAb,"<<rankAb << std::endl;
-	std::cout << "Ab\n" <<Ab<< std::endl;
+
 	if (rankA == rankAb) {
 		return true;
 	}
@@ -178,7 +177,7 @@ bool equation_has_solution(const Eigen::MatrixXd& A,
 	Ab.resize(A.rows(), A.cols() + 1);
 	Ab << A, b;
 	int rankAb = rank(Ab);
-	std::cout << "rankA, " << rankA << ", rankAb," << rankAb <<", rows of A, "<<A.rows()<< std::endl;
+	
 	if (rankA == rankAb) {
 		return true;
 	}
@@ -208,19 +207,16 @@ std::vector<double> knot_vector_insert_one_value(const std::vector<double>& U, c
 
 std::vector<double> knot_vector_insert_values(const std::vector<double>& U, const std::vector<double>& paras,
 	std::vector<int> need_fix_intervals, std::vector<std::vector<int>> para_ids) {
-	//std::cout << "need_fix_intervals.size() " << need_fix_intervals.size() << std::endl;
 	// for each interval we need to fix, we insert one value
 	std::vector<double> insert_values;
 
 	for (int i = 0; i < need_fix_intervals.size(); i++) {
-		//std::cout << "stair size, " << para_ids[need_fix_intervals[i]].size() << std::endl;
-		//std::cout << "get_the_mean_value " << get_the_mean_value(paras, para_ids[need_fix_intervals[i]]) << std::endl;
-
+		
 		insert_values.push_back(get_the_mean_value(paras, para_ids[need_fix_intervals[i]]));
 	}
 	// now need to insert insert_values[i] to U
 	std::vector<double> result = U;
-	//std::cout << "insert_values.size() " << insert_values.size() << std::endl;
+
 	for (int i = 0; i < insert_values.size(); i++) {
 		result = knot_vector_insert_one_value(result, insert_values[i]);
 	}
@@ -427,7 +423,7 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 	while (!have_solution) {
 		if (dbg_flag > 50) exit(0);
 		dbg_flag++;
-		std::cout << "U now, "; print_vector(expanded_U);
+		
 		Eigen::MatrixXd sub_A1, sub_A2;
 		Eigen::VectorXd sub_b1, sub_b2;
 		int rank_diff1, rank_diff2;
@@ -435,12 +431,12 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 
 		sub_A1 = build_matrix_A(degree, expanded_U, paras, start_row, nbr_rows - 1);
 		sub_b1 = build_Vector_b(points, dimension, start_row, nbr_rows - 1);
-		std::cout << "solution check 1" << std::endl;
+	
 		bool have_solution1 = equation_has_solution(sub_A1, sub_b1, rank_diff1);
 
 		sub_A2 = build_matrix_A(degree, expanded_U, paras, start_row + 1, nbr_rows - 1);
 		sub_b2 = build_Vector_b(points, dimension, start_row + 1, nbr_rows - 1);
-		std::cout << "solution check 2" << std::endl;
+	
 		bool have_solution2 = equation_has_solution(sub_A2, sub_b2, rank_diff2);
 		
 		if ((!have_solution1) && (!have_solution2)) {// if no solution, check next level;
@@ -461,20 +457,20 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 			// the problematic row is start_row + nbr_rows
 
 			//TODO fix it by selecting forward or backward check
-			std::cout << "which row 1, " << start_row + nbr_rows-1 << std::endl;
+			
 			insert_a_knot_to_a_stair(degree, start_row + nbr_rows-1, expanded_U, paras, tempU,STAIR_FORWARD);
 			
 		}
 		if ((!have_solution1) && have_solution2) {
 			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
-			std::cout << "which row 2, " << start_row << std::endl;
+			
 			insert_a_knot_to_a_stair(degree, start_row, expanded_U, paras, tempU,STAIR_BACKWARD);
 			
 		}
 		if (have_solution1 && have_solution2) {
 			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
 			// if both of them have solution, pick a random one to solve
-			std::cout << "which row 3, " << start_row + nbr_rows-1 << std::endl;
+			
 			insert_a_knot_to_a_stair(degree, start_row + nbr_rows-1, expanded_U, paras, tempU, STAIR_FORWARD);
 			
 		}

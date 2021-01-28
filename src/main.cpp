@@ -100,7 +100,7 @@ void plot_fitting_result() {
 	Eigen::MatrixXd control_pts_color;
 	Eigen::MatrixXd curve_pts; Eigen::MatrixXd curve_pts_color;
 	Eigen::MatrixXd target_pts; Eigen::MatrixXd target_pts_color;
-	test_fitting(control_pts, control_pts_color,
+	visual_curve_fitting(control_pts, control_pts_color,
 			curve_pts, curve_pts_color, target_pts, target_pts_color);
 	Eigen::MatrixXi edges;
 	vertices_to_edges(curve_pts, edges);
@@ -108,7 +108,7 @@ void plot_fitting_result() {
 	viewer.data().set_points(control_pts, control_pts_color);
 	//viewer.data().add_points(curve_pts, curve_pts_color);
 	viewer.data().add_points(target_pts, target_pts_color);
-
+	std::cout << "target pts nbr, " << target_pts.rows() << std::endl;
 	viewer.data().set_edges(curve_pts, edges, curve_pts_color.row(0));
 	viewer.launch();
 }
@@ -119,7 +119,7 @@ int main() {
 	//draw_a_line();
 	//draw_a_curve();
 	//test_fitting();
-	//plot_fitting_result();
-	test_curve_knot_fixing();
+	plot_fitting_result();
+	//test_curve_knot_fixing();
 	return 0;
 }
