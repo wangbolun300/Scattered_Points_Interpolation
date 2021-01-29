@@ -4,6 +4,7 @@
 #include<iostream>
 #include<array>
 #include"test.h"
+
 void show_basis(const std::vector<double>&b_vec) {
 	for (int i = 0; i < b_vec.size(); i++) {
 		std::cout << b_vec[i] << " ";

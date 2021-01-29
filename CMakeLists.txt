@@ -52,11 +52,11 @@ target_link_libraries(${PROJECT_NAME} PUBLIC igl::core igl::triangle)
 # B spline library.
 # igl -> SPLINE_LIB
 include(B_spline/SOURCE.cmake)
-prepend_current_path(SPLINE_SOURCES)
+#prepend_current_path(SPLINE_SOURCES)
 add_library(SPLINE_LIB ${SPLINE_SOURCES})
 SI_copy_headers(${SPLINE_SOURCES})
-SI_set_source_group(${SPLINE_SOURCES})
-target_sources(SPLINE_LIB PRIVATE ${SPLINE_SOURCES})
+#SI_set_source_group(${SPLINE_SOURCES})
+#target_sources(SPLINE_LIB PRIVATE ${SPLINE_SOURCES})
 target_include_directories(SPLINE_LIB PUBLIC B_spline/)
 target_link_libraries(SPLINE_LIB PUBLIC igl::core)
 
