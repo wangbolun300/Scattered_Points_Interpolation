@@ -87,8 +87,8 @@ void visual_curve_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control
 	Eigen::MatrixXd& target_pts, Eigen::MatrixXd& target_pts_color) {
 	int nbr_curve_pts = 500;
 	// 8 control points
-	std::vector<double> U_init = { {0,0,0,0,0.1,0.4,0.7,0.9,1,1,1,1} };
-
+	//std::vector<double> U_init = { {0,0,0,0,0.1,0.4,0.7,0.9,1,1,1,1} };
+	std::vector<double> U_init = { {0,0,0,0,0.1,1,1,1,1} };
 	int Qnbr = 12;
 	int degree = 3;
 	std::vector<Vector3d> pts(Qnbr);

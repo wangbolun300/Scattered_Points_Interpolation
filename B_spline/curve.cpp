@@ -254,8 +254,12 @@ void fix_stairs_row_too_many(const int degree, const std::vector<double>& Uin,
 	// down here, we need to insert values to U
 	// for each problematic stair, we insert one value; but this may not be enough,
 	// so, we recursive this function
+	
 	Uout = knot_vector_insert_values(Uin, paras, need_fix_intervals, para_ids);
-	fix_stairs_row_too_many(degree, Uout, paras, Uout);
+
+	std::vector<double> Utmp;
+	fix_stairs_row_too_many(degree, Uout, paras, Utmp);
+	Uout = Utmp;
 	return;
 
 }
@@ -316,6 +320,11 @@ void insert_a_knot_to_a_stair(const int degree, const int pro_row_id, const std:
 }
 
 // this function split the stair with the largest number of rows
+// TODO i think this method is not convincing. it may not deal with the real problematic one, but may keep dealing 
+// with the irrelevant part. imagine two stairs far a way, both very large, but only one is problematic. this method may
+// keep split the large stair which is fine, but delay the processing of the problematic one.
+
+// TODO considering this, do not use this function, while it can also provide a correct result, but not good enough
 void insert_a_knot_to_a_stair_largest_rows(const int degree, const int pro_row_id, const int start_row, const int end_row,
 	const std::vector<double>& Uin,
 	const std::vector<double>& paras, std::vector<double>& Uout, const int construct_method = STAIR_WHOLE) {
@@ -454,12 +463,12 @@ void insert_a_knot_to_a_stair_largest_rows(const int degree, const int pro_row_i
 std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const std::vector<double>& init_vec,
 	const std::vector<double>& paras, const std::vector<Vector3d>& points, const int dimension
 ) {
-	std::vector<double> expanded_U;
+	std::vector<double> expanded_U = init_vec;
 	// take init_vec as input, detect if there is any stair whose row is too many (>n+1).
 	// if there are such stairs, insert knots to init_vec, the result is expanded_U
-	
+
 	fix_stairs_row_too_many(degree, init_vec, paras, expanded_U);
-	
+
 	assert(points.size() == paras.size());
 	int n = expanded_U.size() - 2 - degree;// n + 1 = number of control points
 	int m = paras.size() - 1;// m + 1 = the number of data points
@@ -471,7 +480,7 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 	A = build_matrix_A(degree, expanded_U, paras);
 
 	b = build_Vector_b(points, dimension);
-	
+
 	bool have_solution = equation_has_solution(A, b);
 	
 	int start_row = 0;// initialized row nbr is 0
@@ -513,7 +522,7 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
 			// the problematic row is start_row + nbr_rows
 
-			//TODO fix it by selecting forward or backward check
+
 			
 			insert_a_knot_to_a_stair(degree, start_row + nbr_rows-1, expanded_U, paras, tempU,STAIR_FORWARD);
 			
