@@ -162,7 +162,7 @@ bool equation_has_solution(const Eigen::MatrixXd& A,
 	Ab.resize(A.rows(), A.cols() + 1);
 	Ab << A, b;
 	int rankAb = rank(Ab);
-
+	std::cout << "Ab,\n" << Ab << std::endl;
 	if (rankA == rankAb) {
 		return true;
 	}
@@ -264,7 +264,7 @@ void fix_stairs_row_too_many(const int degree, const std::vector<double>& Uin,
 // and insert one knot to this stair
 // since one block (sub_A*x=sub_b) may split one stair into two, construct_method can select from
 // STAIR_FORWARD or STAIR_BACKWARD to select certain rows that count into mean value calculation
-void insert_a_knot_to_a_stair(const int degree, const double pro_row_id, const std::vector<double>& Uin,
+void insert_a_knot_to_a_stair(const int degree, const int pro_row_id, const std::vector<double>& Uin,
 	const std::vector<double>& paras, std::vector<double>& Uout, const int construct_method= STAIR_WHOLE) {
 
 	// Uin has n+degree+2 values, there are n-degree+2 different values, n-degree+1 intervals
@@ -305,6 +305,63 @@ void insert_a_knot_to_a_stair(const int degree, const double pro_row_id, const s
 	}
 	std::vector<int> need_fix_intervals;
 	need_fix_intervals.push_back(which_interval);
+
+
+	// down here, we need to insert one value to U
+
+	Uout = knot_vector_insert_values(Uin, paras, need_fix_intervals, para_ids);
+
+	return;
+
+}
+
+// this function split the stair with the largest number of rows
+void insert_a_knot_to_a_stair_largest_rows(const int degree, const int pro_row_id, const int start_row, const int end_row,
+	const std::vector<double>& Uin,
+	const std::vector<double>& paras, std::vector<double>& Uout, const int construct_method = STAIR_WHOLE) {
+
+	// Uin has n+degree+2 values, there are n-degree+2 different values, n-degree+1 intervals
+	int n = Uin.size() - 2 - degree;
+
+	Uout.clear();
+
+	/*std::vector<int> multiplicity(Uin.size() - 1);*/
+	std::vector<std::vector<int>> para_ids(Uin.size() - 1);
+
+	int which_interval = -1; // gives which interval does pro_row_id corresponding to
+	bool j_pushed = false;
+	for (int i = 0; i < paras.size(); i++) {
+		if (i<start_row || i>end_row) continue;
+		for (int j = 0; j < Uin.size() - 1; j++) {
+			if (paras[i] >= Uin[j] && paras[i] < Uin[j + 1]) {
+
+				if (i == pro_row_id) {
+					which_interval = j;
+					
+				}
+				
+				para_ids[j].push_back(i);
+				break;
+			}
+		}
+	}
+	int highest_rows_interval = -1;
+	int nbr_rows = -1;
+	for (int i = 0; i < para_ids.size(); i++) {
+		if (para_ids[i].size() > nbr_rows) {
+			nbr_rows = para_ids[i].size();
+			highest_rows_interval = i;
+		}
+	}
+	assert(nbr_rows > 1);
+	std::vector<int> need_fix_intervals;
+	if (construct_method == STAIR_HIGHEST) {
+		need_fix_intervals.push_back(highest_rows_interval);
+	}
+	else {
+		need_fix_intervals.push_back(which_interval);
+	}
+	
 
 
 	// down here, we need to insert one value to U
