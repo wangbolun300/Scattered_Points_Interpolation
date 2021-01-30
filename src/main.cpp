@@ -4,7 +4,10 @@
 #include<iostream>
 #include<array>
 #include"test.h"
-
+#include<mesh_processing.h>
+#include <igl/boundary_loop.h>
+#include <igl/map_vertices_to_circle.h>
+#include <igl/harmonic.h>
 void show_basis(const std::vector<double>&b_vec) {
 	for (int i = 0; i < b_vec.size(); i++) {
 		std::cout << b_vec[i] << " ";
@@ -113,6 +116,32 @@ void plot_fitting_result() {
 	viewer.data().set_edges(curve_pts, edges, curve_pts_color.row(0));
 	viewer.launch();
 }
+
+void visual_mesh() {
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+	const std::string filename = path + "camelhead.off";
+	Eigen::MatrixXd V; Eigen::MatrixXi F;
+	read_and_visual_mesh(filename, V, F);
+	Eigen::MatrixXd fcolor, ecolor;
+	fcolor = Vector3d(0, 0.5, 0.5); ecolor = Vector3d(0, 0, 0);
+	Eigen::VectorXi bnd;
+	igl::boundary_loop(F, bnd);// boundary vertices detection
+	Eigen::MatrixXd bnd_uv, param;
+	/*igl::map_vertices_to_circle(V, bnd, bnd_uv);*/
+	map_vertices_to_square(V, bnd, bnd_uv);
+	//exit(0);
+	igl::harmonic(V, F, bnd, bnd_uv, 1, param);
+
+	
+	
+	
+	
+	igl::opengl::glfw::Viewer viewer;
+	viewer.data().set_mesh(param, F);
+	viewer.launch();
+
+
+}
 int main() {
 	//test_opengl();
 	//int p = 3;
@@ -120,7 +149,8 @@ int main() {
 	//draw_a_line();
 	//draw_a_curve();
 	//test_fitting();
-	plot_fitting_result();
+	//plot_fitting_result();
 	//test_curve_knot_fixing();
+	visual_mesh();
 	return 0;
 }
