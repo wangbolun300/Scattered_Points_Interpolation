@@ -198,7 +198,7 @@ void visual_and_chop_mesh(const bool write_mesh) {
 	
 	generate_clean_mesh_data_for_parametrization(V, newF, Vclean, Fclean);
 	if (write_mesh)
-		igl::write_triangle_mesh(path + "camel_small.obj", Vclean, Fclean);
+		igl::write_triangle_mesh(path + "camel_small_close.obj", Vclean, Fclean);
 	Eigen::VectorXi bnd;
 	igl::boundary_loop(Fclean, bnd);
 	Eigen::MatrixXd visual_bnd(bnd.size(), 3);
@@ -215,35 +215,35 @@ void visual_and_chop_mesh(const bool write_mesh) {
 }
 
 
-//void mesh_parameterization() {
-//	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-//	const std::string filename = path + "camel_small.obj";
-//	Eigen::MatrixXd Vori, V; Eigen::MatrixXi Fori, F;
-//	read_and_visual_mesh(filename, Vori, Fori);
-//	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
-//	fcolor.row(0) = Vector3d(0, 0.5, 0.5); ecolor.row(0) = Vector3d(0, 0, 0);
-//	V = Vori; F = Fori;
-//	/////////////////////////////////////////
-//	// parameterization part
-//	Eigen::VectorXi bnd;
-//	igl::boundary_loop(F, bnd);// boundary vertices detection
-//	Eigen::MatrixXd bnd_uv, param;
-//	/*igl::map_vertices_to_circle(V, bnd, bnd_uv);*/
-//	map_vertices_to_square(V, bnd, bnd_uv);
-//	//exit(0);
-//	igl::harmonic(V, F, bnd, bnd_uv, 1, param);
-//	/////////////////////////////////////////////
-//
-//
-//	global_viewer.data().set_mesh(V, F);
-//	draw_axis(10);
-//	Eigen::MatrixXd firstP(1, 3);
-//	firstP.row(0) = V.row(bnd[0]);
-//	global_viewer.data().add_points(firstP, fcolor);
-//	global_viewer.launch();
-//
-//
-//}
+void mesh_parameterization() {
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+	const std::string filename = path + "camel_small_open.obj";
+	Eigen::MatrixXd Vori, V; Eigen::MatrixXi Fori, F;
+	read_and_visual_mesh(filename, Vori, Fori);
+	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
+	fcolor.row(0) = Vector3d(0, 0.5, 0.5); ecolor.row(0) = Vector3d(0, 0, 0);
+	V = Vori; F = Fori;
+	/////////////////////////////////////////
+	// parameterization part
+	Eigen::VectorXi bnd;
+	igl::boundary_loop(F, bnd);// boundary vertices detection
+	Eigen::MatrixXd bnd_uv, param;
+	/*igl::map_vertices_to_circle(V, bnd, bnd_uv);*/
+	map_vertices_to_square(V, bnd, bnd_uv);
+	//exit(0);
+	igl::harmonic(V, F, bnd, bnd_uv, 1, param);
+	/////////////////////////////////////////////
+
+
+	global_viewer.data().set_mesh(param, F);
+	draw_axis(10);
+	Eigen::MatrixXd firstP(1, 3);
+	firstP.row(0) = V.row(bnd[0]);
+	global_viewer.data().add_points(firstP, fcolor);
+	global_viewer.launch();
+
+
+}
 int main() {
 	//test_opengl();
 	//int p = 3;
@@ -254,7 +254,7 @@ int main() {
 	//plot_fitting_result();
 	//test_curve_knot_fixing();
 	//visual_mesh();
-	//mesh_parameterization();
-	visual_and_chop_mesh(false);
+	mesh_parameterization();
+	//visual_and_chop_mesh(false);
 	return 0;
 }
