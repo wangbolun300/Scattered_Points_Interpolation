@@ -174,42 +174,42 @@ void remove_some_faces(const int axis, const double value, const bool remove_lar
 
 
 void visual_and_chop_mesh(const bool write_mesh) {
-	//const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	//const std::string filename = path + "camel_b.obj";
-	//Eigen::MatrixXd V, Vclean; Eigen::MatrixXi F;
-	//read_and_visual_mesh(filename, V, F);
-	//Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
-	//fcolor.row(0) = Vector3d(0, 0.5, 0.5); ecolor.row(0) = Vector3d(0, 0, 0);
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+	const std::string filename = path + "camel_b.obj";
+	Eigen::MatrixXd V, Vclean; Eigen::MatrixXi F;
+	read_and_visual_mesh(filename, V, F);
+	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
+	fcolor.row(0) = Vector3d(0, 0.5, 0.5); ecolor.row(0) = Vector3d(0, 0, 0);
 
-	/////////////////////////////////////////////
-	////// parameterization part
-	////Eigen::VectorXi bnd;
-	////igl::boundary_loop(F, bnd);// boundary vertices detection
-	////Eigen::MatrixXd bnd_uv, param;
-	/////*igl::map_vertices_to_circle(V, bnd, bnd_uv);*/
-	////map_vertices_to_square(V, bnd, bnd_uv);
-	//////exit(0);
-	////igl::harmonic(V, F, bnd, bnd_uv, 1, param);
-	/////////////////////////////////////////////////
-	//
-	//Eigen::MatrixXi newF,Fclean;
-	//remove_some_faces(2, 20, false, V, F, newF);
-	//remove_some_faces(1, 32, false, V, newF, newF);
-	//
-	//generate_clean_mesh_data_for_parametrization(V, newF, Vclean, Fclean);
-	//if (write_mesh)
-	//	igl::write_triangle_mesh(path + "camel_small.obj", Vclean, Fclean);
+	///////////////////////////////////////////
+	//// parameterization part
 	//Eigen::VectorXi bnd;
-	//igl::boundary_loop(Fclean, bnd);
-	//Eigen::MatrixXd visual_bnd(bnd.size(), 3);
-	//for (int i = 0; i < bnd.size(); i++) {
-	//	visual_bnd.row(i) = Vclean.row(bnd[i]);
-	//}
-	////std::cout << "boundary ids,\n" << bnd << std::endl;
-	//global_viewer.data().set_mesh(Vclean, Fclean);
-	//global_viewer.data().add_points(visual_bnd, fcolor);
-	//draw_axis(10);
-	//global_viewer.launch();
+	//igl::boundary_loop(F, bnd);// boundary vertices detection
+	//Eigen::MatrixXd bnd_uv, param;
+	///*igl::map_vertices_to_circle(V, bnd, bnd_uv);*/
+	//map_vertices_to_square(V, bnd, bnd_uv);
+	////exit(0);
+	//igl::harmonic(V, F, bnd, bnd_uv, 1, param);
+	///////////////////////////////////////////////
+	
+	Eigen::MatrixXi newF,Fclean;
+	remove_some_faces(2, 20, false, V, F, newF);
+	remove_some_faces(1, 32, false, V, newF, newF);
+	
+	generate_clean_mesh_data_for_parametrization(V, newF, Vclean, Fclean);
+	if (write_mesh)
+		igl::write_triangle_mesh(path + "camel_small.obj", Vclean, Fclean);
+	Eigen::VectorXi bnd;
+	igl::boundary_loop(Fclean, bnd);
+	Eigen::MatrixXd visual_bnd(bnd.size(), 3);
+	for (int i = 0; i < bnd.size(); i++) {
+		visual_bnd.row(i) = Vclean.row(bnd[i]);
+	}
+	//std::cout << "boundary ids,\n" << bnd << std::endl;
+	global_viewer.data().set_mesh(Vclean, Fclean);
+	global_viewer.data().add_points(visual_bnd, fcolor);
+	draw_axis(10);
+	global_viewer.launch();
 
 
 }

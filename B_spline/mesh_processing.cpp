@@ -141,10 +141,10 @@ void remove_duplicated_vertices(const Eigen::MatrixXd V, const Eigen::MatrixXi F
 void generate_clean_mesh_data_for_parametrization(const Eigen::MatrixXd V, const Eigen::MatrixXi F,
 	Eigen::MatrixXd& Vout, Eigen::MatrixXi& Fout) {
 
-	// the duplicated vertices are located, and faces will not use all the vertices
-	remove_duplicated_vertices(Vout, Fout, Vout, Fout);
+	// the duplicated vertices will be located, and faces will not use all the vertices
+	remove_duplicated_vertices(V, F, Vout, Fout);
 
 	//  remove the unrelated vertices
-	remove_redundent_mesh_vertices(V, F, Vout, Fout);
+	remove_redundent_mesh_vertices(Vout, Fout, Vout, Fout);
 
 }
