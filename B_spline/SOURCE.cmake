@@ -3,6 +3,8 @@ B_spline/basis.h
 B_spline/basis.cpp
 B_spline/curve.h
 B_spline/curve.cpp
+B_spline/surface.h
+B_spline/surface.cpp
 B_spline/Types.hpp
 B_spline/test.h
 B_spline/test.cpp
