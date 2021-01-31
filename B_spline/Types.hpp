@@ -2,7 +2,8 @@
 #include<Eigen/Core>
 #include<array>
 #include<iostream>
-typedef  Eigen::Vector3d Vector3d;
+typedef Eigen::Vector3d Vector3d;
+typedef Eigen::Vector3i Vector3i;
 static const int STAIR_FORWARD = 0;
 static const int STAIR_BACKWARD = 1;
 static const int STAIR_WHOLE = 2;

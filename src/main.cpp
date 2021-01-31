@@ -244,6 +244,13 @@ void mesh_parameterization() {
 
 
 }
+void visual_surface() {
+	Eigen::MatrixXd ver;
+	Eigen::MatrixXi faces;
+	test_surface_visual(ver, faces);
+	global_viewer.data().set_mesh(ver, faces);
+	global_viewer.launch();
+}
 int main() {
 	//test_opengl();
 	//int p = 3;
@@ -254,7 +261,8 @@ int main() {
 	//plot_fitting_result();
 	//test_curve_knot_fixing();
 	//visual_mesh();
-	mesh_parameterization();
+	//mesh_parameterization();
 	//visual_and_chop_mesh(false);
+	visual_surface();
 	return 0;
 }

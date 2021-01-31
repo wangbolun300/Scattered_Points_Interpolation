@@ -1,5 +1,12 @@
 #include<surface.h>
-Vector3d BSplineCurvePoint(const int degree1, const int degree2,
+
+int Bsurface::nu() {
+	return U.size() - 2 - degree1;
+}
+int Bsurface::nv() {
+	return V.size() - 2 - degree2;
+}
+Vector3d BSplineSurfacePoint(const int degree1, const int degree2,
 	const std::vector<double>& U, const std::vector<double>& V, const double upara,
 	const double vpara, const std::vector<std::vector<Vector3d>>& control) {
 	Eigen::Vector3d result = Eigen::Vector3d(0, 0, 0);
@@ -18,4 +25,7 @@ Vector3d BSplineCurvePoint(const int degree1, const int degree2,
 
 	}
 	return result;
+}
+Vector3d BSplineSurfacePoint(const Bsurface& surface, const double upara, const double vpara) {
+	return BSplineSurfacePoint(surface.degree1, surface.degree2, surface.U, surface.V, upara, vpara, surface.control_points);
 }
