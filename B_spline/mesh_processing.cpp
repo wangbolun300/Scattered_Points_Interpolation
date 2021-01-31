@@ -66,3 +66,85 @@ void map_vertices_to_square(const Eigen::MatrixXd& V, const Eigen::VectorXi& bnd
 	
 
 }
+// remove the vertices not used in contructing the surface
+// this function does not consider if there are duplicated vertices (two vertices in 
+// exact the same position)
+void remove_redundent_mesh_vertices(const Eigen::MatrixXd V, const Eigen::MatrixXi F,
+	Eigen::MatrixXd& Vout, Eigen::MatrixXi& Fout) {
+
+
+	std::vector<bool> located(V.rows(), false);
+	std::vector<int> map(V.rows());
+	int nbr = 0;
+	for (int i = 0; i < F.rows(); i++) {
+		for (int j = 0; j < 3; j++) {
+			if (located[F(i, j)] == false) {
+				located[F(i, j)] = true;
+				map[F(i, j)] = nbr;
+				nbr++;
+			}
+
+		}
+	}
+	Fout.resize(F.rows(), 3);
+	for (int i = 0; i < F.rows(); i++) {
+		for (int j = 0; j < 3; j++) {
+			Fout(i, j) = map[F(i, j)];
+		}
+	}
+	Vout.resize(nbr, 3);
+	int k = 0;
+	for (int i = 0; i < V.rows(); i++) {
+		if (located[i])
+			Vout.row(map[i]) = V.row(i);
+	}
+}
+
+// detect the duplicated vertices, and re-orginaze the faces to avoid open
+// boundary caused by vertices duplication
+void remove_duplicated_vertices(const Eigen::MatrixXd V, const Eigen::MatrixXi F,
+	Eigen::MatrixXd& Vout, Eigen::MatrixXi& Fout) {
+	std::vector<int> map(V.rows(), -1);
+	std::vector<bool> duplicated(V.rows(), false);
+	int to_delete = 0;
+	for (int i = 0; i < V.rows(); i++) {
+		for (int j = i; j < V.rows(); j++) {
+			if (i < j) {
+				if (V.row(i) == V.row(j)) {
+					duplicated[j] = true;
+					if (duplicated[i] == true) {
+						map[j] = map[i];
+					}
+					else {
+						map[j] = i;
+						to_delete++;
+					}
+
+				}
+			}
+		}
+	}
+	Vout = V;
+	Fout.resize(F.rows(), 3);
+	for (int i = 0; i < Fout.rows(); i++) {
+		for (int j = 0; j < 3; j++) {
+			if (duplicated[F(i, j)] == true) {
+				Fout(i, j) = map[F(i, j)];
+			}
+			else {
+				Fout(i, j) = F(i, j);
+			}
+		}
+	}
+}
+
+void generate_clean_mesh_data_for_parametrization(const Eigen::MatrixXd V, const Eigen::MatrixXi F,
+	Eigen::MatrixXd& Vout, Eigen::MatrixXi& Fout) {
+
+	// the duplicated vertices are located, and faces will not use all the vertices
+	remove_duplicated_vertices(Vout, Fout, Vout, Fout);
+
+	//  remove the unrelated vertices
+	remove_redundent_mesh_vertices(V, F, Vout, Fout);
+
+}
