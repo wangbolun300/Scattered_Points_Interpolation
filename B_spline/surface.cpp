@@ -45,16 +45,41 @@ void fix_grid_parameters_too_many(
 	Vout.clear();
 	const int ps1 = Uin.size() - 1;// the number of u intervals
 	const int ps2 = Vin.size() - 1;// the number of v intervals
-	std::vector<std::vector<std::vector<int>> > para_ids(ps1);
+	std::vector<std::vector<std::vector<int>> > para_ids(ps1+1);//ps1+1 to deal with u==1
 	for (int i = 0; i < para_ids.size(); i++) {
-		para_ids[i].resize(ps2);
+		para_ids[i].resize(ps2+1);//ps2+1 to deal with v==1
 	}
 	for (int i = 0; i < paras.rows(); i++) {
+		bool located = false;
 		double u = paras(i, 0), v = paras(i, 1);
+
+		if (u == Uin[Uin.size() - 1] && v != Vin[Vin.size() - 1]) {
+			for (int j = 0; j < ps2; j++) {
+				if (v >= Vin[j] && v < Vin[j + 1]) {
+					para_ids[ps1][j].push_back(i);
+					located = true;
+					break;
+				}
+			}
+		}
+		if()
+		if (located) continue;
+
+
+
+
 		for (int j = 0; j < ps1; j++) {
 			if (u >= Uin[j] && u < Uin[j + 1]) {
+				for (int k = 0; k < ps2; k++) {
+					if (v >= Vin[k] && v < Vin[k + 1]) {
+						para_ids[j][k].push_back(i);
+						located = true;
+						break;
+					}
+				}
 
 			}
+			if (located) break;
 		}
 	}
 
