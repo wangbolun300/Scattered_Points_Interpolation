@@ -231,6 +231,8 @@ void fix_stairs_row_too_many(const int degree, const std::vector<double>& Uin,
 	int n = Uin.size() - 2 - degree;
 	Uout.clear();
 	//std::vector<int> multiplicity(Uin.size() - 1);
+
+	//TODO remind that we don't need to deal with u==1, since it will never cause problem
 	std::vector<std::vector<int>> para_ids(Uin.size() - 1);
 	for (int i = 0; i < paras.size(); i++) {
 		for (int j = 0; j < Uin.size() - 1; j++) {

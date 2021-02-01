@@ -13,3 +13,6 @@ Eigen::MatrixXd solve_curve_control_points(const int degree, const std::vector<d
 
 std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const std::vector<double>& init_vec,
 	const std::vector<double>& paras, const std::vector<Vector3d>& points);
+
+void fix_stairs_row_too_many(const int degree, const std::vector<double>& Uin,
+	const std::vector<double>& paras, std::vector<double>& Uout);
