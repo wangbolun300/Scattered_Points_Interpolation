@@ -148,3 +148,28 @@ void generate_clean_mesh_data_for_parametrization(const Eigen::MatrixXd V, const
 	remove_redundent_mesh_vertices(Vout, Fout, Vout, Fout);
 
 }
+// this is to remove some faces of a mesh accroding to the vertices coordinates.
+// axis select from 0, 1, 2. 
+void remove_some_faces(const int axis, const double value, const bool remove_larger,
+	const Eigen::MatrixXd& V, const Eigen::MatrixXi F, Eigen::MatrixXi& newF) {
+	int rows = F.rows();
+	newF.resize(1, 3);
+	int already_updated = 0;
+	for (int i = 0; i < rows; i++) {
+		if (remove_larger) {
+			if (V(F(i, 0), axis) > value || V(F(i, 1), axis) > value || V(F(i, 2), axis) > value) {
+				continue;
+			}
+		}
+		else {
+			if (V(F(i, 0), axis) < value || V(F(i, 1), axis) < value || V(F(i, 2), axis) < value) {
+				continue;
+			}
+		}
+		newF.conservativeResize(already_updated + 1, 3);
+		newF.row(already_updated) = F.row(i);
+		already_updated++;
+
+	}
+
+}

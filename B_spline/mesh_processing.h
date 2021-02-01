@@ -14,3 +14,8 @@ void remove_redundent_mesh_vertices(const Eigen::MatrixXd V, const Eigen::Matrix
 // and duplicated vertices(may cause open boundary in unwanted area). this function clean the problem
 void generate_clean_mesh_data_for_parametrization(const Eigen::MatrixXd V, const Eigen::MatrixXi F,
 	Eigen::MatrixXd& Vout, Eigen::MatrixXi& Fout);
+
+// this is to remove some faces of a mesh accroding to the vertices coordinates.
+// axis select from 0, 1, 2. 
+void remove_some_faces(const int axis, const double value, const bool remove_larger,
+	const Eigen::MatrixXd& V, const Eigen::MatrixXi F, Eigen::MatrixXi& newF);

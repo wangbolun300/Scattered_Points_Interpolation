@@ -213,11 +213,30 @@ void B_spline_surface_to_mesh(const Bsurface &surface, const int pnbr, Eigen::Ma
 	int fline = 0;
 	for (int i = 0; i < pnbr - 1; i++) {
 		for (int j = 0; j < pnbr - 1; j++) {
-			faces.row(fline) = Vector3i(i + pnbr*j, i + pnbr*(j + 1), i + pnbr*(1 + j) + 1);
+			faces.row(fline) = Vector3i(i + pnbr * j, i + pnbr * (j + 1), i + pnbr * (1 + j) + 1);
 			faces.row(fline + 1) = Vector3i(i + pnbr * j, i + pnbr * (1 + j) + 1, i + pnbr * j + 1);
 			fline += 2;
 		}
 	}
+}
+
+void parameter_grid_to_mesh(const Eigen::MatrixXd& uv, Eigen::MatrixXd &ver, Eigen::MatrixXi& edges) {
+	assert(uv.cols() == 2);
+	ver.resize(uv.rows() * 4, 3);
+	edges.resize(uv.rows() * 2, 2);
+	for (int i = 0; i < uv.rows(); i++) {
+		double u = uv(i, 0);
+		double v = uv(i, 1);
+		ver.row(4 * i) = Vector3d(0, v, 0);
+		ver.row(4 * i + 1) = Vector3d(1, v, 0);
+		ver.row(4 * i + 2) = Vector3d(u, 0, 0);
+		ver.row(4 * i + 3) = Vector3d(u, 1, 0);
+	}
+	for (int i = 0; i < uv.rows(); i++) {
+		edges.row(2 * i) = Vector2i(4 * i, 4 * i + 1);
+		edges.row(2 * i + 1) = Vector2i(4 * i + 2, 4 * i + 3);
+	}
+
 }
 void test_surface_visual(Eigen::MatrixXd &ver, Eigen::MatrixXi& faces) {
 	Bsurface surface;

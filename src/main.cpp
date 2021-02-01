@@ -142,34 +142,10 @@ void draw_axis(const double scale) {
 	//E.row(1) << 0, 2;
 	//E.row(2) << 0, 3;
 	global_viewer.data().add_edges(V1, V2, C);
-	global_viewer.data().line_width = 3;
+	global_viewer.data().line_width = 1;
 }
 
-// this is to remove some faces of a mesh accroding to the vertices coordinates.
-// axis select from 0, 1, 2. 
-void remove_some_faces(const int axis, const double value, const bool remove_larger,
-	const Eigen::MatrixXd& V, const Eigen::MatrixXi F, Eigen::MatrixXi& newF) {
-	int rows = F.rows();
-	newF.resize(1, 3);
-	int already_updated = 0;
-	for (int i = 0; i < rows; i++) {
-		if (remove_larger) {
-			if (V(F(i, 0), axis) > value || V(F(i, 1), axis) > value || V(F(i, 2), axis) > value) {
-				continue;
-			}
-		}
-		else {
-			if (V(F(i, 0), axis) < value || V(F(i, 1), axis) < value || V(F(i, 2), axis) < value) {
-				continue;
-			}
-		}
-		newF.conservativeResize(already_updated + 1, 3);
-		newF.row(already_updated) = F.row(i);
-		already_updated++;
 
-	}
-
-}
 
 
 
@@ -193,12 +169,12 @@ void visual_and_chop_mesh(const bool write_mesh) {
 	///////////////////////////////////////////////
 	
 	Eigen::MatrixXi newF,Fclean;
-	remove_some_faces(2, 20, false, V, F, newF);
+	remove_some_faces(2, 38, false, V, F, newF);
 	remove_some_faces(1, 32, false, V, newF, newF);
 	
 	generate_clean_mesh_data_for_parametrization(V, newF, Vclean, Fclean);
 	if (write_mesh)
-		igl::write_triangle_mesh(path + "camel_small_close.obj", Vclean, Fclean);
+		igl::write_triangle_mesh(path + "camel_smallest.obj", Vclean, Fclean);
 	Eigen::VectorXi bnd;
 	igl::boundary_loop(Fclean, bnd);
 	Eigen::MatrixXd visual_bnd(bnd.size(), 3);
@@ -217,7 +193,7 @@ void visual_and_chop_mesh(const bool write_mesh) {
 
 void mesh_parameterization() {
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	const std::string filename = path + "camel_small_open.obj";
+	const std::string filename = path + "camel_smallest.obj";
 	Eigen::MatrixXd Vori, V; Eigen::MatrixXi Fori, F;
 	read_and_visual_mesh(filename, Vori, Fori);
 	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
@@ -233,13 +209,15 @@ void mesh_parameterization() {
 	//exit(0);
 	igl::harmonic(V, F, bnd, bnd_uv, 1, param);
 	/////////////////////////////////////////////
-
+	Eigen::MatrixXd grid_ver; Eigen::MatrixXi grid_edges;
+	parameter_grid_to_mesh(param, grid_ver, grid_edges);
+	//global_viewer.data().set_edges(grid_ver, grid_edges, fcolor);
 
 	global_viewer.data().set_mesh(param, F);
 	draw_axis(10);
 	Eigen::MatrixXd firstP(1, 3);
 	firstP.row(0) = V.row(bnd[0]);
-	global_viewer.data().add_points(firstP, fcolor);
+	//global_viewer.data().add_points(firstP, fcolor);
 	global_viewer.launch();
 
 
@@ -261,8 +239,8 @@ int main() {
 	//plot_fitting_result();
 	//test_curve_knot_fixing();
 	//visual_mesh();
-	//mesh_parameterization();
-	//visual_and_chop_mesh(false);
-	visual_surface();
+	mesh_parameterization();
+	//visual_and_chop_mesh(true);
+	//visual_surface();
 	return 0;
 }

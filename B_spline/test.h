@@ -9,3 +9,4 @@ void visual_curve_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control
 	Eigen::MatrixXd& curve_pts, Eigen::MatrixXd& curve_pts_color,
 	Eigen::MatrixXd& target_pts, Eigen::MatrixXd& target_pts_color);
 void test_surface_visual(Eigen::MatrixXd &ver, Eigen::MatrixXi& faces);
+void parameter_grid_to_mesh(const Eigen::MatrixXd& uv, Eigen::MatrixXd &ver, Eigen::MatrixXi& edges);

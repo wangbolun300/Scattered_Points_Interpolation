@@ -324,7 +324,7 @@ void insert_a_knot_to_a_stair(const int degree, const int pro_row_id, const std:
 // with the irrelevant part. imagine two stairs far a way, both very large, but only one is problematic. this method may
 // keep split the large stair which is fine, but delay the processing of the problematic one.
 
-// TODO considering this, do not use this function, while it can also provide a correct result, but not good enough
+// TODO considering this, do not use this function, although it can also provide a correct result, but not good enough
 void insert_a_knot_to_a_stair_largest_rows(const int degree, const int pro_row_id, const int start_row, const int end_row,
 	const std::vector<double>& Uin,
 	const std::vector<double>& paras, std::vector<double>& Uout, const int construct_method = STAIR_WHOLE) {
