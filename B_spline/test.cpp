@@ -3,6 +3,7 @@
 #include<iostream>
 #include<surface.h>
 #include<cmath>
+#include<mesh_processing.h>
 
 Eigen::MatrixXd vector_to_matrix_3d(const std::vector<Vector3d>& v) {
 	Eigen::MatrixXd result(v.size(), 3);
@@ -238,6 +239,21 @@ void parameter_grid_to_mesh(const Eigen::MatrixXd& uv, Eigen::MatrixXd &ver, Eig
 	}
 
 }
+void knot_intervals_to_mesh(const int degree1, const int degree2, 
+	const std::vector<double>& U, const std::vector<double>& V, 
+	Eigen::MatrixXd &ver, Eigen::MatrixXi& edges) {
+	int udiff = U.size() - 2 * degree1, vdiff = V.size() - 2 * degree2;
+	Eigen::MatrixXd uv(udiff + vdiff, 2);
+	for (int i = 0; i < uv.rows(); i++) {
+		if (i < udiff) {
+			uv.row(i) << U[i + degree1], 0;
+		}
+		else {
+			uv.row(i) << 0, V[i - udiff + degree2];
+		}
+	}
+	parameter_grid_to_mesh(uv, ver, edges);
+}
 void test_surface_visual(Eigen::MatrixXd &ver, Eigen::MatrixXi& faces) {
 	Bsurface surface;
 	surface.degree1 = 3;
@@ -261,3 +277,24 @@ void test_surface_visual(Eigen::MatrixXd &ver, Eigen::MatrixXi& faces) {
 	B_spline_surface_to_mesh(surface, 50, ver, faces);
 }
 
+void test_surface_knot_preprocessing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::MatrixXi& knotE) {
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+	const std::string filename = path + "camel_smallest.obj";
+
+	Eigen::MatrixXd V; Eigen::MatrixXi F;
+	Eigen::MatrixXd  param;
+	mesh_parameterization(filename, V, param, F);
+
+	int degree1 = 3, degree2 = 3;
+	std::vector<double> vecU = { {0,0,0,0,0.1,1,1,1,1} };
+	std::vector<double> vecV = { {0,0,0,0,0.1,1,1,1,1} };
+	std::vector<double> Uout, Vout;
+	fix_surface_grid_parameter_too_many(degree1, vecU, degree2, vecV, param, Uout, Vout);
+	std::cout << "fixed U is \n"; print_vector(Uout);
+	std::cout << "fixed V is \n"; print_vector(Vout);
+	points.resize(param.rows(), 3);
+	for (int i = 0; i < points.rows(); i++) {
+		points.row(i) << param.row(i), 0;
+	}
+	knot_intervals_to_mesh(degree1, degree2, Uout, Vout, knotP, knotE);
+}

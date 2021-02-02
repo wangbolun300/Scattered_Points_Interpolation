@@ -16,3 +16,8 @@ struct Bsurface {
 	int nv();
 };
 Vector3d BSplineSurfacePoint(const Bsurface& surface, const double upara, const double vpara);
+
+void fix_surface_grid_parameter_too_many(const int degree1, const std::vector<double>& Uin,
+	const int degree2, const std::vector<double>& Vin,
+	const Eigen::MatrixXd& paras,
+	std::vector<double>& Uout, std::vector<double>& Vout);

@@ -20,3 +20,6 @@ void generate_clean_mesh_data_for_parametrization(const Eigen::MatrixXd V, const
 // axis select from 0, 1, 2. 
 void remove_some_faces(const int axis, const double value, const bool remove_larger,
 	const Eigen::MatrixXd& V, const Eigen::MatrixXi F, Eigen::MatrixXi& newF);
+
+void mesh_parameterization(
+	const std::string &meshfile, Eigen::MatrixXd& V, Eigen::MatrixXd &param, Eigen::MatrixXi &F);

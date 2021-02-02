@@ -1,6 +1,10 @@
 #include <mesh_processing.h>
 #include<array>
 #include<curve.h>
+#include <igl/boundary_loop.h>
+#include <igl/map_vertices_to_circle.h>
+#include <igl/harmonic.h>
+#include <igl/write_triangle_mesh.h>
 
 void test_read_mesh(const std::string &filename) {
 	Eigen::MatrixXd V;
@@ -173,3 +177,24 @@ void remove_some_faces(const int axis, const double value, const bool remove_lar
 	}
 
 }
+void mesh_parameterization(
+	const std::string &meshfile, Eigen::MatrixXd& V, Eigen::MatrixXd &param, Eigen::MatrixXi &F) {
+	/*const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+	const std::string filename = path + "camel_smallest.obj";*/
+	Eigen::MatrixXd Vori; Eigen::MatrixXi Fori;
+	read_and_visual_mesh(meshfile, Vori, Fori);
+	
+	
+	V = Vori; F = Fori;
+	/////////////////////////////////////////
+	// parameterization part
+	Eigen::VectorXi bnd;
+	igl::boundary_loop(F, bnd);// boundary vertices detection
+	Eigen::MatrixXd bnd_uv;
+	/*igl::map_vertices_to_circle(V, bnd, bnd_uv);*/
+	map_vertices_to_square(V, bnd, bnd_uv);
+
+	igl::harmonic(V, F, bnd, bnd_uv, 1, param);
+
+}
+

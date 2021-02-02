@@ -191,33 +191,27 @@ void visual_and_chop_mesh(const bool write_mesh) {
 }
 
 
-void mesh_parameterization() {
+void test_mesh_parameterization() {
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
 	const std::string filename = path + "camel_smallest.obj";
-	Eigen::MatrixXd Vori, V; Eigen::MatrixXi Fori, F;
-	read_and_visual_mesh(filename, Vori, Fori);
-	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
-	fcolor.row(0) = Vector3d(0, 0.5, 0.5); ecolor.row(0) = Vector3d(0, 0, 0);
-	V = Vori; F = Fori;
-	/////////////////////////////////////////
-	// parameterization part
-	Eigen::VectorXi bnd;
-	igl::boundary_loop(F, bnd);// boundary vertices detection
-	Eigen::MatrixXd bnd_uv, param;
-	/*igl::map_vertices_to_circle(V, bnd, bnd_uv);*/
-	map_vertices_to_square(V, bnd, bnd_uv);
-	//exit(0);
-	igl::harmonic(V, F, bnd, bnd_uv, 1, param);
+
+	Eigen::MatrixXd V; Eigen::MatrixXi F;
+	Eigen::MatrixXd  param;
+	mesh_parameterization(filename, V, param, F);
+	
+	
 	/////////////////////////////////////////////
 	Eigen::MatrixXd grid_ver; Eigen::MatrixXi grid_edges;
 	parameter_grid_to_mesh(param, grid_ver, grid_edges);
+
+	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
+	fcolor = Vector3d(1, 0, 0);
 	//global_viewer.data().set_edges(grid_ver, grid_edges, fcolor);
 
 	global_viewer.data().set_mesh(param, F);
 	draw_axis(10);
-	Eigen::MatrixXd firstP(1, 3);
-	firstP.row(0) = V.row(bnd[0]);
-	//global_viewer.data().add_points(firstP, fcolor);
+
+	
 	global_viewer.launch();
 
 
@@ -227,6 +221,18 @@ void visual_surface() {
 	Eigen::MatrixXi faces;
 	test_surface_visual(ver, faces);
 	global_viewer.data().set_mesh(ver, faces);
+	global_viewer.launch();
+}
+void visual_surface_processing() {
+	Eigen::MatrixXd points; 
+	Eigen::MatrixXd knotP; 
+	Eigen::MatrixXi knotE;
+	test_surface_knot_preprocessing(points, knotP, knotE);
+	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
+	fcolor << 1, 0, 0; ecolor << 0.5, 0.5, 0.5;
+	global_viewer.data().set_edges(knotP, knotE, fcolor);
+	global_viewer.data().add_points(points, ecolor);
+	draw_axis(2);
 	global_viewer.launch();
 }
 int main() {
@@ -239,8 +245,9 @@ int main() {
 	//plot_fitting_result();
 	//test_curve_knot_fixing();
 	//visual_mesh();
-	mesh_parameterization();
+	//test_mesh_parameterization();
 	//visual_and_chop_mesh(true);
 	//visual_surface();
+	visual_surface_processing();
 	return 0;
 }

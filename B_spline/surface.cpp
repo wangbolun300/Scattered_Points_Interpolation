@@ -86,6 +86,7 @@ void fix_the_grid_not_border(
 	for (int i = 0; i < para_ids.size(); i++) {
 		para_ids[i].resize(ps2);
 	}
+	int tpush = 0;
 	for (int i = 0; i < paras.rows(); i++) {
 		bool located = false;
 		double u = paras(i, 0), v = paras(i, 1);
@@ -97,6 +98,7 @@ void fix_the_grid_not_border(
 				for (int k = 0; k < ps2; k++) {
 					if (v >= Vin[k] && v < Vin[k + 1]) {
 						para_ids[j][k].push_back(i);
+						tpush++;
 						located = true;
 						break;
 					}
@@ -106,17 +108,18 @@ void fix_the_grid_not_border(
 			if (located) break;
 		}
 	}
-
+	
 	// now we know in each interval how many points there are. it should no more than (degree1+1)x(degree2+1)
 	std::vector<std::array<int, 2>> need_fix_intervals;
 	int at_most = (degree1 + 1)*(degree2 + 1);
 	for (int i = 0; i < ps1; i++) {
 		for (int j = 0; j < ps2; j++) {
-			if (para_ids.size() > at_most) {
+			if (para_ids[i][j].size() > at_most) {
 				need_fix_intervals.push_back({ {i,j} });
 			}
 		}
 	}
+
 	if (need_fix_intervals.size() == 0) {
 		
 		Uout = Uin;
@@ -144,6 +147,7 @@ void fix_surface_grid_parameter_too_many(const int degree1, const std::vector<do
 	std::vector<double>& Uout, std::vector<double>& Vout) {
 	
 	// deal with u==1 and v==1. using the curve 
+	// TODO also need to deal with u==0 and v==0!
 	std::vector<double> uparas, vparas;
 	for (int i = 0; i < paras.rows(); i++) {
 		double u = paras(i, 0);
