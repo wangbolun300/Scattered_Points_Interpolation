@@ -16,3 +16,5 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 
 void fix_stairs_row_too_many(const int degree, const std::vector<double>& Uin,
 	const std::vector<double>& paras, std::vector<double>& Uout);
+
+std::vector<double> knot_vector_insert_one_value(const std::vector<double>& U, const double value);
