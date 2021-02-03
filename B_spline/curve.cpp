@@ -154,7 +154,7 @@ int rank(const Eigen::MatrixXd& matrix) {
 	return matrix.fullPivLu().rank();
 }
 
-// check if the knot vector satisfy the curve interpolation condition
+// check if there is solution(s) for interpolation problem
 bool equation_has_solution(const Eigen::MatrixXd& A,
 	const Eigen::VectorXd& b) {
 	Eigen::MatrixXd  Ab;

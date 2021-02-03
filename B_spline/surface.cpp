@@ -170,4 +170,76 @@ void fix_surface_grid_parameter_too_many(const int degree1, const std::vector<do
 	fix_the_grid_not_border(degree1, Utmp, degree2, Vtmp, paras, Uout, Vout);
 }
 
+// build matrix A for surface interpolation (Ax=b)
+Eigen::MatrixXd build_matrix_A(const int degree1, const int degree2, 
+	const std::vector<double>& U, const std::vector<double>& V,
+	const Eigen::MatrixXd& paras) {
+	assert(paras.cols() == 2);
 
+	int nu = U.size() - 2 - degree1;// n + 1 = number of u control points
+	int nv = V.size() - 2 - degree2;// n + 1 = number of v control points
+	int m = paras.size() - 1;// m + 1 = the number of data points
+	Eigen::MatrixXd result;
+	result.resize(m + 1, (nu + 1)*(nv + 1));
+	for (int i = 0; i < result.rows(); i++) {
+		double u = paras(i, 0);
+		double v = paras(i, 1);
+		for (int j = 0; j < result.cols(); j++) {
+			// get the indices of N_r(u) and N_q(v)
+			int r = j / (nv + 1);
+			int q = j - r * (nv + 1);
+			double N1 = Nip(r, degree1, u, U);
+			double N2 = Nip(q, degree2, v, V);
+			result(i, j) = N1 * N2;
+		}
+	}
+
+	return result;
+}
+Eigen::MatrixXd build_matrix_A(const int degree1, const int degree2,
+	const std::vector<double>& U, const std::vector<double>& V,
+	const Eigen::MatrixXd& paras, const int start_row, const int nbr_rows) {
+	assert(paras.cols() == 2);
+
+	int nu = U.size() - 2 - degree1;// n + 1 = number of u control points
+	int nv = V.size() - 2 - degree2;// n + 1 = number of v control points
+	int m = paras.size() - 1;// m + 1 = the number of data points
+	Eigen::MatrixXd result;
+	result.resize(nbr_rows, (nu + 1)*(nv + 1));
+	for (int i = start_row; i < start_row + nbr_rows; i++) {
+		double u = paras(i, 0);
+		double v = paras(i, 1);
+		for (int j = 0; j < result.cols(); j++) {
+			// get the indices of N_r(u) and N_q(v)
+			int r = j / (nv + 1);
+			int q = j - r * (nv + 1);
+			double N1 = Nip(r, degree1, u, U);
+			double N2 = Nip(q, degree2, v, V);
+			result(i - start_row, j) = N1 * N2;
+		}
+	}
+
+	return result;
+}
+
+// build vector b for interpolation problem (Ax=b)
+Eigen::VectorXd build_Vector_b(const Eigen::MatrixXd& points, const int dimension) {
+	Eigen::VectorXd result;
+	result.resize(points.rows());
+	for (int i = 0; i < result.size(); i++) {
+		result(i) = points(i, dimension);
+	}
+	return result;
+}
+
+// build vector b for interpolation problem (Ax=b). Here the returned is from b's start_row row, and has 
+// nbr_rows rows.
+Eigen::VectorXd build_Vector_b(const Eigen::MatrixXd& points, const int dimension,
+	const int start_row, const int nbr_rows) {
+	Eigen::VectorXd result;
+	result.resize(nbr_rows);
+	for (int i = start_row; i < start_row + nbr_rows; i++) {
+		result(i - start_row) = points(i, dimension);
+	}
+	return result;
+}

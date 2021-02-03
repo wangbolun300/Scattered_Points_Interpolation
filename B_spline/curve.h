@@ -8,6 +8,7 @@ Vector3d BsplinePoint(const int degree, const std::vector<double>& U, const doub
 Vector3d BsplinePoint(const int degree, const std::vector<double>& U, const double para,
 	const Eigen::MatrixXd& pts);
 
+// Lease-Square approximation method
 Eigen::MatrixXd solve_curve_control_points(const int degree, const std::vector<double>& U,
 	const std::vector<double>& paras, const std::vector<Vector3d>& points);
 
