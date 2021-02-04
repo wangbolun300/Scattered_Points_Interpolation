@@ -198,15 +198,16 @@ Eigen::MatrixXd build_matrix_A(const int degree1, const int degree2,
 }
 Eigen::MatrixXd build_matrix_A(const int degree1, const int degree2,
 	const std::vector<double>& U, const std::vector<double>& V,
-	const Eigen::MatrixXd& paras, const int start_row, const int nbr_rows) {
+	const Eigen::MatrixXd& paras, const std::vector<int> row_id) {
 	assert(paras.cols() == 2);
 
 	int nu = U.size() - 2 - degree1;// n + 1 = number of u control points
 	int nv = V.size() - 2 - degree2;// n + 1 = number of v control points
 	int m = paras.size() - 1;// m + 1 = the number of data points
 	Eigen::MatrixXd result;
-	result.resize(nbr_rows, (nu + 1)*(nv + 1));
-	for (int i = start_row; i < start_row + nbr_rows; i++) {
+	result.resize(row_id.size(), (nu + 1)*(nv + 1));
+	for (int l = 0; l < row_id.size(); l++) {
+		int i = row_id[l];
 		double u = paras(i, 0);
 		double v = paras(i, 1);
 		for (int j = 0; j < result.cols(); j++) {
@@ -215,7 +216,7 @@ Eigen::MatrixXd build_matrix_A(const int degree1, const int degree2,
 			int q = j - r * (nv + 1);
 			double N1 = Nip(r, degree1, u, U);
 			double N2 = Nip(q, degree2, v, V);
-			result(i - start_row, j) = N1 * N2;
+			result(l, j) = N1 * N2;
 		}
 	}
 
@@ -235,11 +236,188 @@ Eigen::VectorXd build_Vector_b(const Eigen::MatrixXd& points, const int dimensio
 // build vector b for interpolation problem (Ax=b). Here the returned is from b's start_row row, and has 
 // nbr_rows rows.
 Eigen::VectorXd build_Vector_b(const Eigen::MatrixXd& points, const int dimension,
-	const int start_row, const int nbr_rows) {
+	const std::vector<int> row_id) {
 	Eigen::VectorXd result;
-	result.resize(nbr_rows);
-	for (int i = start_row; i < start_row + nbr_rows; i++) {
-		result(i - start_row) = points(i, dimension);
+	result.resize(row_id.size());
+	for (int l = 0; l < row_id.size(); l++) {
+		int i = row_id[l];
+		result(l) = points(i, dimension);
 	}
 	return result;
+}
+
+bool selected_rows_have_solution(const int degree1, const int degree2,
+	const std::vector<double>& U, const std::vector<double>& V,
+	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points,
+	const std::vector<int> row_id, const int dimension) {
+
+	Eigen::MatrixXd A = build_matrix_A(degree1, degree2, U, V, paras,row_id);
+	Eigen::VectorXd b = build_Vector_b(points, dimension, row_id);
+	return equation_has_solution(A, b);
+}
+// UorV shows which interval do we bisect
+// TODO now the strategy is always select the left interval as input. maybe we can have a better strategy
+void bisect_interval(std::array<double, 2>&Uinterval, std::array<double, 2>&Vinterval,const bool UorV) {
+	if (UorV) {
+		Uinterval[1] /= 2;
+	}
+	else {
+		Vinterval[1] /= 2;
+	}
+}
+
+void select_point_id_in_interval(const std::array<double, 2>& Uinterval, const std::array<double, 2>& Vinterval,
+	const Eigen::MatrixXd& paras, std::vector<int>&selected) {
+	selected.clear();
+	for (int i = 0; i < paras.rows(); i++) {
+		double u = paras(i, 0);
+		double v = paras(i, 1);
+		if (u >= Uinterval[0] && u <= Uinterval[1] && v >= Vinterval[0] && v <= Vinterval[1]) {
+			selected.push_back(i);
+		}
+	}
+	return;
+}
+
+void bisectively_find_solvable_block(const int degree1, const int degree2,
+	const std::vector<double>& Uin, const std::vector<double>& Vin,
+	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points, const int dimension,
+	std::array<double, 2>&Uinterval_out, std::array<double, 2>&Vinterval_out, std::vector<int>& pids) {
+
+	std::vector<int> current_ids(paras.size());
+	for (int i = 0; i < current_ids.size(); i++) {
+		current_ids[i] = i;// initially all the points are checked
+	}
+
+	// the initial block
+	std::array<double, 2>Uinterval = { {Uin[0],Uin.back()} };
+	std::array<double, 2>Vinterval = { {Vin[0],Vin.back()} };
+	
+	bool UorV = true;//initially U get bisected
+	while (current_ids.size() > 0) {
+		if (selected_rows_have_solution(degree1, degree2, Uin, Vin, paras, points, current_ids, dimension)) {
+			Uinterval_out = Uinterval;
+			Vinterval_out = Vinterval;
+			pids = current_ids;
+			return;
+		}
+		
+		bisect_interval(Uinterval, Vinterval, UorV);
+		UorV = !UorV;
+
+		select_point_id_in_interval(Uinterval, Vinterval, paras, current_ids);
+	}
+	std::cout << "ERROR OCCURED WHEN TRYING TO LOCATE THE SOLVABLE BLOCK" << std::endl;
+	assert(false); //the code cannot go here because there is no solution
+	return;
+}
+
+
+void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2, 
+	const std::vector<double>& Uin,const std::vector<double>& Vin,                                                                                           
+	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points, const int dimension,
+	std::vector<double>& Uout, std::vector<double>& Vout
+) {
+	std::vector<double> Utmp;
+	std::vector<double> Vtmp;
+	fix_surface_grid_parameter_too_many(degree1, Uin, degree2, Vin, paras, Utmp, Vtmp);
+
+	assert(paras.rows() == points.size());
+	std::array<double, 2>Uinterval;
+	std::array<double, 2>Vinterval;
+	std::vector<int> pids;// point ids of the solvable block
+
+	bisectively_find_solvable_block(degree1, degree2, Uin, Vin, paras, points, dimension, Uinterval, Vinterval, pids);
+	
+	while (1) {
+
+	}
+	
+	std::vector<double> expanded_U = init_vec;
+	// take init_vec as input, detect if there is any stair whose row is too many (>n+1).
+	// if there are such stairs, insert knots to init_vec, the result is expanded_U
+
+	fix_stairs_row_too_many(degree, init_vec, paras, expanded_U);
+
+	assert(points.size() == paras.size());
+	int n = expanded_U.size() - 2 - degree;// n + 1 = number of control points
+	int m = paras.size() - 1;// m + 1 = the number of data points
+
+	Eigen::MatrixXd A;
+	Eigen::VectorXd b;
+
+
+	A = build_matrix_A(degree, expanded_U, paras);
+
+	b = build_Vector_b(points, dimension);
+
+	bool have_solution = equation_has_solution(A, b);
+
+	int start_row = 0;// initialized row nbr is 0
+	int nbr_rows = m + 1;// initialized block has m+1 rows
+	int dbg_flag = 0;
+	while (!have_solution) {
+		if (dbg_flag > 50) exit(0);
+		dbg_flag++;
+
+		Eigen::MatrixXd sub_A1, sub_A2;
+		Eigen::VectorXd sub_b1, sub_b2;
+		int rank_diff1, rank_diff2;
+		assert(nbr_rows > 1);
+
+		sub_A1 = build_matrix_A(degree, expanded_U, paras, start_row, nbr_rows - 1);
+		sub_b1 = build_Vector_b(points, dimension, start_row, nbr_rows - 1);
+
+		bool have_solution1 = equation_has_solution(sub_A1, sub_b1, rank_diff1);
+
+		sub_A2 = build_matrix_A(degree, expanded_U, paras, start_row + 1, nbr_rows - 1);
+		sub_b2 = build_Vector_b(points, dimension, start_row + 1, nbr_rows - 1);
+
+		bool have_solution2 = equation_has_solution(sub_A2, sub_b2, rank_diff2);
+
+		if ((!have_solution1) && (!have_solution2)) {// if no solution, check next level;
+			if (rank_diff1 <= rank_diff2) {
+				start_row = start_row;
+				nbr_rows = nbr_rows - 1;
+			}
+			else {
+				start_row = start_row + 1;
+				nbr_rows = nbr_rows - 1;
+			}
+
+			continue;
+		}
+		std::vector<double> tempU;
+		if (have_solution1 && (!have_solution2)) {
+			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
+			// the problematic row is start_row + nbr_rows
+
+
+
+			insert_a_knot_to_a_stair(degree, start_row + nbr_rows - 1, expanded_U, paras, tempU, STAIR_FORWARD);
+
+		}
+		if ((!have_solution1) && have_solution2) {
+			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
+
+			insert_a_knot_to_a_stair(degree, start_row, expanded_U, paras, tempU, STAIR_BACKWARD);
+
+		}
+		if (have_solution1 && have_solution2) {
+			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
+			// if both of them have solution, pick a random one to solve
+
+			insert_a_knot_to_a_stair(degree, start_row + nbr_rows - 1, expanded_U, paras, tempU, STAIR_FORWARD);
+
+		}
+		expanded_U = tempU;
+		start_row = 0; nbr_rows = m + 1;
+		A = build_matrix_A(degree, expanded_U, paras);
+		b = build_Vector_b(points, dimension);
+
+		have_solution = equation_has_solution(A, b);
+
+	}
+	return expanded_U;
+
 }

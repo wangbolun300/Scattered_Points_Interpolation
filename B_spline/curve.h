@@ -19,3 +19,10 @@ void fix_stairs_row_too_many(const int degree, const std::vector<double>& Uin,
 	const std::vector<double>& paras, std::vector<double>& Uout);
 
 std::vector<double> knot_vector_insert_one_value(const std::vector<double>& U, const double value);
+
+bool equation_has_solution(const Eigen::MatrixXd& A,
+	const Eigen::VectorXd& b, int& rank_diff);
+
+// check if there is solution(s) for interpolation problem
+bool equation_has_solution(const Eigen::MatrixXd& A,
+	const Eigen::VectorXd& b);
