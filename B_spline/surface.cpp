@@ -312,7 +312,25 @@ void bisectively_find_solvable_block(const int degree1, const int degree2,
 	return;
 }
 
+void expand_one_point_close_to_interval(
+	const std::array<double, 2>& Uinterval,
+	const std::array<double, 2>& Vinterval, const Eigen::MatrixXd& paras,
+	const std::vector<int> &pid_in, std::vector<int>&pid_out) {
+	pid_out = pid_in;
 
+	std::vector<bool> markers(paras.rows(), false);// shows which parameter is already in the block
+	for (int i = 0; i < pid_in.size(); i++) {
+		markers[pid_in[i]] = true;
+	}
+
+	double udis = 1;
+	double vdis = 1;
+	for (int i = 0; i < paras.rows(); i++) {
+		if (markers[i]) continue;
+
+	}
+
+}
 void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2, 
 	const std::vector<double>& Uin,const std::vector<double>& Vin,                                                                                           
 	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points, const int dimension,
