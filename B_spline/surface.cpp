@@ -355,12 +355,90 @@ bool insert_U_or_V_direction(const double udiff, const double vdiff) {
 	if (udiff > 0) return 1;
 	if (vdiff > 0) return 0;
 	std::cout << "impossible case when inserting u or v" << std::endl;
+	assert(false);
+	return false;
+}
+
+double get_mean_value(const Eigen::MatrixXd& paras, const std::vector<int> &ids, const bool insert_U) {
+	int tuv = insert_U ? 0 : 1;
+	double total = 0;
+	for (int i = 0; i < ids.size(); i++) {
+		int ID = ids[i];
+		total += paras(ID, tuv);
+	}
+	return total / ids.size();
+}
+
+// given a id list pids, and pids.back() is the problematic one. return an id list in which the points 
+// are in the same U-V interval with the problematic one
+std::vector<int> selected_ids_in_this_block(const std::vector<double>& Uin, const std::vector<double>& Vin, 
+	const Eigen::MatrixXd& paras, const std::vector<int> &pids_in) {
+	int id = pids_in.back();
+	double u = paras(id, 0);
+	double v = paras(id, 1);
+	std::vector<double> knot_vector;
+	double uv;
+	int tuv;
+	std::vector<int> related_id;
+	int interval = -1;
 	
+	std::vector<int> pids = pids_in;
+	int counter = 0;
+	while (counter < 2) {
+		
+		if (counter==0) {
+			knot_vector = Uin;
+			uv = u;
+			tuv = 0;
+		}
+		else {
+			knot_vector = Vin;
+			uv = v;
+			tuv = 1;
+		}
+
+		if (uv != knot_vector.back()) {
+			for (int i = 0; i < knot_vector.size() - 1; i++) {
+				if (uv >= knot_vector[i] && uv < knot_vector[i + 1]) {
+					interval = i;
+					break;
+				}
+			}
+			for (int i = 0; i < pids.size(); i++) {
+				int tmp_id = pids[i];
+				double tmp_u = paras(tmp_id, tuv);
+				if (tmp_u >= knot_vector[interval] && tmp_u < knot_vector[interval + 1]) {
+					related_id.push_back(pids[i]);
+				}
+			}
+		}
+		else {
+			for (int i = 0; i < pids.size(); i++) {
+				int tmp_id = pids[i];
+				double tmp_u = paras(tmp_id, tuv);
+				if (tmp_u == knot_vector.back()) {
+					related_id.push_back(pids[i]);
+				}
+			}
+		}
+		pids = related_id;
+		related_id.clear();
+		counter++;
+	}
+	return pids;
 }
 
-void gather_points_and_get_mean_value() {
+// pids.back() is the problematic one
+void gather_points_and_get_mean_value(const std::vector<double>& Uin, const std::vector<double>& Vin,
+	const Eigen::MatrixXd& paras,
+	const bool insert_U, const std::vector<int> &pids,double& mean) {
+	std::vector<int> related_id = selected_ids_in_this_block(Uin, Vin, paras, pids);
+	// get the mean value of the related points
+	mean = get_mean_value(paras, related_id, insert_U);
 
 }
+
+// to make the problematic block solvable
 void insert_a_knot_to_problematic_area(const int degree1, const int degree2,
 	const std::vector<double>& Uin, const std::vector<double>& Vin,
 	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points, const int dimension,
@@ -371,8 +449,31 @@ void insert_a_knot_to_problematic_area(const int degree1, const int degree2,
 	double v = paras(id, 1);
 	double udiff = u - Uinterval[1];
 	double vdiff = v - Vinterval[1];
+
 	bool insert_which = insert_U_or_V_direction(udiff, vdiff);
-	gather
+	
+	double value1, value2;
+	std::vector<double> Utmp;
+	std::vector<double> Vtmp;
+	gather_points_and_get_mean_value(Uin, Vin, paras, insert_which, pids, value1);
+	if (insert_which) {// insert U
+		 Utmp = knot_vector_insert_one_value(Uin, value1);
+		 Vtmp = Vin;
+	}
+	else {
+		Utmp = Uin;
+		Vtmp = knot_vector_insert_one_value(Vin, value1);
+	}
+	bool solvable = selected_rows_have_solution(degree1, degree2, Utmp, Vtmp, paras, points, pids, dimension);
+	if (solvable) {
+		Uout = Utmp;
+		Vout = Vtmp;
+		return;
+	}
+	else {
+
+	}
+
 }
 
 void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2, 
