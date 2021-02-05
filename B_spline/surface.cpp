@@ -312,10 +312,12 @@ void bisectively_find_solvable_block(const int degree1, const int degree2,
 	return;
 }
 
+// the expanded point can be on the border of this interval
+// or the outside but close to the interval
 void expand_one_point_close_to_interval(
-	const std::array<double, 2>& Uinterval,
-	const std::array<double, 2>& Vinterval, const Eigen::MatrixXd& paras,
+	 const Eigen::MatrixXd& paras,
 	const std::vector<int> &pid_in, std::vector<int>&pid_out) {
+	
 	pid_out = pid_in;
 
 	std::vector<bool> markers(paras.rows(), false);// shows which parameter is already in the block
@@ -325,12 +327,54 @@ void expand_one_point_close_to_interval(
 
 	double udis = 1;
 	double vdis = 1;
+	double dis = 1;
+	int tmp;
 	for (int i = 0; i < paras.rows(); i++) {
 		if (markers[i]) continue;
-
+		double u = paras(i, 0);
+		double v = paras(0, 1);
+		// in this strategy, the closest point will have smallest u or v
+		if (u < dis) {
+			tmp = i;
+			dis = u;
+		}
+		if (v < dis) {
+			tmp = i;
+			dis = v;
+		}
 	}
+	pid_out.push_back(tmp);
 
 }
+
+// 1 insert U, 0 insert V.
+bool insert_U_or_V_direction(const double udiff, const double vdiff) {
+	assert(udiff >= 0 || vdiff >= 0);// (udiff<0&&vdiff<0) should not happen
+	if (udiff ==0) return 0;
+	if (vdiff == 0) return 1;
+	if (udiff > 0) return 1;
+	if (vdiff > 0) return 0;
+	std::cout << "impossible case when inserting u or v" << std::endl;
+	
+}
+
+void gather_points_and_get_mean_value() {
+
+}
+void insert_a_knot_to_problematic_area(const int degree1, const int degree2,
+	const std::vector<double>& Uin, const std::vector<double>& Vin,
+	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points, const int dimension,
+	const std::vector<int> &pids, const std::array<double, 2> &Uinterval, const std::array<double, 2>&Vinterval,
+	std::vector<double>& Uout, std::vector<double>& Vout) {
+	int id = pids.back();
+	double u = paras(id, 0);
+	double v = paras(id, 1);
+	double udiff = u - Uinterval[1];
+	double vdiff = v - Vinterval[1];
+	bool insert_which = insert_U_or_V_direction(udiff, vdiff);
+	gather
+}
+
 void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2, 
 	const std::vector<double>& Uin,const std::vector<double>& Vin,                                                                                           
 	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points, const int dimension,
@@ -340,15 +384,35 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 	std::vector<double> Vtmp;
 	fix_surface_grid_parameter_too_many(degree1, Uin, degree2, Vin, paras, Utmp, Vtmp);
 
-	assert(paras.rows() == points.size());
+	assert(paras.rows() == points.rows());
 	std::array<double, 2>Uinterval;
 	std::array<double, 2>Vinterval;
 	std::vector<int> pids;// point ids of the solvable block
 
-	bisectively_find_solvable_block(degree1, degree2, Uin, Vin, paras, points, dimension, Uinterval, Vinterval, pids);
-	
-	while (1) {
+	bisectively_find_solvable_block(degree1, degree2, Utmp, Utmp, paras, points, dimension, Uinterval, Vinterval, pids);
+	if (pids.size() == points.rows()) {
+		Uout = Utmp;
+		Vout = Utmp;
+		return;
+	}
 
+	// if goes here, it means the function is not solvable.
+	while (1) {
+		std::vector<int> new_ids;
+
+		// expand a new point to make the block larger
+		// but remind that the intervals are not updated here
+		expand_one_point_close_to_interval(paras, pids, new_ids);
+
+		// and test if the current block is solvable. if is, continue to expand another point;
+		// if isn't, gather the problematic points and insert a knot
+		bool solvable = selected_rows_have_solution(degree1, degree2, Utmp, Vtmp, paras, points, new_ids, dimension);
+		if (solvable) {
+			continue;
+		}
+
+
+		pids = new_ids;
 	}
 	
 	std::vector<double> expanded_U = init_vec;
