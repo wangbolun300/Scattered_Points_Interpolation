@@ -31,3 +31,4 @@ bool equation_has_solution(const Eigen::MatrixXd& A,
 
 bool equation_has_solution(const Eigen::MatrixXd& A,
 	const Eigen::VectorXd& b, int& rank_diff);
+std::vector<double> knot_vector_insert_one_value(const std::vector<double>& U, const double value);

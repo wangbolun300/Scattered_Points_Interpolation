@@ -452,27 +452,39 @@ void insert_a_knot_to_problematic_area(const int degree1, const int degree2,
 
 	bool insert_which = insert_U_or_V_direction(udiff, vdiff);
 	
-	double value1, value2;
+	std::array<double, 2> value;
 	std::vector<double> Utmp;
 	std::vector<double> Vtmp;
-	gather_points_and_get_mean_value(Uin, Vin, paras, insert_which, pids, value1);
-	if (insert_which) {// insert U
-		 Utmp = knot_vector_insert_one_value(Uin, value1);
-		 Vtmp = Vin;
+	int counter = 0;
+	while (counter < 3) {
+		gather_points_and_get_mean_value(Uin, Vin, paras, insert_which, pids, value[counter]);
+		if (counter < 2) {// try two directions separately
+		//	
+		//	if (insert_which) {// insert U
+		//		Utmp = knot_vector_insert_one_value(Uin, value[counter]);
+		//		Vtmp = Vin;
+		//	}
+		//	else {
+		//		Utmp = Uin;
+		//		Vtmp = knot_vector_insert_one_value(Vin, value[counter]);
+		//	}
+		//}
+		//else {
+		//	Utmp = Uin;
+		//	Vtmp = knot_vector_insert_one_value(Vin, value[counter]);
+		}xx todo
+		
+		bool solvable = selected_rows_have_solution(degree1, degree2, Utmp, Vtmp, paras, points, pids, dimension);
+		if (solvable) {
+			Uout = Utmp;
+			Vout = Vtmp;
+			return;
+		}
+		insert_which = !insert_which;
+		counter++;
 	}
-	else {
-		Utmp = Uin;
-		Vtmp = knot_vector_insert_one_value(Vin, value1);
-	}
-	bool solvable = selected_rows_have_solution(degree1, degree2, Utmp, Vtmp, paras, points, pids, dimension);
-	if (solvable) {
-		Uout = Utmp;
-		Vout = Vtmp;
-		return;
-	}
-	else {
 
-	}
+	
 
 }
 
