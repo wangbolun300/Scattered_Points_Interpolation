@@ -438,7 +438,27 @@ void gather_points_and_get_mean_value(const std::vector<double>& Uin, const std:
 
 }
 
+bool gather_insert_and_check_solvable(const int degree1, const int degree2, 
+	const std::vector<double>& Uin, const std::vector<double>& Vin,
+	const Eigen::MatrixXd& paras,
+	const bool insert_U, const std::vector<int> &pids, const Eigen::MatrixXd& points,
+	const int dimension, std::vector<double>&Uout, std::vector<double>&Vout) {
+	double value;
+	gather_points_and_get_mean_value(Uin, Vin, paras, insert_U, pids, value);
+	if (insert_U) {// insert U
+		Uout = knot_vector_insert_one_value(Uin, value);
+		Vout = Vin;
+	}
+	else {// insert V
+		Uout = Uin;
+		Vout = knot_vector_insert_one_value(Vin, value);
+	}
+	bool solvable = selected_rows_have_solution(degree1, degree2, Uout, Vout, paras, points, pids, dimension);
+	return solvable;
+}
+
 // to make the problematic block solvable
+// pids.back() is the problematic one
 void insert_a_knot_to_problematic_area(const int degree1, const int degree2,
 	const std::vector<double>& Uin, const std::vector<double>& Vin,
 	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points, const int dimension,
@@ -452,38 +472,51 @@ void insert_a_knot_to_problematic_area(const int degree1, const int degree2,
 
 	bool insert_which = insert_U_or_V_direction(udiff, vdiff);
 	
-	std::array<double, 2> value;
+	double value;
 	std::vector<double> Utmp;
 	std::vector<double> Vtmp;
-	int counter = 0;
-	while (counter < 3) {
-		gather_points_and_get_mean_value(Uin, Vin, paras, insert_which, pids, value[counter]);
-		if (counter < 2) {// try two directions separately
-		//	
-		//	if (insert_which) {// insert U
-		//		Utmp = knot_vector_insert_one_value(Uin, value[counter]);
-		//		Vtmp = Vin;
-		//	}
-		//	else {
-		//		Utmp = Uin;
-		//		Vtmp = knot_vector_insert_one_value(Vin, value[counter]);
-		//	}
-		//}
-		//else {
-		//	Utmp = Uin;
-		//	Vtmp = knot_vector_insert_one_value(Vin, value[counter]);
-		}xx todo
-		
-		bool solvable = selected_rows_have_solution(degree1, degree2, Utmp, Vtmp, paras, points, pids, dimension);
-		if (solvable) {
-			Uout = Utmp;
-			Vout = Vtmp;
-			return;
+	
+	// first try 
+	bool solvable = gather_insert_and_check_solvable(degree1, degree2, Uin, Vin, paras, insert_which, pids,
+		points, dimension, Uout, Vout);
+	if (solvable) {
+		return;
+	}
+	else {
+		if (insert_which) {
+			Utmp = Uout;
 		}
-		insert_which = !insert_which;
-		counter++;
+		else {
+			Vtmp = Vout;
+		}
 	}
 
+	// second try
+	solvable= gather_insert_and_check_solvable(degree1, degree2, Uin, Vin, paras, !insert_which, pids,
+		points, dimension, Uout, Vout);
+	if (solvable) {
+		return;
+	}
+	else {
+		if (!insert_which) {
+			Utmp = Uout;
+		}
+		else {
+			Vtmp = Vout;
+		}
+	}
+
+	// the last try, both U and V get inserted
+	solvable= selected_rows_have_solution(degree1, degree2, Utmp, Vtmp, paras, points, pids, dimension);
+	if (solvable) {
+		Uout = Utmp;
+		Vout = Vtmp;
+		return;
+	}
+	else {
+		std::cout << "ERROR OCCURES HERE, INSERTING KNOT DIDNOT WORK" << std::endl;
+		exit(0);
+	}
 	
 
 }
