@@ -145,7 +145,7 @@ void fix_surface_grid_parameter_too_many(const int degree1, const std::vector<do
 	const int degree2, const std::vector<double>& Vin,
 	const Eigen::MatrixXd& paras,
 	std::vector<double>& Uout, std::vector<double>& Vout) {
-	
+	std::cout << "inside fix grid too many" << std::endl;
 	// deal with u==1 and v==1. using the curve 
 	// TODO also need to deal with u==0 and v==0!
 	std::vector<double> uparas, vparas;
@@ -163,9 +163,10 @@ void fix_surface_grid_parameter_too_many(const int degree1, const std::vector<do
 
 	// when interpolating u==1 and v==1, it will be the same as interpolating
 	// two curves. so, we use curve processing method
+	std::cout << "before u==1 and v==1 preprocessing" << std::endl;
 	fix_stairs_row_too_many(degree1, Uin, uparas, Utmp);
 	fix_stairs_row_too_many(degree2, Vin, vparas, Vtmp);
-
+	std::cout << "after u==1 and v==1" << std::endl;
 	
 	fix_the_grid_not_border(degree1, Utmp, degree2, Vtmp, paras, Uout, Vout);
 }
@@ -196,26 +197,32 @@ Eigen::MatrixXd build_matrix_A(const int degree1, const int degree2,
 
 	return result;
 }
+bool dflag = false;
 Eigen::MatrixXd build_matrix_A(const int degree1, const int degree2,
 	const std::vector<double>& U, const std::vector<double>& V,
 	const Eigen::MatrixXd& paras, const std::vector<int> row_id) {
 	assert(paras.cols() == 2);
-
+	
 	int nu = U.size() - 2 - degree1;// n + 1 = number of u control points
 	int nv = V.size() - 2 - degree2;// n + 1 = number of v control points
-	int m = paras.size() - 1;// m + 1 = the number of data points
+	int m = paras.rows() - 1;// m + 1 = the number of data points
 	Eigen::MatrixXd result;
 	result.resize(row_id.size(), (nu + 1)*(nv + 1));
+	
 	for (int l = 0; l < row_id.size(); l++) {
 		int i = row_id[l];
+		
 		double u = paras(i, 0);
 		double v = paras(i, 1);
+		//std::cout << "in for, u and v " << u << " " << v << std::endl;
 		for (int j = 0; j < result.cols(); j++) {
 			// get the indices of N_r(u) and N_q(v)
 			int r = j / (nv + 1);
 			int q = j - r * (nv + 1);
 			double N1 = Nip(r, degree1, u, U);
 			double N2 = Nip(q, degree2, v, V);
+			if(dflag)
+			
 			result(l, j) = N1 * N2;
 		}
 	}
@@ -249,10 +256,13 @@ Eigen::VectorXd build_Vector_b(const Eigen::MatrixXd& points, const int dimensio
 bool selected_rows_have_solution(const int degree1, const int degree2,
 	const std::vector<double>& U, const std::vector<double>& V,
 	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points,
-	const std::vector<int> row_id, const int dimension) {
+	const std::vector<int> &row_id, const int dimension) {
 
 	Eigen::MatrixXd A = build_matrix_A(degree1, degree2, U, V, paras,row_id);
+	std::cout << "A is built" << std::endl;
+
 	Eigen::VectorXd b = build_Vector_b(points, dimension, row_id);
+	std::cout << "b is built" << std::endl;
 	return equation_has_solution(A, b);
 }
 // UorV shows which interval do we bisect
@@ -284,7 +294,7 @@ void bisectively_find_solvable_block(const int degree1, const int degree2,
 	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points, const int dimension,
 	std::array<double, 2>&Uinterval_out, std::array<double, 2>&Vinterval_out, std::vector<int>& pids) {
 
-	std::vector<int> current_ids(paras.size());
+	std::vector<int> current_ids(paras.rows());
 	for (int i = 0; i < current_ids.size(); i++) {
 		current_ids[i] = i;// initially all the points are checked
 	}
@@ -301,10 +311,10 @@ void bisectively_find_solvable_block(const int degree1, const int degree2,
 			pids = current_ids;
 			return;
 		}
-		
+		std::cout << "before bisect interval" << std::endl;
 		bisect_interval(Uinterval, Vinterval, UorV);
 		UorV = !UorV;
-
+		std::cout << "before selecting point id related to this interval" << std::endl;
 		select_point_id_in_interval(Uinterval, Vinterval, paras, current_ids);
 	}
 	std::cout << "ERROR OCCURED WHEN TRYING TO LOCATE THE SOLVABLE BLOCK" << std::endl;
@@ -573,16 +583,19 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 	std::vector<double> Utmp;
 	std::vector<double> Vtmp;
 	fix_surface_grid_parameter_too_many(degree1, Uin, degree2, Vin, paras, Utmp, Vtmp);
-
+	std::cout << "surface grid too many get fixed" << std::endl;
 	assert(paras.rows() == points.rows());
 	std::array<double, 2>Uinterval;
 	std::array<double, 2>Vinterval;
 	std::vector<int> pids;// point ids of the solvable block
 
 	bisectively_find_solvable_block(degree1, degree2, Utmp, Utmp, paras, points, dimension, Uinterval, Vinterval, pids);
+	std::cout << "found solvable block" << std::endl;
 	if (pids.size() == points.rows()) {// it means all the points are solvable
 		Uout = Utmp;
 		Vout = Vtmp;
+		std::cout << "return1 pids" << std::endl;
+		print_vector(pids);
 		return;
 	}
 
@@ -593,27 +606,29 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 		// expand a new point to make the block larger
 		// but remind that the intervals are not updated here
 		expand_one_point_close_to_interval(paras, pids, new_ids);
-
+		std::cout << "expand one point" << std::endl;
 		// and test if the current block is solvable. if is, continue to expand another point;
 		// if isn't, gather the problematic points and insert a knot
 		bool solvable = selected_rows_have_solution(degree1, degree2, Utmp, Vtmp, paras, points, new_ids, dimension);
 		if (solvable) {
+		std::cout << "solvable case, should continue expand" << std::endl;
 			if (new_ids.size() == points.rows()) {// it means all the points are solvable
 				Uout = Utmp;
 				Vout = Utmp;
+				std::cout << "return2 pids" << std::endl;
+				print_vector(new_ids);
 				return;
 			}
-
-			
-
 			
 		}
 		else {// if the new inserted point break the solvability, then insert a point
+			std::cout << "unsolvable case, should insert a knot" << std::endl;
 			std::vector<double> Utmpout, Vtmpout;
 			std::vector<int> pid_out;
 			std::array<double, 2> Uinterval_out, Vinterval_out;
 			insert_a_knot_to_problematic_area(degree1, degree2, Utmp, Vtmp, paras, points, dimension, new_ids,
 				Uinterval, Vinterval, Utmpout, Vtmpout);
+			std::cout << "knot get inserted" << std::endl;
 			// TODO there is a smarter way to select double u or v
 			double_the_interval_and_expand_points(Utmpout, Vtmpout,Uinterval,Vinterval,paras,
 				new_ids,pid_out, Uinterval_out,Vinterval_out);
@@ -623,6 +638,8 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 				if (pid_out.size() == points.rows()) {// it means all the points are solvable
 					Uout = Utmpout;
 					Vout = Vtmpout;
+					std::cout << "return3 pids" << std::endl;
+					print_vector(pid_out);
 					return;
 				}
 
@@ -639,4 +656,17 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 		pids = new_ids;
 	}
 
+}
+
+void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2,
+	const std::vector<double>& Uin, const std::vector<double>& Vin,
+	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points,
+	std::vector<double>& Uout, std::vector<double>& Vout) {
+	std::vector<double> Utmp = Uin, Vtmp = Vin;
+	for (int i = 0; i < 3; i++) {
+		fix_knot_vector_to_interpolate_surface(degree1, degree2, Utmp, Vtmp, paras, points, i, Uout, Vout);
+		Utmp = Uout;
+		Vtmp = Vout;
+	}
+	dflag = true;
 }

@@ -11,3 +11,4 @@ void visual_curve_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control
 void test_surface_visual(Eigen::MatrixXd &ver, Eigen::MatrixXi& faces);
 void parameter_grid_to_mesh(const Eigen::MatrixXd& uv, Eigen::MatrixXd &ver, Eigen::MatrixXi& edges);
 void test_surface_knot_preprocessing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::MatrixXi& knotE);
+void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::MatrixXi& knotE);

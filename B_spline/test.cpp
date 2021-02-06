@@ -297,4 +297,40 @@ void test_surface_knot_preprocessing(Eigen::MatrixXd &points, Eigen::MatrixXd& k
 		points.row(i) << param.row(i), 0;
 	}
 	knot_intervals_to_mesh(degree1, degree2, Uout, Vout, knotP, knotE);
+} 
+
+// here the points are the parameters or the 3d positions
+void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::MatrixXi& knotE) {
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+	const std::string filename = path + "camel_smallest.obj";
+
+	Eigen::MatrixXd Ver; Eigen::MatrixXi F;
+	Eigen::MatrixXd  param;
+	mesh_parameterization(filename, Ver, param, F);
+	points.resize(param.rows(), 3);
+	for (int i = 0; i < points.rows(); i++) {
+		points.row(i) << param.row(i), 0;
+	}
+	int degree1 = 3, degree2 = 3;
+	std::vector<double> vecU = { {0,0,0,0,0.1,1,1,1,1} };
+	std::vector<double> vecV = { {0,0,0,0,0.1,1,1,1,1} };
+	std::vector<double> Uout, Vout;
+
+
+	//knot_intervals_to_mesh(degree1, degree2, Uout, Vout, knotP, knotE);
+	std::cout << "before fixing" << std::endl;
+	std::cout << "para size " << param.rows() << std::endl;
+	fix_knot_vector_to_interpolate_surface(degree1, degree2, vecU, vecV, param, Ver, Uout, Vout);
+	std::cout << "fixed U" << std::endl; print_vector(Uout);
+	std::cout << "fixed V" << std::endl; print_vector(Vout);
+	std::vector<int> list;
+	for (int i = 0; i < param.rows(); i++) {
+		list.push_back(i);
+	}
+	for (int i = 0; i < 3; i++) {
+		bool solvable = selected_rows_have_solution(degree1, degree2, Uout, Vout, param, Ver, list, i);
+		std::cout << "solvable test, i=" << i << ", solvable= " << solvable << std::endl;
+	}
+	
+
 }

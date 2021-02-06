@@ -32,3 +32,13 @@ bool equation_has_solution(const Eigen::MatrixXd& A,
 bool equation_has_solution(const Eigen::MatrixXd& A,
 	const Eigen::VectorXd& b, int& rank_diff);
 std::vector<double> knot_vector_insert_one_value(const std::vector<double>& U, const double value);
+
+void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2,
+	const std::vector<double>& Uin, const std::vector<double>& Vin,
+	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points, 
+	std::vector<double>& Uout, std::vector<double>& Vout);
+
+bool selected_rows_have_solution(const int degree1, const int degree2,
+	const std::vector<double>& U, const std::vector<double>& V,
+	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points,
+	const std::vector<int> &row_id, const int dimension);

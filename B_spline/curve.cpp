@@ -162,7 +162,7 @@ bool equation_has_solution(const Eigen::MatrixXd& A,
 	Ab.resize(A.rows(), A.cols() + 1);
 	Ab << A, b;
 	int rankAb = rank(Ab);
-	std::cout << "Ab,\n" << Ab << std::endl;
+	//std::cout << "Ab,\n" << Ab << std::endl;
 	if (rankA == rankAb) {
 		return true;
 	}

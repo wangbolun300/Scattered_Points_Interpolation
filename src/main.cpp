@@ -193,7 +193,7 @@ void visual_and_chop_mesh(const bool write_mesh) {
 
 void test_mesh_parameterization() {
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	const std::string filename = path + "camel_smallest.obj";
+	const std::string filename = path + "lion.off";
 
 	Eigen::MatrixXd V; Eigen::MatrixXi F;
 	Eigen::MatrixXd  param;
@@ -235,6 +235,18 @@ void visual_surface_processing() {
 	draw_axis(2);
 	global_viewer.launch();
 }
+void visual_surface_knot_fixing() {
+	Eigen::MatrixXd points;
+	Eigen::MatrixXd knotP;
+	Eigen::MatrixXi knotE;
+	test_knot_fixing(points, knotP, knotE);
+	/*Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
+	fcolor << 1, 0, 0; ecolor << 0.5, 0.5, 0.5;
+	global_viewer.data().set_edges(knotP, knotE, fcolor);
+	global_viewer.data().add_points(points, ecolor);
+	draw_axis(2);
+	global_viewer.launch();*/
+}
 int main() {
 	//test_opengl();
 	//int p = 3;
@@ -248,6 +260,7 @@ int main() {
 	//test_mesh_parameterization();
 	//visual_and_chop_mesh(true);
 	//visual_surface();
-	visual_surface_processing();
+	//visual_surface_processing();
+	visual_surface_knot_fixing();
 	return 0;
 }
