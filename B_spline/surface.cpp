@@ -328,7 +328,7 @@ void expand_one_point_close_to_interval(
 	double udis = 1;
 	double vdis = 1;
 	double dis = 1;
-	int tmp;
+	int tmp = -1;
 	for (int i = 0; i < paras.rows(); i++) {
 		if (markers[i]) continue;
 		double u = paras(i, 0);
@@ -343,8 +343,52 @@ void expand_one_point_close_to_interval(
 			dis = v;
 		}
 	}
-	pid_out.push_back(tmp);
+	if(tmp>-1)// it means there are points outside. otherwise it will just return the old list
+		pid_out.push_back(tmp);
 
+}
+void double_the_interval_and_expand_points(
+	const std::vector<double> &U, const std::vector<double> &V,
+	const std::array<double, 2>&Uinterval, const std::array<double, 2>Vinterval,
+	const Eigen::MatrixXd& paras,
+	const std::vector<int> &pid_in, std::vector<int>&pid_out,
+	std::array<double, 2>& Uinterval_out, std::array<double, 2>& Vinterval_out) {
+	pid_out = pid_in;
+	std::vector<bool> markers(paras.rows(), false);// shows which parameter is already in the block
+	for (int i = 0; i < pid_in.size(); i++) {
+		markers[pid_in[i]] = true;
+	}
+	double ul = Uinterval[0];
+	double vl = Vinterval[0];
+	double ur = Uinterval[1];
+	double vr = Vinterval[1];
+	if (ur == U.back() && vr == V.back()) {
+		for (int i = 0; i < paras.rows(); i++) {
+			if (markers[i]) { continue; }
+			pid_out.push_back(i);
+		}
+		Uinterval_out = { {Uinterval[0],ur} };
+		Vinterval_out = { {Vinterval[0],vr} };
+		return;
+	}
+	if (ur <= vr) {
+		ur = 2 * ur;
+	}
+	else {
+		vr = 2 * vr;
+	}
+	for (int i = 0; i < paras.rows(); i++) {
+		if (markers[i]) { continue; }
+		double u = paras(i, 0);
+		double v = paras(i, 1);
+		if (u >= ul && u <= ur && v >= vl && v <= vr) {
+			pid_out.push_back(i);
+		}
+		
+	}
+	Uinterval_out = { {Uinterval[0],ur} };
+	Vinterval_out = { {Vinterval[0],vr} };
+	return;
 }
 
 // 1 insert U, 0 insert V.
@@ -536,9 +580,9 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 	std::vector<int> pids;// point ids of the solvable block
 
 	bisectively_find_solvable_block(degree1, degree2, Utmp, Utmp, paras, points, dimension, Uinterval, Vinterval, pids);
-	if (pids.size() == points.rows()) {
+	if (pids.size() == points.rows()) {// it means all the points are solvable
 		Uout = Utmp;
-		Vout = Utmp;
+		Vout = Vtmp;
 		return;
 	}
 
@@ -554,98 +598,45 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 		// if isn't, gather the problematic points and insert a knot
 		bool solvable = selected_rows_have_solution(degree1, degree2, Utmp, Vtmp, paras, points, new_ids, dimension);
 		if (solvable) {
-			continue;
-		}
+			if (new_ids.size() == points.rows()) {// it means all the points are solvable
+				Uout = Utmp;
+				Vout = Utmp;
+				return;
+			}
 
+			
+
+			
+		}
+		else {// if the new inserted point break the solvability, then insert a point
+			std::vector<double> Utmpout, Vtmpout;
+			std::vector<int> pid_out;
+			std::array<double, 2> Uinterval_out, Vinterval_out;
+			insert_a_knot_to_problematic_area(degree1, degree2, Utmp, Vtmp, paras, points, dimension, new_ids,
+				Uinterval, Vinterval, Utmpout, Vtmpout);
+			// TODO there is a smarter way to select double u or v
+			double_the_interval_and_expand_points(Utmpout, Vtmpout,Uinterval,Vinterval,paras,
+				new_ids,pid_out, Uinterval_out,Vinterval_out);
+
+			solvable = selected_rows_have_solution(degree1, degree2, Utmpout, Vtmpout, paras, points, pid_out, dimension);
+			if (solvable) {// if it is solvable, it means we can directly replace the list with the expanded list
+				if (pid_out.size() == points.rows()) {// it means all the points are solvable
+					Uout = Utmpout;
+					Vout = Vtmpout;
+					return;
+				}
+
+				// if it is solvable, update the list and intervals
+				Uinterval = Uinterval_out;
+				Vinterval = Vinterval_out;
+				new_ids = pid_out;
+			}
+			// if the doubled interval is useless, do not update intervals and ids
+			Utmp = Utmpout;
+			Vtmp = Vtmpout;
+		}
 
 		pids = new_ids;
 	}
-	
-	std::vector<double> expanded_U = init_vec;
-	// take init_vec as input, detect if there is any stair whose row is too many (>n+1).
-	// if there are such stairs, insert knots to init_vec, the result is expanded_U
-
-	fix_stairs_row_too_many(degree, init_vec, paras, expanded_U);
-
-	assert(points.size() == paras.size());
-	int n = expanded_U.size() - 2 - degree;// n + 1 = number of control points
-	int m = paras.size() - 1;// m + 1 = the number of data points
-
-	Eigen::MatrixXd A;
-	Eigen::VectorXd b;
-
-
-	A = build_matrix_A(degree, expanded_U, paras);
-
-	b = build_Vector_b(points, dimension);
-
-	bool have_solution = equation_has_solution(A, b);
-
-	int start_row = 0;// initialized row nbr is 0
-	int nbr_rows = m + 1;// initialized block has m+1 rows
-	int dbg_flag = 0;
-	while (!have_solution) {
-		if (dbg_flag > 50) exit(0);
-		dbg_flag++;
-
-		Eigen::MatrixXd sub_A1, sub_A2;
-		Eigen::VectorXd sub_b1, sub_b2;
-		int rank_diff1, rank_diff2;
-		assert(nbr_rows > 1);
-
-		sub_A1 = build_matrix_A(degree, expanded_U, paras, start_row, nbr_rows - 1);
-		sub_b1 = build_Vector_b(points, dimension, start_row, nbr_rows - 1);
-
-		bool have_solution1 = equation_has_solution(sub_A1, sub_b1, rank_diff1);
-
-		sub_A2 = build_matrix_A(degree, expanded_U, paras, start_row + 1, nbr_rows - 1);
-		sub_b2 = build_Vector_b(points, dimension, start_row + 1, nbr_rows - 1);
-
-		bool have_solution2 = equation_has_solution(sub_A2, sub_b2, rank_diff2);
-
-		if ((!have_solution1) && (!have_solution2)) {// if no solution, check next level;
-			if (rank_diff1 <= rank_diff2) {
-				start_row = start_row;
-				nbr_rows = nbr_rows - 1;
-			}
-			else {
-				start_row = start_row + 1;
-				nbr_rows = nbr_rows - 1;
-			}
-
-			continue;
-		}
-		std::vector<double> tempU;
-		if (have_solution1 && (!have_solution2)) {
-			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
-			// the problematic row is start_row + nbr_rows
-
-
-
-			insert_a_knot_to_a_stair(degree, start_row + nbr_rows - 1, expanded_U, paras, tempU, STAIR_FORWARD);
-
-		}
-		if ((!have_solution1) && have_solution2) {
-			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
-
-			insert_a_knot_to_a_stair(degree, start_row, expanded_U, paras, tempU, STAIR_BACKWARD);
-
-		}
-		if (have_solution1 && have_solution2) {
-			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
-			// if both of them have solution, pick a random one to solve
-
-			insert_a_knot_to_a_stair(degree, start_row + nbr_rows - 1, expanded_U, paras, tempU, STAIR_FORWARD);
-
-		}
-		expanded_U = tempU;
-		start_row = 0; nbr_rows = m + 1;
-		A = build_matrix_A(degree, expanded_U, paras);
-		b = build_Vector_b(points, dimension);
-
-		have_solution = equation_has_solution(A, b);
-
-	}
-	return expanded_U;
 
 }
