@@ -331,6 +331,6 @@ void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::Ma
 		bool solvable = selected_rows_have_solution(degree1, degree2, Uout, Vout, param, Ver, list, i);
 		std::cout << "solvable test, i=" << i << ", solvable= " << solvable << std::endl;
 	}
-	
+	//std::cout << "param\n" << param << std::endl;
 
 }

@@ -163,10 +163,10 @@ void fix_surface_grid_parameter_too_many(const int degree1, const std::vector<do
 
 	// when interpolating u==1 and v==1, it will be the same as interpolating
 	// two curves. so, we use curve processing method
-	std::cout << "before u==1 and v==1 preprocessing" << std::endl;
+	
 	fix_stairs_row_too_many(degree1, Uin, uparas, Utmp);
 	fix_stairs_row_too_many(degree2, Vin, vparas, Vtmp);
-	std::cout << "after u==1 and v==1" << std::endl;
+	
 	
 	fix_the_grid_not_border(degree1, Utmp, degree2, Vtmp, paras, Uout, Vout);
 }
@@ -197,7 +197,7 @@ Eigen::MatrixXd build_matrix_A(const int degree1, const int degree2,
 
 	return result;
 }
-bool dflag = false;
+
 Eigen::MatrixXd build_matrix_A(const int degree1, const int degree2,
 	const std::vector<double>& U, const std::vector<double>& V,
 	const Eigen::MatrixXd& paras, const std::vector<int> row_id) {
@@ -214,14 +214,14 @@ Eigen::MatrixXd build_matrix_A(const int degree1, const int degree2,
 		
 		double u = paras(i, 0);
 		double v = paras(i, 1);
-		//std::cout << "in for, u and v " << u << " " << v << std::endl;
+		
 		for (int j = 0; j < result.cols(); j++) {
 			// get the indices of N_r(u) and N_q(v)
 			int r = j / (nv + 1);
 			int q = j - r * (nv + 1);
 			double N1 = Nip(r, degree1, u, U);
 			double N2 = Nip(q, degree2, v, V);
-			if(dflag)
+			
 			
 			result(l, j) = N1 * N2;
 		}
@@ -259,10 +259,9 @@ bool selected_rows_have_solution(const int degree1, const int degree2,
 	const std::vector<int> &row_id, const int dimension) {
 
 	Eigen::MatrixXd A = build_matrix_A(degree1, degree2, U, V, paras,row_id);
-	std::cout << "A is built" << std::endl;
 
 	Eigen::VectorXd b = build_Vector_b(points, dimension, row_id);
-	std::cout << "b is built" << std::endl;
+
 	return equation_has_solution(A, b);
 }
 // UorV shows which interval do we bisect
@@ -305,16 +304,17 @@ void bisectively_find_solvable_block(const int degree1, const int degree2,
 	
 	bool UorV = true;//initially U get bisected
 	while (current_ids.size() > 0) {
-		if (selected_rows_have_solution(degree1, degree2, Uin, Vin, paras, points, current_ids, dimension)) {
+		bool solution = selected_rows_have_solution(degree1, degree2, Uin, Vin, paras, points, current_ids, dimension);
+		if (solution) {
 			Uinterval_out = Uinterval;
 			Vinterval_out = Vinterval;
 			pids = current_ids;
 			return;
 		}
-		std::cout << "before bisect interval" << std::endl;
+		
 		bisect_interval(Uinterval, Vinterval, UorV);
 		UorV = !UorV;
-		std::cout << "before selecting point id related to this interval" << std::endl;
+
 		select_point_id_in_interval(Uinterval, Vinterval, paras, current_ids);
 	}
 	std::cout << "ERROR OCCURED WHEN TRYING TO LOCATE THE SOLVABLE BLOCK" << std::endl;
@@ -408,7 +408,7 @@ bool insert_U_or_V_direction(const double udiff, const double vdiff) {
 	if (vdiff == 0) return 1;
 	if (udiff > 0) return 1;
 	if (vdiff > 0) return 0;
-	std::cout << "impossible case when inserting u or v" << std::endl;
+	std::cout << "ERROR impossible case when inserting u or v" << std::endl;
 	assert(false);
 	return false;
 }
@@ -589,13 +589,14 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 	std::array<double, 2>Vinterval;
 	std::vector<int> pids;// point ids of the solvable block
 
-	bisectively_find_solvable_block(degree1, degree2, Utmp, Utmp, paras, points, dimension, Uinterval, Vinterval, pids);
+	bisectively_find_solvable_block(degree1, degree2, Utmp, Vtmp, paras, points, dimension, Uinterval, Vinterval, pids);
+	//std::cout << "paras\n" << paras << std::endl;
 	std::cout << "found solvable block" << std::endl;
 	if (pids.size() == points.rows()) {// it means all the points are solvable
 		Uout = Utmp;
 		Vout = Vtmp;
 		std::cout << "return1 pids" << std::endl;
-		print_vector(pids);
+		
 		return;
 	}
 
@@ -616,7 +617,7 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 				Uout = Utmp;
 				Vout = Utmp;
 				std::cout << "return2 pids" << std::endl;
-				print_vector(new_ids);
+				
 				return;
 			}
 			
@@ -639,7 +640,7 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 					Uout = Utmpout;
 					Vout = Vtmpout;
 					std::cout << "return3 pids" << std::endl;
-					print_vector(pid_out);
+				
 					return;
 				}
 
@@ -668,5 +669,5 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 		Utmp = Uout;
 		Vtmp = Vout;
 	}
-	dflag = true;
+	
 }
