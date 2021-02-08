@@ -320,6 +320,7 @@ void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::Ma
 	//knot_intervals_to_mesh(degree1, degree2, Uout, Vout, knotP, knotE);
 	std::cout << "before fixing" << std::endl;
 	std::cout << "para size " << param.rows() << std::endl;
+	//easist_way_to_fix_knot_vector_to_interpolate_surface(degree1, degree2, vecU, vecV, param, Ver, Uout, Vout);
 	fix_knot_vector_to_interpolate_surface(degree1, degree2, vecU, vecV, param, Ver, Uout, Vout);
 	std::cout << "fixed U" << std::endl; print_vector(Uout);
 	std::cout << "fixed V" << std::endl; print_vector(Vout);
@@ -331,6 +332,7 @@ void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::Ma
 		bool solvable = selected_rows_have_solution(degree1, degree2, Uout, Vout, param, Ver, list, i);
 		std::cout << "solvable test, i=" << i << ", solvable= " << solvable << std::endl;
 	}
+	knot_intervals_to_mesh(degree1, degree2, Uout, Vout, knotP, knotE);
 	//std::cout << "param\n" << param << std::endl;
 
 }

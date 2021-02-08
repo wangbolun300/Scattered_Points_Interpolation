@@ -240,12 +240,12 @@ void visual_surface_knot_fixing() {
 	Eigen::MatrixXd knotP;
 	Eigen::MatrixXi knotE;
 	test_knot_fixing(points, knotP, knotE);
-	/*Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
+	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
 	fcolor << 1, 0, 0; ecolor << 0.5, 0.5, 0.5;
 	global_viewer.data().set_edges(knotP, knotE, fcolor);
 	global_viewer.data().add_points(points, ecolor);
 	draw_axis(2);
-	global_viewer.launch();*/
+	global_viewer.launch();
 }
 int main() {
 	//test_opengl();

@@ -151,7 +151,7 @@ Eigen::MatrixXd solve_curve_control_points(const int degree, const std::vector<d
 	return result;
 }
 int rank(const Eigen::MatrixXd& matrix) {
-	return matrix.fullPivLu().rank();
+	return matrix.completeOrthogonalDecomposition().rank();
 }
 
 // check if there is solution(s) for interpolation problem

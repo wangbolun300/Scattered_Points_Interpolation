@@ -1,5 +1,6 @@
 #include<surface.h>
 #include<curve.h>
+#include <iomanip> 
 int Bsurface::nu() {
 	return U.size() - 2 - degree1;
 }
@@ -402,6 +403,7 @@ void double_the_interval_and_expand_points(
 }
 
 // 1 insert U, 0 insert V.
+// TODO maybe have a better way for udiff>0&&vdiff>0
 bool insert_U_or_V_direction(const double udiff, const double vdiff) {
 	assert(udiff >= 0 || vdiff >= 0);// (udiff<0&&vdiff<0) should not happen
 	if (udiff ==0) return 0;
@@ -568,10 +570,96 @@ void insert_a_knot_to_problematic_area(const int degree1, const int degree2,
 		return;
 	}
 	else {
+		std::cout << "u v diff, " << udiff << " " << vdiff << std::endl;
+		std::cout << "Utmp, Vtmp\n";
+		print_vector(Utmp);
+		print_vector(Vtmp);
+		std::cout << "current list length " << pids.size() << std::endl;
+		std::cout << "original knot, \n";
+		print_vector(Uin);
+		print_vector(Vin);
+		std::cout << "u and v " << u << " " << v << std::endl;
 		std::cout << "ERROR OCCURES HERE, INSERTING KNOT DIDNOT WORK" << std::endl;
+		//insert_a_knot_to_problematic_area(degree1, degree2, Utmp, Vtmp, paras, points, dimension, pids, Uinterval, Vinterval,
+		//	Uout, Vout);// recursive cannot fix it. i think it is because of numerical problem
 		exit(0);
 	}
 	
+
+}
+
+void DBG_insert_a_knot_to_problematic_area(const int degree1, const int degree2,
+	const std::vector<double>& Uin, const std::vector<double>& Vin,
+	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points, const int dimension,
+	const std::vector<int> &pids, const std::array<double, 2> &Uinterval, const std::array<double, 2>&Vinterval,
+	std::vector<double>& Uout, std::vector<double>& Vout) {
+	int id = pids.back();
+	double u = paras(id, 0);
+	double v = paras(id, 1);
+	double udiff = u - Uinterval[1];
+	double vdiff = v - Vinterval[1];
+
+	bool insert_which = insert_U_or_V_direction(udiff, vdiff);
+
+	double value;
+	std::vector<double> Utmp;
+	std::vector<double> Vtmp;
+
+	// first try 
+	bool solvable = gather_insert_and_check_solvable(degree1, degree2, Uin, Vin, paras, insert_which, pids,
+		points, dimension, Uout, Vout);
+	if (solvable) {
+		return;
+	}
+	else {
+		if (insert_which) {
+			Utmp = Uout;
+		}
+		else {
+			Vtmp = Vout;
+		}
+	}
+
+	// second try
+	solvable = gather_insert_and_check_solvable(degree1, degree2, Uin, Vin, paras, !insert_which, pids,
+		points, dimension, Uout, Vout);
+	if (solvable) {
+		return;
+	}
+	else {
+		if (!insert_which) {
+			Utmp = Uout;
+		}
+		else {
+			Vtmp = Vout;
+		}
+	}
+
+	// the last try, both U and V get inserted
+	solvable = selected_rows_have_solution(degree1, degree2, Utmp, Vtmp, paras, points, pids, dimension);
+	if (solvable) {
+		Uout = Utmp;
+		Vout = Vtmp;
+		return;
+	}
+	else {
+		std::cout << "u v diff, " << udiff << " " << vdiff << std::endl;
+		std::cout << "Utmp, Vtmp\n";
+		print_vector(Utmp);
+		print_vector(Vtmp);
+		std::cout << "current list length " << pids.size() << std::endl;
+		std::cout << "original knot, \n";
+		print_vector(Uin);
+		print_vector(Vin);
+		std::cout << "u and v " << u << " " << v << std::endl;
+		std::cout << "ERROR OCCURES HERE, INSERTING KNOT DIDNOT WORK" << std::endl;
+		//insert_a_knot_to_problematic_area(degree1, degree2, Utmp, Vtmp, paras, points, dimension, pids, Uinterval, Vinterval,
+		//	Uout, Vout);// recursive cannot fix it. i think it is because of numerical problem
+		Uout = Utmp;
+		Vout = Vtmp;
+		return;
+	}
+
 
 }
 
@@ -607,12 +695,12 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 		// expand a new point to make the block larger
 		// but remind that the intervals are not updated here
 		expand_one_point_close_to_interval(paras, pids, new_ids);
-		std::cout << "expand one point" << std::endl;
+
 		// and test if the current block is solvable. if is, continue to expand another point;
 		// if isn't, gather the problematic points and insert a knot
 		bool solvable = selected_rows_have_solution(degree1, degree2, Utmp, Vtmp, paras, points, new_ids, dimension);
 		if (solvable) {
-		std::cout << "solvable case, should continue expand" << std::endl;
+		
 			if (new_ids.size() == points.rows()) {// it means all the points are solvable
 				Uout = Utmp;
 				Vout = Utmp;
@@ -623,13 +711,13 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 			
 		}
 		else {// if the new inserted point break the solvability, then insert a point
-			std::cout << "unsolvable case, should insert a knot" << std::endl;
+			
 			std::vector<double> Utmpout, Vtmpout;
 			std::vector<int> pid_out;
 			std::array<double, 2> Uinterval_out, Vinterval_out;
 			insert_a_knot_to_problematic_area(degree1, degree2, Utmp, Vtmp, paras, points, dimension, new_ids,
 				Uinterval, Vinterval, Utmpout, Vtmpout);
-			std::cout << "knot get inserted" << std::endl;
+			
 			// TODO there is a smarter way to select double u or v
 			double_the_interval_and_expand_points(Utmpout, Vtmpout,Uinterval,Vinterval,paras,
 				new_ids,pid_out, Uinterval_out,Vinterval_out);
@@ -670,4 +758,44 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 		Vtmp = Vout;
 	}
 	
+}
+
+void easist_way_to_fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2,
+	const std::vector<double>& Uin, const std::vector<double>& Vin,
+	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points, 
+	std::vector<double>& Uout, std::vector<double>& Vout) {
+	Uout = Uin;
+	Vout = Vin;
+	for (int i = 0; i < paras.rows(); i++) {
+		double u = paras(i, 0);
+		double v = paras(i, 1);
+		bool uskip = false, vskip = false;
+		for (int j = 0; j < Uout.size(); j++) {
+			if (u == Uout[j]) {
+				uskip = true;
+				break;
+			}
+		}
+		for (int j = 0; j < Vout.size(); j++) {
+			if (v == Vout[j]) {
+				vskip = true;
+				break;
+			}
+		}
+		if (!uskip) {
+			if (u == 1) {
+				std::cout << "error should not happen" << std::endl;
+			}
+
+			Uout = knot_vector_insert_one_value(Uout, u);
+		}
+		if (!vskip) {
+			Vout = knot_vector_insert_one_value(Vout, v);
+		}
+		
+	}
+	std::cout <<std::setprecision(17)<< "vxx " << Vout[Vout.size() - 5]<<" "<< Vout[Vout.size() - 4]<<" "
+		<< Vout[Vout.size() - 3]<<" "<< Vout[Vout.size() - 2]<<" "<< Vout[Vout.size() - 1] << std::endl;
+	bool eq = (Vout[Vout.size() - 5] == 1);
+	std::cout << "eq " << eq << std::endl;
 }

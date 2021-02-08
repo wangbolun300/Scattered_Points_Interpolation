@@ -42,3 +42,8 @@ bool selected_rows_have_solution(const int degree1, const int degree2,
 	const std::vector<double>& U, const std::vector<double>& V,
 	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points,
 	const std::vector<int> &row_id, const int dimension);
+
+void easist_way_to_fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2,
+	const std::vector<double>& Uin, const std::vector<double>& Vin,
+	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points,
+	std::vector<double>& Uout, std::vector<double>& Vout);
