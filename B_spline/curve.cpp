@@ -487,10 +487,9 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 	
 	int start_row = 0;// initialized row nbr is 0
 	int nbr_rows = m + 1;// initialized block has m+1 rows
-	int dbg_flag = 0;
+
 	while (!have_solution) {
-		if (dbg_flag > 50) exit(0);
-		dbg_flag++;
+
 		
 		Eigen::MatrixXd sub_A1, sub_A2;
 		Eigen::VectorXd sub_b1, sub_b2;

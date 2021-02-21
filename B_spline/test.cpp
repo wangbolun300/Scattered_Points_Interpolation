@@ -302,7 +302,7 @@ void test_surface_knot_preprocessing(Eigen::MatrixXd &points, Eigen::MatrixXd& k
 // here the points are the parameters or the 3d positions
 void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::MatrixXi& knotE) {
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	const std::string filename = path + "camel_smallest.obj";
+	const std::string filename = path + "camel_small_open.obj";
 
 	Eigen::MatrixXd Ver; Eigen::MatrixXi F;
 	Eigen::MatrixXd  param;
@@ -321,7 +321,7 @@ void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::Ma
 	std::cout << "before fixing" << std::endl;
 	std::cout << "para size " << param.rows() << std::endl;
 	//easist_way_to_fix_knot_vector_to_interpolate_surface(degree1, degree2, vecU, vecV, param, Ver, Uout, Vout);
-	fix_knot_vector_to_interpolate_surface(degree1, degree2, vecU, vecV, param, Ver, Uout, Vout);
+	easist_way_to_fix_knot_vector_to_interpolate_surface(degree1, degree2, vecU, vecV, param, Ver, Uout, Vout);
 	std::cout << "fixed U" << std::endl; print_vector(Uout);
 	std::cout << "fixed V" << std::endl; print_vector(Vout);
 	std::vector<int> list;
@@ -334,5 +334,4 @@ void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::Ma
 	}
 	knot_intervals_to_mesh(degree1, degree2, Uout, Vout, knotP, knotE);
 	//std::cout << "param\n" << param << std::endl;
-
 }
