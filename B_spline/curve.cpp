@@ -382,89 +382,37 @@ void insert_a_knot_to_a_stair_largest_rows(const int degree, const int pro_row_i
 	return;
 
 }
-// this function takes an initial knot vector which may not satisfy the interpolation condition,
-// and returns a knot vector which can. the 3 dimensions are evaluated separately.
-//std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const std::vector<double>& init_vec, 
-//	const std::vector<double>& paras, const std::vector<Vector3d>& points, const int dimension) {
-//	std::vector<double> expanded_U = init_vec;
-//	assert(points.size() == paras.size());
-//	int n = expanded_U.size() - 2 - degree;// n + 1 = number of control points
-//	int m = paras.size() - 1;// m + 1 = the number of data points
-//	Eigen::MatrixXd A, Ab;
-//	Eigen::VectorXd b;
-//	
-//	A = build_matrix_A(degree, expanded_U, paras);
-//	b = build_Vector_b(points, dimension);
-//	Ab.resize(m + 1, n + 2);
-//	Ab << A, b;
-//	int rankA = rank(A);
-//	int rankAb = rank(Ab);
-//	if (rankA == rank(Ab)) {
-//		return xxx
-//	}
-//}
-// TODO i think recursively fixing the knot vector is practical. 
-// if no solution, check 1st sub matrix. if it has solution, modify knot vector;
-// if the 1st sub matrix do not have solution, the knot vector is still modified.
-// but, remind that the modified part is within the stairs related to the 1st sub matrix.
-// Then, check if the 2st sub matrix has solution (which is a bigger one). if it has one,
-// then modify knot vector, otherwise, knot vector will still be modified inside the checking 
-// of matrix 2. finally, return the modified vector.
-// here, we need to be careful of the defination of 2 sub matrixes. and everytime we check this level,
-// we insert knots, and should check this level again. xxx
 
-// TODO if we use while() iteration, we better do:
-// while there is no solution, we check solution of this level, 
-// if no solution, we check sub_matrix_1 and sub_matrix_2. there will
-// be 2 cases: 1 has no solution and 2 has no solution, we change the current 
-// matrix to sub_matrix_1; 1 or 2 has solution, we update the knots and matrix. Then 
-// restart the iteration.
+// this function uses boolean predicates to check if the equation is row full rank
+// if row full rank, Ax = b have solution
+bool curve_equation_row_full_rank(const int degree, const std::vector<double>& U, const std::vector<double>& paras,
+	const int start_row, const int nbr_rows, int& rankdiff) {
+	rankdiff = 0;
+	std::vector<std::vector<int>> intervals;
+	Eigen::MatrixXd A;
+	A = build_matrix_A(degree, U, paras,start_row,nbr_rows);
 
-//
-//std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const std::vector<double>& init_vec,
-//	const std::vector<double>& paras, const std::vector<Vector3d>& points, const int dimension, 
-//	const int sub_matrix_start_row, const int nbr_sub_matrix_rows, bool& have_solution) {
-//	std::vector<double> expanded_U;
-//	// take init_vec as input, detect if there is any stair whose row is too many (>n+1).
-//	// if there are such stairs, insert knots to init_vec, the result is expanded_U
-//	fix_stairs_row_too_many(degree, init_vec, paras, expanded_U);
-//
-//	assert(points.size() == paras.size());
-//	int n = expanded_U.size() - 2 - degree;// n + 1 = number of control points
-//	int m = paras.size() - 1;// m + 1 = the number of data points
-//	
-//	Eigen::MatrixXd A, Ab;
-//	Eigen::VectorXd b;
-//
-//	A = build_matrix_A(degree, expanded_U, paras, sub_matrix_start_row, nbr_sub_matrix_rows);
-//	b = build_Vector_b(points, dimension, sub_matrix_start_row, nbr_sub_matrix_rows);
-//	have_solution = equation_has_solution(A, b);
-//	if (have_solution) {
-//		return expanded_U;
-//	}
-//	// if there is no solution, check sub_matrix
-//	bool have_solution_1 = false, have_solution_2 = false, have_solution_again = false;
-//	expanded_U = fix_knot_vector_to_interpolate_curve(degree, expanded_U, paras, points, dimension,
-//		sub_matrix_start_row, nbr_sub_matrix_rows - 1, have_solution_1);
-//	if (have_solution_1) {
-//		// TODO we need to locate this row, figure out its multiplicity, and insert knot into expanded_U
-//		
-//	}
-//
-//	// check current block again, if have solution, it means the first sub-block fix the whole block
-//	expanded_U = fix_knot_vector_to_interpolate_curve(degree, expanded_U, paras, points, dimension,
-//		sub_matrix_start_row, nbr_sub_matrix_rows, have_solution_again);
-//	if (have_solution_again) {
-//		have_solution = have_solution_again;
-//		return expanded_U;
-//		// TODO we need to locate this row, figure out its multiplicity, and insert knot into expanded_U
-//	}
-//
-//
+	int r = 0;
+	for (int i = 0; i < nbr_rows; i++) {
+		bool found = false;
+		for (int j = r; j < A.cols(); j++) {
+			if (A(i, j) != 0) {
+				r = j + 1;
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			rankdiff = nbr_rows - i;
+			return false;
+		}
+	}
 
-std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const std::vector<double>& init_vec,
-	const std::vector<double>& paras, const std::vector<Vector3d>& points, const int dimension
-) {
+	return true;
+}
+
+std::vector<double> fix_knot_vector_to_interpolate_curve_boolean(const int degree, const std::vector<double>& init_vec,
+	const std::vector<double>& paras) {
 	std::vector<double> expanded_U = init_vec;
 	// take init_vec as input, detect if there is any stair whose row is too many (>n+1).
 	// if there are such stairs, insert knots to init_vec, the result is expanded_U
@@ -475,36 +423,23 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 	int n = expanded_U.size() - 2 - degree;// n + 1 = number of control points
 	int m = paras.size() - 1;// m + 1 = the number of data points
 
-	Eigen::MatrixXd A;
-	Eigen::VectorXd b;
-
-
-	A = build_matrix_A(degree, expanded_U, paras);
-
-	b = build_Vector_b(points, dimension);
-
-	bool have_solution = equation_has_solution(A, b);
-	
 	int start_row = 0;// initialized row nbr is 0
 	int nbr_rows = m + 1;// initialized block has m+1 rows
+	int rankdiff;
+	bool have_solution = curve_equation_row_full_rank(degree, expanded_U, paras, start_row, nbr_rows, rankdiff);
+
 
 	while (!have_solution) {
 
 		
-		Eigen::MatrixXd sub_A1, sub_A2;
-		Eigen::VectorXd sub_b1, sub_b2;
+		
 		int rank_diff1, rank_diff2;
 		assert(nbr_rows > 1);
-
-		sub_A1 = build_matrix_A(degree, expanded_U, paras, start_row, nbr_rows - 1);
-		sub_b1 = build_Vector_b(points, dimension, start_row, nbr_rows - 1);
 	
-		bool have_solution1 = equation_has_solution(sub_A1, sub_b1, rank_diff1);
+		bool have_solution1 = curve_equation_row_full_rank(degree, expanded_U, paras, start_row, nbr_rows - 1, rank_diff1);
 
-		sub_A2 = build_matrix_A(degree, expanded_U, paras, start_row + 1, nbr_rows - 1);
-		sub_b2 = build_Vector_b(points, dimension, start_row + 1, nbr_rows - 1);
 	
-		bool have_solution2 = equation_has_solution(sub_A2, sub_b2, rank_diff2);
+		bool have_solution2 = curve_equation_row_full_rank(degree, expanded_U, paras, start_row + 1, nbr_rows - 1, rank_diff2);
 		
 		if ((!have_solution1) && (!have_solution2)) {// if no solution, check next level;
 			if (rank_diff1 <= rank_diff2) {
@@ -524,22 +459,117 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 			// the problematic row is start_row + nbr_rows
 
 
-			
+			std::cout << "branch 1" << std::endl;
 			insert_a_knot_to_a_stair(degree, start_row + nbr_rows-1, expanded_U, paras, tempU,STAIR_FORWARD);
 			
 		}
 		if ((!have_solution1) && have_solution2) {
 			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
-			
+			std::cout << "branch 2" << std::endl;
 			insert_a_knot_to_a_stair(degree, start_row, expanded_U, paras, tempU,STAIR_BACKWARD);
+			std::cout << "original" << std::endl;
+			print_vector(expanded_U);
+			std::cout << "fixed" << std::endl;
+			print_vector(tempU);
 			
 		}
 		if (have_solution1 && have_solution2) {
 			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
 			// if both of them have solution, pick a random one to solve
-			
+			std::cout << "branch 1" << std::endl;
 			insert_a_knot_to_a_stair(degree, start_row + nbr_rows-1, expanded_U, paras, tempU, STAIR_FORWARD);
 			
+		}
+		expanded_U = tempU;
+		start_row = 0; nbr_rows = m + 1;
+
+
+		have_solution = curve_equation_row_full_rank(degree,expanded_U,paras, start_row, nbr_rows,rankdiff);
+	}
+	return expanded_U;
+
+}
+std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const std::vector<double>& init_vec,
+	const std::vector<double>& paras, const std::vector<Vector3d>& points, const int dimension) {
+	std::vector<double> expanded_U = init_vec;
+	// take init_vec as input, detect if there is any stair whose row is too many (>n+1).
+	// if there are such stairs, insert knots to init_vec, the result is expanded_U
+
+	fix_stairs_row_too_many(degree, init_vec, paras, expanded_U);
+
+	assert(points.size() == paras.size());
+	int n = expanded_U.size() - 2 - degree;// n + 1 = number of control points
+	int m = paras.size() - 1;// m + 1 = the number of data points
+
+	Eigen::MatrixXd A;
+	Eigen::VectorXd b;
+
+
+	A = build_matrix_A(degree, expanded_U, paras);
+
+	b = build_Vector_b(points, dimension);
+
+	bool have_solution = equation_has_solution(A, b);
+
+	int start_row = 0;// initialized row nbr is 0
+	int nbr_rows = m + 1;// initialized block has m+1 rows
+
+	while (!have_solution) {
+
+
+		Eigen::MatrixXd sub_A1, sub_A2;
+		Eigen::VectorXd sub_b1, sub_b2;
+		int rank_diff1, rank_diff2;
+		assert(nbr_rows > 1);
+
+		sub_A1 = build_matrix_A(degree, expanded_U, paras, start_row, nbr_rows - 1);
+		sub_b1 = build_Vector_b(points, dimension, start_row, nbr_rows - 1);
+
+		bool have_solution1 = equation_has_solution(sub_A1, sub_b1, rank_diff1);
+
+		sub_A2 = build_matrix_A(degree, expanded_U, paras, start_row + 1, nbr_rows - 1);
+		sub_b2 = build_Vector_b(points, dimension, start_row + 1, nbr_rows - 1);
+
+		bool have_solution2 = equation_has_solution(sub_A2, sub_b2, rank_diff2);
+
+		if ((!have_solution1) && (!have_solution2)) {// if no solution, check next level;
+			if (rank_diff1 <= rank_diff2) {
+				start_row = start_row;
+				nbr_rows = nbr_rows - 1;
+			}
+			else {
+				start_row = start_row + 1;
+				nbr_rows = nbr_rows - 1;
+			}
+
+			continue;
+		}
+		std::vector<double> tempU;
+		if (have_solution1 && (!have_solution2)) {
+			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
+			// the problematic row is start_row + nbr_rows
+
+
+			std::cout << "branch 1" << std::endl;
+			insert_a_knot_to_a_stair(degree, start_row + nbr_rows - 1, expanded_U, paras, tempU, STAIR_FORWARD);
+
+		}
+		if ((!have_solution1) && have_solution2) {
+			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
+			std::cout << "branch 2" << std::endl;
+			insert_a_knot_to_a_stair(degree, start_row, expanded_U, paras, tempU, STAIR_BACKWARD);
+			std::cout << "original" << std::endl;
+			print_vector(expanded_U);
+			std::cout << "fixed" << std::endl;
+			print_vector(tempU);
+
+		}
+		if (have_solution1 && have_solution2) {
+			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
+			// if both of them have solution, pick a random one to solve
+			std::cout << "branch 1" << std::endl;
+			insert_a_knot_to_a_stair(degree, start_row + nbr_rows - 1, expanded_U, paras, tempU, STAIR_FORWARD);
+
 		}
 		expanded_U = tempU;
 		start_row = 0; nbr_rows = m + 1;
@@ -549,6 +579,7 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 		have_solution = equation_has_solution(A, b);
 
 	}
+	std::cout << "A\n" << A << std::endl;
 	return expanded_U;
 
 }

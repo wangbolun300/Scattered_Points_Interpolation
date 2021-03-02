@@ -254,13 +254,13 @@ int main() {
 	//draw_a_line();
 	//draw_a_curve();
 	//test_fitting();
-	//plot_fitting_result();
+	plot_fitting_result();
 	//test_curve_knot_fixing();
 	//visual_mesh();
 	//test_mesh_parameterization();
 	//visual_and_chop_mesh(true);
 	//visual_surface();
 	//visual_surface_processing();
-	visual_surface_knot_fixing();
+	//visual_surface_knot_fixing();
 	return 0;
 }

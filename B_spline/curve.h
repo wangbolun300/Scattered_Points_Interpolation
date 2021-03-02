@@ -26,3 +26,7 @@ bool equation_has_solution(const Eigen::MatrixXd& A,
 // check if there is solution(s) for interpolation problem
 bool equation_has_solution(const Eigen::MatrixXd& A,
 	const Eigen::VectorXd& b);
+
+// using boolean predicates to conservatively fix a knot vector to interpolate curve
+std::vector<double> fix_knot_vector_to_interpolate_curve_boolean(const int degree, const std::vector<double>& init_vec,
+	const std::vector<double>& paras);

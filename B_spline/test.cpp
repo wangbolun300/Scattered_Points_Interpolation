@@ -113,7 +113,9 @@ void visual_curve_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control
 	for (int i = 0; i < paras.size(); i++) {
 		std::cout << paras[i] << std::endl << std::endl;
 	}
-	std::vector<double> result_vector = fix_knot_vector_to_interpolate_curve(degree, U_init, paras, pts);
+	std::vector<double> result_vector = 
+		//fix_knot_vector_to_interpolate_curve_boolean(degree, U_init, paras);
+		fix_knot_vector_to_interpolate_curve(degree, U_init, paras, pts);
 	std::cout << "fixed " << std::endl;
 	for (int i = 0; i < result_vector.size(); i++) {
 		std::cout << result_vector[i] << std::endl << std::endl;
