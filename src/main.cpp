@@ -9,6 +9,7 @@
 #include <igl/map_vertices_to_circle.h>
 #include <igl/harmonic.h>
 #include <igl/write_triangle_mesh.h>
+#include<exact_calculation.h>
 
 igl::opengl::glfw::Viewer global_viewer;
 void show_basis(const std::vector<double>&b_vec) {
@@ -247,6 +248,29 @@ void visual_surface_knot_fixing() {
 	draw_axis(2);
 	global_viewer.launch();
 }
+
+void test_rational() {
+	std::vector<double> U = { {0,0,0,0,0.5,1,1,1,1} };
+	Rational re = Nip_Rational(1, 3, 0.3, U);
+	std::cout << "rational number is, " << re.to_double() << std::endl;
+	Rational a = 5;
+	Rational b = -a;
+	std::cout << "-a= " << (-a).to_double()<<" "<<
+		b.to_double() << std::endl;
+	b = 1;
+	b /= a;
+	std::cout << "b " << b <<" a "<<a<< std::endl<<std::endl;
+
+	MatrixXs mt;
+	mt.resize(3, 2);
+	mt << 1, 1.5,
+		2, 2,
+		3, 1;
+	rank(mt);
+}
+
+
+
 int main() {
 	//test_opengl();
 	//int p = 3;
@@ -254,7 +278,7 @@ int main() {
 	//draw_a_line();
 	//draw_a_curve();
 	//test_fitting();
-	plot_fitting_result();
+	//plot_fitting_result();
 	//test_curve_knot_fixing();
 	//visual_mesh();
 	//test_mesh_parameterization();
@@ -262,5 +286,6 @@ int main() {
 	//visual_surface();
 	//visual_surface_processing();
 	//visual_surface_knot_fixing();
+	test_rational();
 	return 0;
 }

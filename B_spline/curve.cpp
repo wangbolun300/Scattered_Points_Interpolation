@@ -419,7 +419,7 @@ std::vector<double> fix_knot_vector_to_interpolate_curve_boolean(const int degre
 
 	fix_stairs_row_too_many(degree, init_vec, paras, expanded_U);
 
-	assert(points.size() == paras.size());
+	
 	int n = expanded_U.size() - 2 - degree;// n + 1 = number of control points
 	int m = paras.size() - 1;// m + 1 = the number of data points
 

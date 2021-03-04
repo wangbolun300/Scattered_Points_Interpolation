@@ -7,6 +7,9 @@ project(Sparse_Interp)
 
 # project-options
 
+# GMP
+option(SPARSE_INTERPOLATION_WITH_GMP		"Use gmp to have rational predicates"	  ON)
+
 
 # libigl
 option(LIBIGL_USE_STATIC_LIBRARY     "Use libigl as static library" OFF)
@@ -33,21 +36,23 @@ option(LIBIGL_WITH_PREDICATES        "Use exact predicates"         ON)
 
 ### Configuration
 set(SPARSE_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${THIRD_PARTY_DIR}/Catch2/contrib)
 set(SPARSE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/sparse_interp)
 
 include(Warnings)
 include(UseColors)
 include(${PROJECT_NAME}Dependencies)
+include(PrependCurrentPath)
 include(Sparse_InterpUtils)
 
 
 
 add_subdirectory(sparse_interp)
-add_library(${PROJECT_NAME}  
-${SPARSE_SOURCES}
-)
+add_library(${PROJECT_NAME}  ${SPARSE_SOURCES})
 target_link_libraries(${PROJECT_NAME} PUBLIC igl::core igl::triangle)
+
+
 ############################
 # B spline library.
 # igl -> SPLINE_LIB
@@ -59,6 +64,21 @@ SI_copy_headers(${SPLINE_SOURCES})
 #target_sources(SPLINE_LIB PRIVATE ${SPLINE_SOURCES})
 target_include_directories(SPLINE_LIB PUBLIC B_spline/)
 target_link_libraries(SPLINE_LIB PUBLIC igl::core)
+
+###############################
+
+if(SPARSE_INTERPOLATION_WITH_GMP)
+	find_package(GMP)
+
+	IF(NOT ${GMP_FOUND})
+			MESSAGE(FATAL_ERROR "Cannot find GMP")
+	ENDIF()
+	target_include_directories(SPLINE_LIB PUBLIC ${GMP_INCLUDE_DIRS})
+	target_link_libraries(SPLINE_LIB PUBLIC ${GMP_LIBRARIES})
+	target_compile_definitions(SPLINE_LIB PUBLIC SPARSE_INTERP_WITH_GMP)
+
+endif()
+
 
 add_executable(${PROJECT_NAME}_bin
     src/main.cpp

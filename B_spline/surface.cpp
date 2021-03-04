@@ -289,6 +289,8 @@ void select_point_id_in_interval(const std::array<double, 2>& Uinterval, const s
 	return;
 }
 
+// the block contains all the points that intersected with the interval. it means 
+// if we add a new point to the block, the new point will be outside the interval
 void bisectively_find_solvable_block(const int degree1, const int degree2,
 	const std::vector<double>& Uin, const std::vector<double>& Vin,
 	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points, const int dimension,
@@ -354,8 +356,12 @@ void expand_one_point_close_to_interval(
 			dis = v;
 		}
 	}
-	if(tmp>-1)// it means there are points outside. otherwise it will just return the old list
+	if (tmp > -1) {// it means there are points outside. otherwise it will just return the old list
 		pid_out.push_back(tmp);
+	}
+	else {
+		std::cout << "ERROR OCCURED WHEN EXPANDING ONE POINT TO THE BLOCK" << std::endl;
+	}
 
 }
 void double_the_interval_and_expand_points(
@@ -663,6 +669,99 @@ void DBG_insert_a_knot_to_problematic_area(const int degree1, const int degree2,
 
 }
 
+// construct the boolean matrix/net to show the key points to be interpolated
+// TODO
+void construct_boolean_matrix(const std::vector<double>& U, const std::vector<double>& V,
+	const Eigen::MatrixXd& paras, Eigen::MatrixXi& bm) {
+
+}
+//void fix_knot_vector_to_interpolate_surface_boolean(const int degree1, const int degree2,
+//	const std::vector<double>& Uin, const std::vector<double>& Vin,
+//	const Eigen::MatrixXd& paras, 
+//	std::vector<double>& Uout, std::vector<double>& Vout
+//) {
+//	std::vector<double> Utmp;
+//	std::vector<double> Vtmp;
+//	fix_surface_grid_parameter_too_many(degree1, Uin, degree2, Vin, paras, Utmp, Vtmp);
+//	std::cout << "surface grid too many get fixed" << std::endl;
+//	assert(paras.rows() == points.rows());
+//	std::array<double, 2>Uinterval;
+//	std::array<double, 2>Vinterval;
+//	std::vector<int> pids;// point ids of the solvable block
+//	
+//    // construct 
+//
+//
+//
+//	bisectively_find_solvable_block(degree1, degree2, Utmp, Vtmp, paras, points, dimension, Uinterval, Vinterval, pids);
+//	//std::cout << "paras\n" << paras << std::endl;
+//	std::cout << "found solvable block" << std::endl;
+//	if (pids.size() == points.rows()) {// it means all the points are solvable
+//		Uout = Utmp;
+//		Vout = Vtmp;
+//		std::cout << "return1 pids" << std::endl;
+//
+//		return;
+//	}
+//
+//	// if goes here, it means the function is not solvable.
+//	while (1) {
+//		std::vector<int> new_ids;
+//
+//		// expand a new point to make the block larger
+//		// but remind that the intervals are not updated here
+//		expand_one_point_close_to_interval(paras, pids, new_ids);
+//
+//		// and test if the current block is solvable. if is, continue to expand another point;
+//		// if isn't, gather the problematic points and insert a knot
+//		bool solvable = selected_rows_have_solution(degree1, degree2, Utmp, Vtmp, paras, points, new_ids, dimension);
+//		if (solvable) {
+//
+//			if (new_ids.size() == points.rows()) {// it means all the points are solvable
+//				Uout = Utmp;
+//				Vout = Utmp;
+//				std::cout << "return2 pids" << std::endl;
+//
+//				return;
+//			}
+//
+//		}
+//		else {// if the new inserted point break the solvability, then insert a point
+//
+//			std::vector<double> Utmpout, Vtmpout;
+//			std::vector<int> pid_out;
+//			std::array<double, 2> Uinterval_out, Vinterval_out;
+//			insert_a_knot_to_problematic_area(degree1, degree2, Utmp, Vtmp, paras, points, dimension, new_ids,
+//				Uinterval, Vinterval, Utmpout, Vtmpout);
+//
+//			// TODO there is a smarter way to select double u or v
+//			double_the_interval_and_expand_points(Utmpout, Vtmpout, Uinterval, Vinterval, paras,
+//				new_ids, pid_out, Uinterval_out, Vinterval_out);
+//
+//			solvable = selected_rows_have_solution(degree1, degree2, Utmpout, Vtmpout, paras, points, pid_out, dimension);
+//			if (solvable) {// if it is solvable, it means we can directly replace the list with the expanded list
+//				if (pid_out.size() == points.rows()) {// it means all the points are solvable
+//					Uout = Utmpout;
+//					Vout = Vtmpout;
+//					std::cout << "return3 pids" << std::endl;
+//
+//					return;
+//				}
+//
+//				// if it is solvable, update the list and intervals
+//				Uinterval = Uinterval_out;
+//				Vinterval = Vinterval_out;
+//				new_ids = pid_out;
+//			}
+//			// if the doubled interval is useless, do not update intervals and ids
+//			Utmp = Utmpout;
+//			Vtmp = Vtmpout;
+//		}
+//
+//		pids = new_ids;
+//	}
+//
+//}
 void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2, 
 	const std::vector<double>& Uin,const std::vector<double>& Vin,                                                                                           
 	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points, const int dimension,
@@ -760,6 +859,8 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 	
 }
 
+// theoretically this should interpolate any surface. but by testing we found that this can have numerical problems.
+// so, we need boolean operations
 void easist_way_to_fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2,
 	const std::vector<double>& Uin, const std::vector<double>& Vin,
 	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points, 
