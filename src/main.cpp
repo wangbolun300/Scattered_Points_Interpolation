@@ -285,7 +285,7 @@ int main() {
 	//visual_and_chop_mesh(true);
 	//visual_surface();
 	//visual_surface_processing();
-	//visual_surface_knot_fixing();
-	test_rational();
+	visual_surface_knot_fixing();
+	//test_rational();
 	return 0;
 }

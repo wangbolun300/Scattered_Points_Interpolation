@@ -3,7 +3,8 @@
 #include<Rational.hpp>
 #include<Eigen/Core>
 #include<vector>
-typedef Eigen::Matrix<Rational, Eigen::Dynamic, Eigen::Dynamic> MatrixXs;
+#include<Types.hpp>
+
 
 Rational Nip_Rational(const int i, const int p, const double u, const std::vector<double> &U);
 int rank(const MatrixXs& matrix);

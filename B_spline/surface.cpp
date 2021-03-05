@@ -797,7 +797,12 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 
 		// and test if the current block is solvable. if is, continue to expand another point;
 		// if isn't, gather the problematic points and insert a knot
-		bool solvable = selected_rows_have_solution(degree1, degree2, Utmp, Vtmp, paras, points, new_ids, dimension);
+		bool solvable = 
+#ifdef SPARSE_INTERP_WITH_GMP
+			selected_rows_have_solution_rational(degree1, degree2, Utmp, Vtmp, paras, points, new_ids, dimension);
+#else
+			selected_rows_have_solution(degree1, degree2, Utmp, Vtmp, paras, points, new_ids, dimension);
+#endif
 		if (solvable) {
 		
 			if (new_ids.size() == points.rows()) {// it means all the points are solvable
@@ -821,7 +826,12 @@ void fix_knot_vector_to_interpolate_surface(const int degree1, const int degree2
 			double_the_interval_and_expand_points(Utmpout, Vtmpout,Uinterval,Vinterval,paras,
 				new_ids,pid_out, Uinterval_out,Vinterval_out);
 
-			solvable = selected_rows_have_solution(degree1, degree2, Utmpout, Vtmpout, paras, points, pid_out, dimension);
+			solvable = 
+#ifdef SPARSE_INTERP_WITH_GMP
+				selected_rows_have_solution_rational(degree1, degree2, Utmpout, Vtmpout, paras, points, pid_out, dimension);
+#else
+				selected_rows_have_solution(degree1, degree2, Utmpout, Vtmpout, paras, points, pid_out, dimension);
+#endif
 			if (solvable) {// if it is solvable, it means we can directly replace the list with the expanded list
 				if (pid_out.size() == points.rows()) {// it means all the points are solvable
 					Uout = Utmpout;
@@ -867,6 +877,7 @@ void easist_way_to_fix_knot_vector_to_interpolate_surface(const int degree1, con
 	std::vector<double>& Uout, std::vector<double>& Vout) {
 	Uout = Uin;
 	Vout = Vin;
+	//std::cout << "mark1" << std::endl;
 	for (int i = 0; i < paras.rows(); i++) {
 		double u = paras(i, 0);
 		double v = paras(i, 1);
@@ -883,6 +894,7 @@ void easist_way_to_fix_knot_vector_to_interpolate_surface(const int degree1, con
 				break;
 			}
 		}
+		//std::cout << "i"<<i << std::endl;
 		if (!uskip) {
 			if (u == 1) {
 				std::cout << "error should not happen" << std::endl;
@@ -893,8 +905,10 @@ void easist_way_to_fix_knot_vector_to_interpolate_surface(const int degree1, con
 		if (!vskip) {
 			Vout = knot_vector_insert_one_value(Vout, v);
 		}
+		//std::cout << "i pushed" << i << std::endl;
 		
 	}
+	//std::cout << "mark2" << std::endl;
 	std::cout <<std::setprecision(17)<< "vxx " << Vout[Vout.size() - 5]<<" "<< Vout[Vout.size() - 4]<<" "
 		<< Vout[Vout.size() - 3]<<" "<< Vout[Vout.size() - 2]<<" "<< Vout[Vout.size() - 1] << std::endl;
 	bool eq = (Vout[Vout.size() - 5] == 1);

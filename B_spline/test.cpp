@@ -305,7 +305,7 @@ void test_surface_knot_preprocessing(Eigen::MatrixXd &points, Eigen::MatrixXd& k
 void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::MatrixXi& knotE) {
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
 	const std::string filename = path + "camel_small_open.obj";
-
+	// camel_small_open.obj is the problematic one
 	Eigen::MatrixXd Ver; Eigen::MatrixXi F;
 	Eigen::MatrixXd  param;
 	mesh_parameterization(filename, Ver, param, F);
@@ -331,7 +331,7 @@ void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::Ma
 		list.push_back(i);
 	}
 	for (int i = 0; i < 3; i++) {
-		bool solvable = selected_rows_have_solution(degree1, degree2, Uout, Vout, param, Ver, list, i);
+		bool solvable = selected_rows_have_solution_rational(degree1, degree2, Uout, Vout, param, Ver, list, i);
 		std::cout << "solvable test, i=" << i << ", solvable= " << solvable << std::endl;
 	}
 	knot_intervals_to_mesh(degree1, degree2, Uout, Vout, knotP, knotE);

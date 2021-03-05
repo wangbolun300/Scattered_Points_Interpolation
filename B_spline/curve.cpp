@@ -194,14 +194,21 @@ double get_the_mean_value(const std::vector<double>&paras, const std::vector<int
 }
 std::vector<double> knot_vector_insert_one_value(const std::vector<double>& U, const double value) {
 	std::vector<double> result;
-	result.reserve(U.size() + 1);
+	//result.reserve(U.size() + 1);
+
 	for (int i = 0; i < U.size(); i++) {
 		result.push_back(U[i]);
-		if (value >= U[i] && value < U[i + 1]) {
-			result.push_back(value);
+		
+		if (i < U.size() - 1) {
+			if (value >= U[i] && value < U[i + 1]) {
+				assert(value != U[i]);
+
+				result.push_back(value);
+
+			}
 		}
 	}
-	assert(result.size() == U.size() + 1);
+	
 	return result;
 }
 
