@@ -113,7 +113,8 @@ void visual_curve_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control
 	for (int i = 0; i < paras.size(); i++) {
 		std::cout << paras[i] << std::endl << std::endl;
 	}
-	std::vector<double> result_vector = 
+	std::vector<double> result_vector =
+	//{ {0,0,0,0,0.1,1,1,1,1} };
 		//fix_knot_vector_to_interpolate_curve_boolean(degree, U_init, paras);
 		fix_knot_vector_to_interpolate_curve(degree, U_init, paras, pts);
 	std::cout << "fixed " << std::endl;
@@ -304,7 +305,7 @@ void test_surface_knot_preprocessing(Eigen::MatrixXd &points, Eigen::MatrixXd& k
 // here the points are the parameters or the 3d positions
 void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::MatrixXi& knotE) {
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	const std::string filename = path + "camel_small_open.obj";
+	const std::string filename = path + "camel_smallest.obj";
 	// camel_small_open.obj is the problematic one
 	Eigen::MatrixXd Ver; Eigen::MatrixXi F;
 	Eigen::MatrixXd  param;
@@ -322,8 +323,8 @@ void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::Ma
 	//knot_intervals_to_mesh(degree1, degree2, Uout, Vout, knotP, knotE);
 	std::cout << "before fixing" << std::endl;
 	std::cout << "para size " << param.rows() << std::endl;
+	fix_knot_vector_to_interpolate_surface(degree1, degree2, vecU, vecV, param, Ver, Uout, Vout);
 	//easist_way_to_fix_knot_vector_to_interpolate_surface(degree1, degree2, vecU, vecV, param, Ver, Uout, Vout);
-	easist_way_to_fix_knot_vector_to_interpolate_surface(degree1, degree2, vecU, vecV, param, Ver, Uout, Vout);
 	std::cout << "fixed U" << std::endl; print_vector(Uout);
 	std::cout << "fixed V" << std::endl; print_vector(Vout);
 	std::vector<int> list;

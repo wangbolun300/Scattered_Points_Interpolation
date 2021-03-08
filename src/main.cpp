@@ -194,7 +194,7 @@ void visual_and_chop_mesh(const bool write_mesh) {
 
 void test_mesh_parameterization() {
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	const std::string filename = path + "lion.off";
+	const std::string filename = path + "camel_small_close.obj";
 
 	Eigen::MatrixXd V; Eigen::MatrixXi F;
 	Eigen::MatrixXd  param;
