@@ -10,7 +10,7 @@
 #include <igl/harmonic.h>
 #include <igl/write_triangle_mesh.h>
 #include<exact_calculation.h>
-
+#include<energy.h>
 igl::opengl::glfw::Viewer global_viewer;
 void show_basis(const std::vector<double>&b_vec) {
 	for (int i = 0; i < b_vec.size(); i++) {
@@ -269,7 +269,20 @@ void test_rational() {
 	rank(mt);
 }
 
+void test_poly() {
+	std::vector<double> poly1 = { {0,1,2,0} };
+	std::vector<double> poly2 = { {3,2} };
+	std::vector<double> result = polynomial_times(poly1, poly2);
 
+	/*std::vector<double> U={ {0, 0, 0, 0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.8, 0.9, 1, 1, 1, 1} };
+	double u = 0.88;
+	std::cout << "Nip " << Nip(7, 3, u, U) << std::endl;
+	std::cout << "Nip " << polynomial_value(Nip_func(7, 3, u, U),u) << std::endl;
+	std::cout << "poly operation result " << std::endl;
+	print_vector(result);*/
+	std::cout << "poly intergration, " << std::endl;
+	print_vector(polynomial_integration(poly1));
+}
 
 int main() {
 	//test_opengl();
@@ -278,14 +291,15 @@ int main() {
 	//draw_a_line();
 	//draw_a_curve();
 	//test_fitting();
-	//plot_fitting_result();
+	plot_fitting_result();
 	//test_curve_knot_fixing();
 	//visual_mesh();
 	//test_mesh_parameterization();
 	//visual_and_chop_mesh(true);
 	//visual_surface();
 	//visual_surface_processing();
-	visual_surface_knot_fixing();
+	//visual_surface_knot_fixing();
 	//test_rational();
+	//test_poly();
 	return 0;
 }

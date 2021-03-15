@@ -12,7 +12,7 @@ struct Bsurface {
 	double upara;
 	double vpara; 
 	std::vector<std::vector<Vector3d>> control_points;
-	int nu();
+	int nu();// nu + 1 is the number of control points in u direction
 	int nv();
 };
 Vector3d BSplineSurfacePoint(const Bsurface& surface, const double upara, const double vpara);
