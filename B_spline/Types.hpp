@@ -11,6 +11,8 @@ static const int STAIR_FORWARD = 0;
 static const int STAIR_BACKWARD = 1;
 static const int STAIR_WHOLE = 2;
 static const int STAIR_HIGHEST = 3;
+
+static const double SCALAR_ZERO = 1e-8;
 void print_vector(const std::vector<double>& input);
 void print_vector(const std::vector<int>& input);
 

@@ -124,8 +124,59 @@ double polynomial_integration(const std::vector<double>& poly, const double lowe
 	return up - lw;
 }
 
-// do partial devirate to ith, the cofficient of jth element.
-double energy_element_value(const int which_part, Bsurface& surface, const int i, const int j) {
+// order 1 differential
+const std::vector<double> polynomial_differential(const std::vector<double>& func) {
+	std::vector<double> result;
+	if (func.size() == 1) {
+		result.resize(1);
+		result[0] = 0;
+		return result;
+	}
+	result.resize(func.size() - 1);
+	for (int i = 0; i < result.size(); i++) {
+		result[i] = func[i + 1] * (i + 1);
+	}
+	return result;
+	
+}
+const std::vector<double> polynomial_differential(const std::vector<double>& func, const int order) {
+	std::vector<double> result = func;
+	if (order == 0) return result;
+	if (func.size() == 1 && order > 0) {
+		result.resize(1);
+		result[0] = 0;
+		return result;
+	}
+	std::vector<double> tmp;
+	for (int i = order; i > 0; i--) {
+		tmp = polynomial_differential(result);
+		result = tmp;
+	}
+	return result;
+}
+
+// construct an integration of multiplication of two B-spline basis (intergration of partial(Ni1)*partial(Ni2))
+// the integration domain is [u1, u2]
+double construct_an_integration(const int degree, const std::vector<double>& U,
+	const int partial1, const int partial2, const int i1, const int i2, const double u1, const double u2) {
+	
+	std::vector<double> func1 = Nip_func(i1, degree, u1, U);
+	std::vector<double> func2 = Nip_func(i2, degree, u1, U);
+
+	func1 = polynomial_differential(func1, partial1);
+	func2 = polynomial_differential(func2, partial2);
+
+	std::vector<double> func = polynomial_times(func1, func2);
+	double upper = u2;
+	if (u2 == U.back()) {
+		upper = U.back() - SCALAR_ZERO;
+	}
+	double result = polynomial_integration(func, u1, upper);
+	return result;
+}
+
+// do partial difference to Pi, the cofficient of jth element Pj.
+double energy_element_value( Bsurface& surface, const int i, const int j) {
 	// locate Pij
 	int partial_i = i / (surface.nv()+1);
 	int partial_j = i - partial_i * (surface.nv()+1);
@@ -141,23 +192,47 @@ double energy_element_value(const int which_part, Bsurface& surface, const int i
 
 
 	// do partial Pij
+	// for each block, (U_k1, U_(k1+1)), (V_k2, V_(k2+1)). the related control points are k1-p,...,k1 and k2-q,..., k2
 	double result = 0;
-	for (int k1 = partial_i; k1 < partial_i + degree1; k1++) {
-		for (int k2 = partial_j; k2 < partial_j + degree2; k2++) {
-			
+	for (int k1 = partial_i; k1 < partial_i + degree1 + 1; k1++) {
+		for (int k2 = partial_j; k2 < partial_j + degree2 + 1; k2++) {
+			if (coff_i<k1 - degree1 || coff_i>k1 || coff_j<k2 - degree2 || coff_j>k2) {
+				continue;
+			}
+			if (surface.U[k1] == surface.U[k1 + 1] || surface.V[k2] == surface.V[k2 + 1]) {
+				continue;// if the area is 0, then no need to compute
+			}
+			// Suu part
+			double value1 = construct_an_integration(degree1, surface.U, 2, 2, 
+				partial_i, coff_i, surface.U[k1], surface.U[k1 + 1]);
+			double value2 = construct_an_integration(degree2, surface.V, 0, 0, 
+				partial_j, coff_j, surface.V[k2], surface.V[k2 + 1]);
+			// Suv part
+			double value3 = construct_an_integration(degree1, surface.U, 1, 1,
+				partial_i, coff_i, surface.U[k1], surface.U[k1 + 1]);
+			double value4 = construct_an_integration(degree2, surface.V, 1, 1,
+				partial_j, coff_j, surface.V[k2], surface.V[k2 + 1]);
+			// Svv part
+			double value5 = construct_an_integration(degree1, surface.U, 0, 0,
+				partial_i, coff_i, surface.U[k1], surface.U[k1 + 1]);
+			double value6 = construct_an_integration(degree2, surface.V, 2, 2,
+				partial_j, coff_j, surface.V[k2], surface.V[k2 + 1]);
+			result += 2 * value1*value2 + 4 * value3*value4 + 2 * value5*value6;
 		}
 	}
+	return result;
 	
 }
 
 
 // which_part = 0: Suu; which_part = 1, Suv; which_part = 2, Svv.
-Eigen::MatrixXd energy_part(const int which_part, Bsurface& surface) {
+Eigen::MatrixXd energy_part_of_solving_control_points(Bsurface& surface) {
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
 	Eigen::MatrixXd result(psize, psize);
 	for (int i = 0; i < psize; i++) {
 		for (int j = 0; j < psize; j++) {
-			
+			result(i, j) = energy_element_value(surface, i, j);
 		}
 	}
+	return result;
 }
