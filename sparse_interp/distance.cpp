@@ -1,5 +1,5 @@
 #include"distance.h"
-namespace workClean {
+
 
 
 	double two_points_distance(const Vector3& p1, const Vector3 p2) {
@@ -11,4 +11,3 @@ namespace workClean {
 		if (two_points_distance(s0, s1) < SCALAR_ZERO) return two_points_distance(p, s1);
 
 	}
-}

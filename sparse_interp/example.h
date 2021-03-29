@@ -1,6 +1,6 @@
 #pragma once
 
-namespace workClean {
+
 	class example {
 	public:
 		static void just_example();
@@ -8,4 +8,3 @@ namespace workClean {
 
 	};
 
-}

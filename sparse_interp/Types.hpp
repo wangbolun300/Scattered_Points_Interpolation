@@ -3,7 +3,7 @@
 
 #include <Eigen/Dense>
 
-namespace workClean {
+
 #ifdef WORK_CLEAN_USE_FLOAT
     typedef float Scalar;
 #define SCALAR_ZERO 1e-6
@@ -26,4 +26,4 @@ namespace workClean {
     typedef Eigen::Matrix<int, 3, 1> Vector3i;
     typedef Eigen::Matrix<int, 2, 1> Vector2i;
 	
-}
+

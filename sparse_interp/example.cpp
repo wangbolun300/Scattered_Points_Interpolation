@@ -1,7 +1,7 @@
 #include"example.h"
 #include<iostream>
 
-namespace workClean {
+
 	void example::just_example() {
 	std::cout << "example runs well" << std::endl;
 	}
@@ -9,4 +9,4 @@ namespace workClean {
 	{
 		return a;
 	}
-}
+

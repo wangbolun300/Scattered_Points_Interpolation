@@ -48,9 +48,6 @@ include(Sparse_InterpUtils)
 
 
 
-add_subdirectory(sparse_interp)
-add_library(${PROJECT_NAME}  ${SPARSE_SOURCES})
-target_link_libraries(${PROJECT_NAME} PUBLIC igl::core igl::triangle)
 
 
 ############################
@@ -67,6 +64,14 @@ target_link_libraries(SPLINE_LIB PUBLIC igl::core)
 
 ###############################
 
+add_subdirectory(sparse_interp)
+add_library(${PROJECT_NAME}  ${SPARSE_SOURCES})
+target_link_libraries(${PROJECT_NAME} PUBLIC igl::core igl::triangle SPLINE_LIB)
+
+
+
+
+################################
 if(SPARSE_INTERPOLATION_WITH_GMP)
 	find_package(GMP)
 
