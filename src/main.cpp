@@ -11,6 +11,7 @@
 #include <igl/write_triangle_mesh.h>
 #include<exact_calculation.h>
 #include<energy.h>
+#include<integration.h>
 igl::opengl::glfw::Viewer global_viewer;
 void show_basis(const std::vector<double>&b_vec) {
 	for (int i = 0; i < b_vec.size(); i++) {
@@ -291,7 +292,7 @@ int main() {
 	//draw_a_line();
 	//draw_a_curve();
 	//test_fitting();
-	plot_fitting_result();
+	//plot_fitting_result();
 	//test_curve_knot_fixing();
 	//visual_mesh();
 	//test_mesh_parameterization();
@@ -301,5 +302,6 @@ int main() {
 	//visual_surface_knot_fixing();
 	//test_rational();
 	//test_poly();
+	visual_border();
 	return 0;
 }

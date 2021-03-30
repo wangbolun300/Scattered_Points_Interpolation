@@ -66,7 +66,9 @@ target_link_libraries(SPLINE_LIB PUBLIC igl::core)
 
 add_subdirectory(sparse_interp)
 add_library(${PROJECT_NAME}  ${SPARSE_SOURCES})
-target_link_libraries(${PROJECT_NAME} PUBLIC igl::core igl::triangle SPLINE_LIB)
+SI_copy_headers(${SPARSE_SOURCES})
+target_include_directories(${PROJECT_NAME} PUBLIC sparse_interp/)
+target_link_libraries(${PROJECT_NAME} PUBLIC igl::core igl::triangle SPLINE_LIB  igl::opengl_glfw)
 
 
 
