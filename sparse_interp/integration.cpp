@@ -62,6 +62,16 @@ Eigen::MatrixXd list_to_matrix_3d(const std::vector<std::vector<double>>& v) {
 	}
 	return result;
 }
+Eigen::MatrixXd list_to_matrix_3d(const std::vector<Vector3d>& v, const std::vector<int>& selected) {
+	Eigen::MatrixXd result(selected.size(), 3);
+	for (int i = 0; i < selected.size(); i++) {
+		result(i, 0) = v[selected[i]][0];
+		result(i, 1) = v[selected[i]][1];
+		result(i, 2) = v[selected[i]].size() >= 3 ? v[selected[i]][2] : 0;
+	}
+	return result;
+
+}
 
 void write_edges_obj(const std::string filename, Eigen::MatrixXd& points, const Eigen::MatrixXi& edges) {
 	std::ofstream fout;
@@ -88,7 +98,7 @@ void visual_border() {
 	std::cout << "back," << knotP.row(knotP.rows()-1) << std::endl;
 	//write_edges_obj("D:\\vs\\sparse_data_interpolation\\sparse_data\\data\\border_edges.obj", points, knotE);
 	int expect_p_nbr = 50;
-	double tolerance = 0.1;
+	double tolerance = 0.02;
 	std::vector<int> pids;
 	
 	std::vector<Vector3d> border_list = matrix3d_to_vector(points);
@@ -97,6 +107,14 @@ void visual_border() {
 	std::cout << "after remove redundant, size, " << border_list.size() << std::endl;
 	border::get_simp_points(border_list, expect_p_nbr, tolerance, pids);
 	std::cout << "final feature points " <<pids.size()<< std::endl;
+
+	{
+		Eigen::MatrixXd knotP_simp = list_to_matrix_3d(border_list, pids);
+		Eigen::MatrixXi knotE_simp;
+		vertices_to_edges(knotP_simp, knotE_simp);
+		write_edges_obj("D:\\vs\\sparse_data_interpolation\\sparse_data\\data\\border_edges_simp.obj", knotP_simp, knotE_simp);
+	}
+
 
 	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
 	fcolor << 1, 0, 0; ecolor << 0.5, 0.5, 0.5;

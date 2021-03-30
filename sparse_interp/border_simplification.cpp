@@ -116,7 +116,19 @@ namespace border {
 			else {
 				id2 = pid1 + i;
 			}
-			if (!point_in_seg_envelope(border[id2], border[pid1], border[pid2], tolerance)) {
+			//std::cout << "envelope 001" << std::endl;
+			if (id2 > border.size() - 1) {
+				std::cout << "wrong 1" << std::endl;
+			}
+			if (pid1 > border.size() - 1) {
+				std::cout << "wrong 2" << std::endl;
+			}
+			if (pid2 > border.size() - 1) {
+				std::cout << "wrong 3" << std::endl;
+			}
+			bool ck = point_in_seg_envelope(border[id2], border[pid1], border[pid2], tolerance);
+			//std::cout << "envelope 002" << std::endl;
+			if (!ck) {
 				return false;
 			}
 			
@@ -227,7 +239,10 @@ namespace border {
 		int pid;
 		int end = howmany_in_between * 3 / 4;// to make the inserted point not too close to segid1.
 		for (int i = 1;; i++) {
-			bool check = envelope_check(border, segid0, segid0 + i, tolerance);
+			//std::cout << "check 00" << std::endl;
+			int end_id = segid0 + i > border.size() - 1 ? segid0 + i - border.size() : segid0 + i;
+			bool check = envelope_check(border, segid0, end_id, tolerance);
+			//std::cout << "check 01" << std::endl;
 			if (check) {
 				pid = segid0 + i;
 			}
@@ -236,9 +251,11 @@ namespace border {
 			}
 		}
 		// now, pid is the point that we want to insert
+		//std::cout << "insert 00" << std::endl;
 		std::vector<int> result = insert_a_point_to_id_list(border.size(), features, pid);
+		//std::cout << "insert 01" << std::endl;
 		assert(result.size() == features.size() + 1);
-		assert(pid < segid1);
+		
 		return result;
 	}
 
@@ -263,17 +280,19 @@ namespace border {
 				howmany = id2 - id1 - 1;
 			}
 			else {
-				howmany = endpoint.extended_id() - id1 - 1;
+				howmany = id2 + border.size() - id1 - 1;
 			}
-			print_vector(tmpid);
-			if(howmany<=0){
+			//print_vector(tmpid);
+		/*	if(howmany<=0){
 				std::cout << "wrong howmany, " << howmany <<" id1, "<<id1<<" id2, "<<id2<< " i= "<<i<< std::endl;
 				std::cout << "tmpid size " << tmpid.size() << std::endl;
-			}
+			}*/
 
 			assert(howmany > 0);
 			// down here: if this segment is out of envelope, refine this segment
+			//std::cout << "insert" << std::endl;
 			tmpid = insert_a_point_to_refine(border, tmpid, id1, id2, tolerance, howmany);
+			//std::cout << "insert finished" << std::endl;
 		}
 		id_out = tmpid;
 	}
