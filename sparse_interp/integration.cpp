@@ -3,6 +3,8 @@
 #include<fstream>
 #include <igl/opengl/glfw/Viewer.h>
 #include<test.h>
+#include<mesh_processing.h>
+
 igl::opengl::glfw::Viewer global_viewer_1;
 void test_intergration() {
 	std::cout << "integrated" << std::endl;
@@ -53,25 +55,6 @@ std::vector<std::vector<double>> read_CSV_data(const string inputFileName) {
 	return result;
 }
 
-Eigen::MatrixXd list_to_matrix_3d(const std::vector<std::vector<double>>& v) {
-	Eigen::MatrixXd result(v.size(), 3);
-	for (int i = 0; i < v.size(); i++) {
-		result(i, 0) = v[i][0];
-		result(i, 1) = v[i][1];
-		result(i, 2) = v[i].size() >= 3 ? v[i][2] : 0;
-	}
-	return result;
-}
-Eigen::MatrixXd list_to_matrix_3d(const std::vector<Vector3d>& v, const std::vector<int>& selected) {
-	Eigen::MatrixXd result(selected.size(), 3);
-	for (int i = 0; i < selected.size(); i++) {
-		result(i, 0) = v[selected[i]][0];
-		result(i, 1) = v[selected[i]][1];
-		result(i, 2) = v[selected[i]].size() >= 3 ? v[selected[i]][2] : 0;
-	}
-	return result;
-
-}
 
 void write_edges_obj(const std::string filename, Eigen::MatrixXd& points, const Eigen::MatrixXi& edges) {
 	std::ofstream fout;
@@ -86,16 +69,33 @@ void write_edges_obj(const std::string filename, Eigen::MatrixXd& points, const 
 	fout.close();
 }
 
-void visual_border() {
+void go_through_temperature_interpolation() {
+	const auto location_list_to_lists = [](
+		const std::vector<std::vector<double>>& lct,std::vector<int>& names, std::vector<std::vector<double>>& locations) {
+		names.resize(lct.size());
+		locations.resize(lct.size());
+		for (int i = 0; i < lct.size(); i++) {
+			names[i] = lct[i][0];
+			locations[i].push_back(lct[i][1]);
+			locations[i].push_back(lct[i][2]);
+		}
+		return 1;
+		
+	};
+	
+	
+	
+	
 	std::string borderfile = "D:\\vs\\sparse_data_interpolation\\sparse_data\\data\\Shanxi_border.csv";
 	std::vector<std::vector<double>> border = read_CSV_data(borderfile);
 	
+	// all the border points
 	Eigen::MatrixXd points = list_to_matrix_3d(border);
+	// all the border points
 	Eigen::MatrixXd knotP = points;
 	Eigen::MatrixXi knotE;
 	vertices_to_edges(points, knotE);
-	std::cout << "front," << knotP.row(0) << std::endl;
-	std::cout << "back," << knotP.row(knotP.rows()-1) << std::endl;
+	
 	//write_edges_obj("D:\\vs\\sparse_data_interpolation\\sparse_data\\data\\border_edges.obj", points, knotE);
 	int expect_p_nbr = 50;
 	double tolerance = 0.02;
@@ -103,21 +103,42 @@ void visual_border() {
 	
 	std::vector<Vector3d> border_list = matrix3d_to_vector(points);
 	std::cout << "before remove redundant, size, " << border_list.size() << std::endl;
-	border_list = border::border_remove_redundant_points(border_list);
+	border_list = border::border_remove_redundant_points(border_list);// remove redundant points
 	std::cout << "after remove redundant, size, " << border_list.size() << std::endl;
 	border::get_simp_points(border_list, expect_p_nbr, tolerance, pids);
 	std::cout << "final feature points " <<pids.size()<< std::endl;
 
-	{
-		Eigen::MatrixXd knotP_simp = list_to_matrix_3d(border_list, pids);
-		Eigen::MatrixXi knotE_simp;
-		vertices_to_edges(knotP_simp, knotE_simp);
-		write_edges_obj("D:\\vs\\sparse_data_interpolation\\sparse_data\\data\\border_edges_simp.obj", knotP_simp, knotE_simp);
+	// get the simplified points
+	Eigen::MatrixXd knotP_simp = list_to_matrix_3d(border_list, pids);
+	Eigen::MatrixXi knotE_simp;
+	vertices_to_edges(knotP_simp, knotE_simp);
+		//write_edges_obj("D:\\vs\\sparse_data_interpolation\\sparse_data\\data\\border_edges_simp.obj", knotP_simp, knotE_simp);
+	
+	std::vector<std::vector<double>> location_list = 
+		read_CSV_data("D:\\vs\\sparse_data_interpolation\\sparse_data\\data\\station.csv");
+
+	std::vector<int> station_ids;
+	std::vector<std::vector<double>> location_list_clean;
+	location_list_to_lists(location_list, station_ids, location_list_clean);
+	int bordersize = knotP_simp.rows();// the size of the border points
+	Eigen::MatrixXd location_matrix = list_to_matrix_3d(location_list_clean);
+	Eigen::MatrixXd all_points(bordersize + location_matrix.rows(),3);
+	
+	// get all the points for parameterization
+	all_points << knotP_simp, location_matrix;
+	Eigen::VectorXi bnd(bordersize);
+	for (int i = 0; i < bordersize; i++) {
+		bnd[i] = i;
 	}
 
 
-	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
-	fcolor << 1, 0, 0; ecolor << 0.5, 0.5, 0.5;
+
+	// get the boundary parameters
+	Eigen::MatrixXd boundary_parameters;
+	map_vertices_to_square(all_points, bnd, boundary_parameters);
+
+	//Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
+	//fcolor << 1, 0, 0; ecolor << 0.5, 0.5, 0.5;
 	//global_viewer_1.data().set_edges(knotP, knotE, fcolor);
 	////global_viewer_1.data().add_points(points, ecolor);
 	//global_viewer_1.launch();

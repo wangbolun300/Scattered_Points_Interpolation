@@ -16,6 +16,13 @@ static const double SCALAR_ZERO = 1e-8;
 void print_vector(const std::vector<double>& input);
 void print_vector(const std::vector<int>& input);
 
+// type converters
+void vertices_to_edges(const Eigen::MatrixXd& pts, Eigen::MatrixXi &edges);
+Eigen::MatrixXd vector_to_matrix_3d(const std::vector<Vector3d>& v);
+std::vector<Vector3d> matrix3d_to_vector(const Eigen::MatrixXd& v);
+Eigen::MatrixXd list_to_matrix_3d(const std::vector<std::vector<double>>& v);
+Eigen::MatrixXd list_to_matrix_3d(const std::vector<Vector3d>& v, const std::vector<int>& selected);
+
 #ifdef SPARSE_INTERP_WITH_GMP
 #include<Rational.hpp>
 typedef Eigen::Matrix<Rational, Eigen::Dynamic, Eigen::Dynamic> MatrixXs;

@@ -302,6 +302,6 @@ int main() {
 	//visual_surface_knot_fixing();
 	//test_rational();
 	//test_poly();
-	visual_border();
+	go_through_temperature_interpolation();
 	return 0;
 }

@@ -5,28 +5,7 @@
 #include<cmath>
 #include<mesh_processing.h>
 
-Eigen::MatrixXd vector_to_matrix_3d(const std::vector<Vector3d>& v) {
-	Eigen::MatrixXd result(v.size(), 3);
-	for (int i = 0; i < v.size(); i++) {
-		result.row(i) = v[i];
-	}
-	return result;
-}
-std::vector<Vector3d> matrix3d_to_vector(const Eigen::MatrixXd& v) {
-	std::vector<Vector3d> result(v.rows());
-	for (int i = 0; i < v.rows(); i++) {
-		result[i] = v.row(i);
-	}
-	return result;
-}
 
-
-void vertices_to_edges(const Eigen::MatrixXd& pts, Eigen::MatrixXi &edges) {
-	edges.resize(pts.rows() - 1, 2);
-	for (int i = 0; i < edges.rows(); i++) {
-		edges(i, 0) = i; edges(i, 1) = i + 1;
-	}
-}
 void test_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control_pts_color,
 	Eigen::MatrixXd& curve_pts, Eigen::MatrixXd& curve_pts_color,
 	Eigen::MatrixXd& target_pts, Eigen::MatrixXd& target_pts_color) {
