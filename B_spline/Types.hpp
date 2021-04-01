@@ -3,6 +3,7 @@
 #include<array>
 #include<iostream>
 #include<vector>
+
 typedef Eigen::Vector3d Vector3d;
 typedef Eigen::Vector3i Vector3i;
 typedef Eigen::Vector2d Vector2d;
@@ -22,6 +23,7 @@ Eigen::MatrixXd vector_to_matrix_3d(const std::vector<Vector3d>& v);
 std::vector<Vector3d> matrix3d_to_vector(const Eigen::MatrixXd& v);
 Eigen::MatrixXd list_to_matrix_3d(const std::vector<std::vector<double>>& v);
 Eigen::MatrixXd list_to_matrix_3d(const std::vector<Vector3d>& v, const std::vector<int>& selected);
+int orient_2d(const Vector2d& a, const Vector2d &b, const Vector2d &c);
 
 #ifdef SPARSE_INTERP_WITH_GMP
 #include<Rational.hpp>
@@ -30,4 +32,5 @@ bool selected_rows_have_solution_rational(const int degree1, const int degree2,
 	const std::vector<double>& U, const std::vector<double>& V,
 	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points,
 	const std::vector<int> &row_id, const int dimension);
+
 #endif

@@ -195,7 +195,7 @@ void visual_and_chop_mesh(const bool write_mesh) {
 
 void test_mesh_parameterization() {
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	const std::string filename = path + "camel_small_close.obj";
+	const std::string filename = path + "camel_smallest.obj";
 
 	Eigen::MatrixXd V; Eigen::MatrixXi F;
 	Eigen::MatrixXd  param;
@@ -295,13 +295,13 @@ int main() {
 	//plot_fitting_result();
 	//test_curve_knot_fixing();
 	//visual_mesh();
-	//test_mesh_parameterization();
+	test_mesh_parameterization();
 	//visual_and_chop_mesh(true);
 	//visual_surface();
 	//visual_surface_processing();
 	//visual_surface_knot_fixing();
 	//test_rational();
 	//test_poly();
-	go_through_temperature_interpolation();
+	//go_through_temperature_interpolation();
 	return 0;
 }

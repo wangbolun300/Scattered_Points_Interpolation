@@ -5,8 +5,10 @@
 #include <igl/map_vertices_to_circle.h>
 #include <igl/harmonic.h>
 #include <igl/write_triangle_mesh.h>
-#include <igl/triangle/cdt.h>
-#include<igl/triangle/triangulate.h>
+#include <queue>
+#include <igl/predicates/predicates.h>
+//#include <igl/triangle/cdt.h>
+//#include<igl/triangle/triangulate.h>
 Eigen::MatrixXd list_to_matrix_3d(const std::vector<std::vector<double>>& v) {
 	Eigen::MatrixXd result(v.size(), 3);
 	for (int i = 0; i < v.size(); i++) {
@@ -241,32 +243,150 @@ void mesh_parameterization(
 
 }
 
+double shortest_edge_length_of_parametric_domain(const Eigen::MatrixXd& paras, const Eigen::MatrixXi &F) {
+	double rst = 1;
+	for (int i = 0; i < F.rows(); i++) {
+		for (int j = 0; j < 3; j++) {
+			int id0 = F(i, j);
+			int id1 = F(i, (j + 1) % 3);
+			/*if (paras(id0, 0) == paras(id1, 0)) {
+				if (paras(id0, 0) == 0 || paras(id0, 0) == 1) {
+					continue;
+				}
+			}
+			*/
+			double dist = (paras.row(id0) - paras.row(id1)).norm();
+			if (dist < rst) {
+				rst = dist;
+			}
+		}
+	}
+	return rst;
+}
+int orient_2d(const Vector2d& a, const Vector2d &b, const Vector2d &c) {
+	auto result= igl::predicates::orient2d(a, b, c);
+	if (result == igl::predicates::Orientation::POSITIVE) {
+		return 1;
+	}
+	if (result == igl::predicates::Orientation::NEGATIVE) {
+		return -1;
+	}
+	return 0;
+}
+// check if the perturbed triangles are still hold the orientation
+// if the orientations are the same, then this parameter is safe to be perturbed.
+bool check_the_perturbed_one_parameter(const Eigen::MatrixXd& para_in, const Eigen::MatrixXd& perturbed, const Eigen::MatrixXi &F,
+	const int parid) {
+	for (int i = 0; i < F.rows(); i++) {
+		int f0 = F(i, 0), f1 = F(i, 1), f2 = F(i, 2);
+		if (f0 == parid || f1 == parid || f2 == parid) {
+			// processing is below
+		}
+		else {
+			continue;
+		}
+		
+		int original_orientation = orient_2d(Vector2d(para_in.row(f0)), Vector2d(para_in.row(f1)), Vector2d(para_in.row(f2)));
+		int orientation = orient_2d(Vector2d(perturbed.row(f0)), Vector2d(perturbed.row(f1)), Vector2d(perturbed.row(f2)));
+		return original_orientation == orientation;
+	}
+}
+
+// itr is the number of iterations;
+void mesh_parameter_perturbation(const Eigen::MatrixXd &para_in, const Eigen::MatrixXi &F, 
+	Eigen::MatrixXd &para_out, int itr) {
+	
+	// the the first and second elements are u and v, the third is the reference
+	auto cmp_u = [](Vector3d i1, Vector3d i2) {
+		return i1[0] >= i2[0];
+	};
+	auto cmp_v = [](Vector3d i1, Vector3d i2) {
+		return i1[1] >= i2[1];
+	};
+	std::priority_queue<Vector3d, std::vector<Vector3d>, decltype(cmp_u)> queue_u(cmp_u);
+	std::priority_queue<Vector3d, std::vector<Vector3d>, decltype(cmp_v)> queue_v(cmp_v);
+	for (int i = 0; i < para_in.rows(); i++) {
+		queue_u.emplace(Vector3d(para_in(i, 0), para_in(i, 1), i));
+		queue_v.emplace(Vector3d(para_in(i, 0), para_in(i, 1), i));
+	}
+	Eigen::VectorXi u_order(para_in.size()), v_order(para_in.size());
+	for (int i = 0; i < para_in.size(); i++) {
+		Vector3d ut = queue_u.top();
+		u_order(i) = ut[2];
+		Vector3d vt = queue_v.top();
+		v_order(i) = vt[2];
+		queue_u.pop();
+		queue_v.pop();
+	}
+	// next get the shortest edge of parameters
+	const Eigen::MatrixXd para_modified = para_in;
+	int rows = para_in.rows();
+	Eigen::MatrixXi pinfo(rows, 2, -1);// perturbed info
+	Eigen::MatrixXi update_info = pinfo;// when trying to clap, we modify update_info. if ok, we update pinfo
+	for (int i = 0; i < itr; i++) {
+		double perturb_dist = shortest_edge_length_of_parametric_domain(para_modified, F);
+		perturb_dist /= 2;// the perturbation 
+		Eigen::MatrixXd para_tmp = para_modified;
+		
+		for (int j = 0; j < 2; j++) {// perturb u or v
+			for (int k = 1; k < rows - 1; k++) {
+				Eigen::VectorXi order;
+				if (j == 0) {
+					order = u_order;
+				}
+				else {
+					order = v_order;
+				}
+				int paraid1 = order[k];
+				int paraid2 = order[k + 1];
+				double value1 = para_tmp(paraid1, j);
+				double value2 = para_tmp(paraid2, j);
+				if (value1 == 0 || value1 == 1 || value2 == 0 || value2 == 1) {
+					continue;// border points don't perturb
+				}
+				if (fabs(value1 - value2) < perturb_dist) {
+					int info_ref;
+					int info_small = std::min(update_info(k, j), update_info(k + 1, j));
+					if (info_small == -1) {// TODO think about this more
+						info_ref= std::max(update_info(k, j), update_info(k + 1, j));
+					}
+					if(update_info(k, j)!=)
+					if()
+				}
+			}
+		}
+
+
+	}
+	
+
+}
 // the inputs are cleaned(no duplicated) data points.
 // if V has 3 cols, then truncate it to 2d.
-void constrained_delaunay_triangulation(
-	const Eigen::MatrixXd& V, const Eigen::VectorXi& Edge_ids,
-	Eigen::MatrixXi& F) {
-	
-	Eigen::MatrixXd Vin(V.rows(), 2);
-	if (V.cols() == 2) {
-		Vin = V;
-	}
-	else {
-		Vin << V.col(0), V.col(1);
-	}
-	Eigen::MatrixXi Ein(Edge_ids.size(), 2);
-	for (int i = 0; i < Edge_ids.size() - 1; i++) {
-		Ein(i, 0) = Edge_ids[i];
-		Ein(i, 1) = Edge_ids[i + 1];
-	}
-	Ein(Edge_ids.size() - 1, 0) = Edge_ids[Edge_ids.size() - 1];
-	Ein(Edge_ids.size() - 1, 1) = Edge_ids[0];
-
-	Eigen::MatrixXd WV;
-	Eigen::MatrixXi WF,WE;
-	Eigen::VectorXi J;
-	std::string flags = "-c";
-	igl::triangle::cdt(Vin, Ein, flags, WV, WF, WE, J);
-	F = WF;
-	assert(WV.rows() == Vin.rows());
-}
+//void constrained_delaunay_triangulation(
+//	const Eigen::MatrixXd& V, const Eigen::VectorXi& Edge_ids,
+//	Eigen::MatrixXi& F) {
+//	
+//	Eigen::MatrixXd Vin(V.rows(), 2);
+//	if (V.cols() == 2) {
+//		Vin = V;
+//	}
+//	else {
+//		Vin << V.col(0), V.col(1);
+//	}
+//	Eigen::MatrixXi Ein(Edge_ids.size(), 2);
+//	for (int i = 0; i < Edge_ids.size() - 1; i++) {
+//		Ein(i, 0) = Edge_ids[i];
+//		Ein(i, 1) = Edge_ids[i + 1];
+//	}
+//	Ein(Edge_ids.size() - 1, 0) = Edge_ids[Edge_ids.size() - 1];
+//	Ein(Edge_ids.size() - 1, 1) = Edge_ids[0];
+//
+//	Eigen::MatrixXd WV;
+//	Eigen::MatrixXi WF,WE;
+//	Eigen::VectorXi J;
+//	std::string flags = "-c";
+//	igl::triangle::cdt(Vin, Ein, flags, WV, WF, WE, J);
+//	F = WF;
+//	assert(WV.rows() == Vin.rows());
+//}
