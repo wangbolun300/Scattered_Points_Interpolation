@@ -291,42 +291,72 @@ bool check_the_perturbed_one_parameter(const Eigen::MatrixXd& para_in, const Eig
 		return original_orientation == orientation;
 	}
 }
+bool perturb_paras_and_check_validity(Eigen::MatrixXd &paras, const Eigen::MatrixXi& F, const int u_or_v,
+	const Eigen::VectorXi order, const Eigen::MatrixXi &info, const int info_ref, const double target_value) {
+	Eigen::MatrixXd para_tmp = paras;
+	for (int i = 0; i < info.rows(); i++) {
+		if (info(i, u_or_v) == info_ref) {
+			para_tmp(order[i], u_or_v) = target_value;
+		}
+	}
+	for (int i = 0; i < info.rows(); i++) {
+		if (info(i, u_or_v) == info_ref) {
+			int para_id = order[i];
+			bool able = check_the_perturbed_one_parameter(paras, para_tmp, F, para_id);
+			if (!able) {
+				return false;
+			}
+		}
+	}
+	paras = para_tmp;
+	return true;
+}
+
 
 // itr is the number of iterations;
 void mesh_parameter_perturbation(const Eigen::MatrixXd &para_in, const Eigen::MatrixXi &F, 
 	Eigen::MatrixXd &para_out, int itr) {
-	
+	std::cout << "inside perturbation" << std::endl;
 	// the the first and second elements are u and v, the third is the reference
 	auto cmp_u = [](Vector3d i1, Vector3d i2) {
-		return i1[0] >= i2[0];
+		return i1[0] > i2[0];
 	};
 	auto cmp_v = [](Vector3d i1, Vector3d i2) {
-		return i1[1] >= i2[1];
+		return i1[1] > i2[1];
 	};
+	std::cout << "check 1" << std::endl;
 	std::priority_queue<Vector3d, std::vector<Vector3d>, decltype(cmp_u)> queue_u(cmp_u);
 	std::priority_queue<Vector3d, std::vector<Vector3d>, decltype(cmp_v)> queue_v(cmp_v);
+	std::cout << "check 1.5" << std::endl;
 	for (int i = 0; i < para_in.rows(); i++) {
-		queue_u.emplace(Vector3d(para_in(i, 0), para_in(i, 1), i));
-		queue_v.emplace(Vector3d(para_in(i, 0), para_in(i, 1), i));
+		Vector3d vecu = Vector3d(para_in(i, 0), para_in(i, 1), i);
+		Vector3d vecv = Vector3d(para_in(i, 0), para_in(i, 1), i);
+		queue_u.push(vecu);
+		queue_v.push(vecv);
 	}
-	Eigen::VectorXi u_order(para_in.size()), v_order(para_in.size());
-	for (int i = 0; i < para_in.size(); i++) {
+	std::cout << "check 2" << std::endl;
+	
+	Eigen::VectorXi u_order(para_in.rows()), v_order(para_in.rows());
+	std::cout << "check 2.5,parasize "<<para_in.rows() << std::endl;
+	for (int i = 0; i < para_in.rows(); i++) {
 		Vector3d ut = queue_u.top();
 		u_order(i) = ut[2];
 		Vector3d vt = queue_v.top();
 		v_order(i) = vt[2];
 		queue_u.pop();
 		queue_v.pop();
+		std::cout << "i " << i << std::endl;
 	}
-	// next get the shortest edge of parameters
-	const Eigen::MatrixXd para_modified = para_in;
+	std::cout << "check 3" << std::endl;
+	//// next get the shortest edge of parameters
+	Eigen::MatrixXd para_modified = para_in;
 	int rows = para_in.rows();
-	Eigen::MatrixXi pinfo(rows, 2, -1);// perturbed info
-	Eigen::MatrixXi update_info = pinfo;// when trying to clap, we modify update_info. if ok, we update pinfo
+	 Eigen::MatrixXi pinfo= Eigen::MatrixXi::Constant(rows, 2, -1);// perturbed info
+	 std::cout << "before perturbation" << std::endl;
 	for (int i = 0; i < itr; i++) {
 		double perturb_dist = shortest_edge_length_of_parametric_domain(para_modified, F);
-		perturb_dist /= 2;// the perturbation 
-		Eigen::MatrixXd para_tmp = para_modified;
+		perturb_dist /= 2;// the perturbation threshold
+		
 		
 		for (int j = 0; j < 2; j++) {// perturb u or v
 			for (int k = 1; k < rows - 1; k++) {
@@ -339,26 +369,46 @@ void mesh_parameter_perturbation(const Eigen::MatrixXd &para_in, const Eigen::Ma
 				}
 				int paraid1 = order[k];
 				int paraid2 = order[k + 1];
-				double value1 = para_tmp(paraid1, j);
-				double value2 = para_tmp(paraid2, j);
+				double value1 = para_modified(paraid1, j);
+				double value2 = para_modified(paraid2, j);
 				if (value1 == 0 || value1 == 1 || value2 == 0 || value2 == 1) {
 					continue;// border points don't perturb
 				}
 				if (fabs(value1 - value2) < perturb_dist) {
+					Eigen::MatrixXd para_tmp = para_modified;
+					Eigen::MatrixXi update_info = pinfo;// when trying to clap, we modify update_info. if ok, we update pinfo
 					int info_ref;
 					int info_small = std::min(update_info(k, j), update_info(k + 1, j));
-					if (info_small == -1) {// TODO think about this more
-						info_ref= std::max(update_info(k, j), update_info(k + 1, j));
+					int info_big= std::max(update_info(k, j), update_info(k + 1, j));
+					if (info_small == -1) {
+						if (info_big != -1) {
+							info_ref = info_big;
+						}
+						else {
+							info_ref = k;
+						}
 					}
-					if(update_info(k, j)!=)
-					if()
+					else {
+						info_ref = info_small;
+					}
+					double target_value = (value1 + value2) / 2;
+					update_info(k, j) = info_ref;
+					update_info(k + 1, j) = info_ref;
+					bool check = perturb_paras_and_check_validity(para_tmp, F, j, order, update_info, info_ref, target_value);
+					if (check) {// if perturbable, reset parameters and info
+						para_modified = para_tmp;
+						pinfo = update_info;
+						std::cout << "perturbed" << std::endl;
+					}
 				}
 			}
 		}
-
+		std::cout << "itr finished" << std::endl;
 
 	}
-	
+	std::cout << "finished perturbation" << std::endl;
+	std::cout << "p info\n" << pinfo << std::endl;
+	para_out = para_modified;
 
 }
 // the inputs are cleaned(no duplicated) data points.

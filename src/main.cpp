@@ -198,19 +198,30 @@ void test_mesh_parameterization() {
 	const std::string filename = path + "camel_smallest.obj";
 
 	Eigen::MatrixXd V; Eigen::MatrixXi F;
-	Eigen::MatrixXd  param;
+	Eigen::MatrixXd  param, para_perturbed;
 	mesh_parameterization(filename, V, param, F);
 	
-	
+	mesh_parameter_perturbation(param, F, para_perturbed, 2);
 	/////////////////////////////////////////////
 	Eigen::MatrixXd grid_ver; Eigen::MatrixXi grid_edges;
 	parameter_grid_to_mesh(param, grid_ver, grid_edges);
 
 	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
-	fcolor = Vector3d(1, 0, 0);
-	//global_viewer.data().set_edges(grid_ver, grid_edges, fcolor);
+	fcolor.resize(1, 3);
+	fcolor << 1, 0, 0;
 
-	global_viewer.data().set_mesh(param, F);
+	bool see_girds = true;
+	bool see_triangles = false;
+	if (see_girds) {
+		global_viewer.data().set_edges(grid_ver, grid_edges, fcolor);
+	}
+	//
+	std::cout << "original paras\n" << param << std::endl;
+	std::cout << "perturbed paras\n" << para_perturbed << std::endl;
+	if (see_triangles) {
+		global_viewer.data().set_mesh(para_perturbed, F);
+	}
+	//
 	draw_axis(10);
 
 	

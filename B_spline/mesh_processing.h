@@ -24,3 +24,6 @@ void remove_some_faces(const int axis, const double value, const bool remove_lar
 // an example for parameterization
 void mesh_parameterization(
 	const std::string &meshfile, Eigen::MatrixXd& V, Eigen::MatrixXd &param, Eigen::MatrixXi &F);
+
+void mesh_parameter_perturbation(const Eigen::MatrixXd &para_in, const Eigen::MatrixXi &F,
+	Eigen::MatrixXd &para_out, int itr);
