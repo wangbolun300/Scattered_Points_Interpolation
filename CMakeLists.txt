@@ -60,7 +60,7 @@ SI_copy_headers(${SPLINE_SOURCES})
 #SI_set_source_group(${SPLINE_SOURCES})
 #target_sources(SPLINE_LIB PRIVATE ${SPLINE_SOURCES})
 target_include_directories(SPLINE_LIB PUBLIC B_spline/)
-target_link_libraries(SPLINE_LIB PUBLIC igl::core igl::predicates)
+target_link_libraries(SPLINE_LIB PUBLIC igl::core igl::predicates igl::opengl_glfw igl::triangle)
 
 ###############################
 

@@ -4,8 +4,8 @@
 #include<surface.h>
 #include<cmath>
 #include<mesh_processing.h>
-
-
+#include <igl/opengl/glfw/Viewer.h>
+#include <igl/harmonic.h>
 void test_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control_pts_color,
 	Eigen::MatrixXd& curve_pts, Eigen::MatrixXd& curve_pts_color,
 	Eigen::MatrixXd& target_pts, Eigen::MatrixXd& target_pts_color) {
@@ -325,4 +325,46 @@ void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::Ma
 	}
 	knot_intervals_to_mesh(degree1, degree2, Uout, Vout, knotP, knotE);
 	//std::cout << "param\n" << param << std::endl;
+}
+
+void make_peak_exmple() {
+	Eigen::MatrixXd ver; Eigen::MatrixXi faces;
+	int nbr = 100;// nbr of points
+	ver.resize(nbr, 3);
+	for (int i = 0; i < nbr; i++) {
+		Vector3d para3d = Vector3d::Random();
+		double x = -3 + 6 * para3d[0];
+		double y = -3 + 6 * para3d[1];
+		ver.row(i) << x, y, peak_function(x, y);
+	}
+	
+	Eigen::MatrixXd paras(ver.rows(), 2); //the parameters of the points 
+	paras << ver.col(0), ver.col(1);
+	Eigen::VectorXi loop;
+
+	std::cout << "start find border" << std::endl;
+
+	find_border_loop(paras, loop);
+	Eigen::MatrixXd bdver(loop.size(), 3);
+	for (int i = 0; i < loop.size(); i++) {
+		bdver.row(i) = ver.row(loop[i]);
+	}
+	std::cout << "finish find border" << std::endl;
+	Eigen::MatrixXi edges;
+	vertices_to_edges(bdver, edges);
+	Eigen::MatrixXi F;
+	constrained_delaunay_triangulation(paras, loop, F);
+	Eigen::MatrixXd boundary_uv;
+	map_vertices_to_square(ver, loop, boundary_uv);
+	Eigen::MatrixXd param;
+	igl::harmonic(ver,F,loop,boundary_uv,1,param);
+
+	igl::opengl::glfw::Viewer viewer;
+	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
+	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;
+	/*viewer.data().add_points(ver, ecolor);
+	viewer.data().add_points(bdver, fcolor);
+	viewer.data().set_edges(bdver, edges, fcolor);*/
+	viewer.data().set_mesh(param, F);
+	viewer.launch();
 }

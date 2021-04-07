@@ -7,8 +7,8 @@
 #include <igl/write_triangle_mesh.h>
 #include <queue>
 #include <igl/predicates/predicates.h>
-//#include <igl/triangle/cdt.h>
-//#include<igl/triangle/triangulate.h>
+#include <igl/triangle/cdt.h>
+#include<igl/triangle/triangulate.h>
 Eigen::MatrixXd list_to_matrix_3d(const std::vector<std::vector<double>>& v) {
 	Eigen::MatrixXd result(v.size(), 3);
 	for (int i = 0; i < v.size(); i++) {
@@ -411,34 +411,138 @@ void mesh_parameter_perturbation(const Eigen::MatrixXd &para_in, const Eigen::Ma
 	para_out = para_modified;
 
 }
+int find_a_border_point(const Eigen::MatrixXd& V, const bool is_v, const bool smallest) {
+	double value = V(0, is_v);
+	int id = 0;
+	if (smallest) {
+		for (int i = 0; i < V.rows(); i++) {
+			if (value > V(i, is_v)) {
+				value = V(i, is_v);
+				id = i;
+			}
+		}
+	}
+	else {
+		for (int i = 0; i < V.rows(); i++) {
+			if (value < V(i, is_v)) {
+				value = V(i, is_v);
+				id = i;
+			}
+		}
+	}
+	return id;
+}
+// when co-linear, check if p is on closed s0-s1
+bool point_on_segment_2d(const Vector2d& s0, const Vector2d& s1, const Vector2d&p) {
+	double umin = std::min(s0[0], s1[0]);
+	double umax = std::max(s0[0], s1[0]);
+	double vmin = std::min(s0[1], s1[1]);
+	double vmax = std::max(s0[1], s1[1]);
+	double u = p[0];
+	double v = p[1];
+	if (u <= umax && u >= umin) {
+		if (v <= vmax && v >= vmin) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// given a 2d point set V, detect its borders loop
+void find_border_loop(const Eigen::MatrixXd& V, Eigen::VectorXi& loop) {
+	// first find the point with smallest u
+	assert(V.cols() == 2);
+	int id0 = find_a_border_point(V, false, true);// umin
+	int id1= find_a_border_point(V, true, true);// vmin
+	if (id0 == id1) {
+		id1= find_a_border_point(V, true, false);
+	}
+	// use id0,id1 as a skeleton
+	// now uminid is the first point of loop
+	
+	bool id1_used = false;// when find id1. we use this flag to switch to another temporary edge
+	std::vector<bool> border_flags(V.rows());// if a point is a border point, set it as true;
+	for (int i = 0; i < border_flags.size(); i++) {
+		border_flags[i] = false;
+	}
+	std::cout << "start push border" << std::endl;
+	std::vector<int> vec;
+	vec.push_back(id0);
+	border_flags[id0] = true;
+	for (int i = 0; i < vec.size(); i++) {
+		std::cout << "ith border point "<<i <<" "<<vec[i]<< std::endl;
+		int current = vec[i];
+		if (vec.size() >= 2 && vec.front() == vec.back()) {// the first element is the last element, searching finished
+			break;
+		}
+		int tmpid = id1_used ? id0 : id1;
+		
+		// now check all the orientations against segment [vec[i],tmpid], and update tmpid
+		for (int j = 0; j < V.rows(); j++) {
+			if (border_flags[j]) {
+				continue;
+			}
+			//TODO
+			Vector2d s0 = V.row(vec[i]), s1 = V.row(tmpid), query = V.row(j);
+			int ori = orient_2d(s0, s1, query);
+			if (ori == -1) {
+				tmpid = j;
+			}
+			if (ori == 0) {
+				if (point_on_segment_2d(s0, s1, query)) {
+					tmpid = j;
+				}
+			}
+
+		}
+		vec.push_back(tmpid);// 
+		border_flags[tmpid] = true;
+		if (tmpid == id1) {
+			id1_used = true;
+		}
+		if (tmpid == id0) {
+			break;
+		}
+	}
+	if (vec.front() == vec.back()) {
+		vec.pop_back();// avoid duplication
+	}
+	loop.resize(vec.size());
+	for (int i = 0; i < vec.size(); i++) {
+		loop[i] = vec[i];
+	}
+}
 
 
-// the inputs are cleaned(no duplicated) data points.
-// if V has 3 cols, then truncate it to 2d.
-//void constrained_delaunay_triangulation(
-//	const Eigen::MatrixXd& V, const Eigen::VectorXi& Edge_ids,
-//	Eigen::MatrixXi& F) {
-//	
-//	Eigen::MatrixXd Vin(V.rows(), 2);
-//	if (V.cols() == 2) {
-//		Vin = V;
-//	}
-//	else {
-//		Vin << V.col(0), V.col(1);
-//	}
-//	Eigen::MatrixXi Ein(Edge_ids.size(), 2);
-//	for (int i = 0; i < Edge_ids.size() - 1; i++) {
-//		Ein(i, 0) = Edge_ids[i];
-//		Ein(i, 1) = Edge_ids[i + 1];
-//	}
-//	Ein(Edge_ids.size() - 1, 0) = Edge_ids[Edge_ids.size() - 1];
-//	Ein(Edge_ids.size() - 1, 1) = Edge_ids[0];
-//
-//	Eigen::MatrixXd WV;
-//	Eigen::MatrixXi WF,WE;
-//	Eigen::VectorXi J;
-//	std::string flags = "-c";
-//	igl::triangle::cdt(Vin, Ein, flags, WV, WF, WE, J);
-//	F = WF;
-//	assert(WV.rows() == Vin.rows());
-//}
+ //the inputs are cleaned(no duplicated) data points.
+ //if V has 3 cols, then truncate it to 2d.
+void constrained_delaunay_triangulation(
+	const Eigen::MatrixXd& V, const Eigen::VectorXi& Edge_ids,
+	Eigen::MatrixXi& F) {
+	
+	Eigen::MatrixXd Vin(V.rows(), 2);
+	if (V.cols() == 2) {
+		Vin = V;
+	}
+	else {
+		Vin << V.col(0), V.col(1);
+	}
+	Eigen::MatrixXi Ein(Edge_ids.size(), 2);
+	for (int i = 0; i < Edge_ids.size() - 1; i++) {
+		Ein(i, 0) = Edge_ids[i];
+		Ein(i, 1) = Edge_ids[i + 1];
+	}
+	Ein(Edge_ids.size() - 1, 0) = Edge_ids[Edge_ids.size() - 1];
+	Ein(Edge_ids.size() - 1, 1) = Edge_ids[0];
+
+	Eigen::MatrixXd WV;
+	Eigen::MatrixXi WF,WE;
+	Eigen::VectorXi J;
+	Eigen::MatrixXd H;
+	H.resize(1, 2);
+	std::string flags = "-c";
+	//igl::triangle::cdt(Vin, Ein, flags, WV, WF, WE, J);
+	igl::triangle::triangulate(Vin, Ein, H, "", WV, WF);
+	F = WF;
+	assert(WV.rows() == Vin.rows());
+}

@@ -169,10 +169,15 @@ void visual_and_chop_mesh(const bool write_mesh) {
 	////exit(0);
 	//igl::harmonic(V, F, bnd, bnd_uv, 1, param);
 	///////////////////////////////////////////////
-	
+	bool remove_faces = false;
 	Eigen::MatrixXi newF,Fclean;
-	remove_some_faces(2, 38, false, V, F, newF);
-	remove_some_faces(1, 32, false, V, newF, newF);
+	if (remove_faces){
+		remove_some_faces(2, 38, false, V, F, newF);
+		remove_some_faces(1, 32, false, V, newF, newF);
+	}
+	else {
+		newF = F;
+	}
 	
 	generate_clean_mesh_data_for_parametrization(V, newF, Vclean, Fclean);
 	if (write_mesh)
@@ -295,7 +300,10 @@ void test_poly() {
 	std::cout << "poly intergration, " << std::endl;
 	print_vector(polynomial_integration(poly1));
 }
-
+void test_orientation() {
+	Vector2d p(0, 0), q(0, 1), r(1, 0);
+	std::cout << "ori " << orient_2d(p, q, r) << std::endl;
+}
 int main() {
 	//test_opengl();
 	//int p = 3;
@@ -306,7 +314,7 @@ int main() {
 	//plot_fitting_result();
 	//test_curve_knot_fixing();
 	//visual_mesh();
-	test_mesh_parameterization();
+	//test_mesh_parameterization();
 	//visual_and_chop_mesh(true);
 	//visual_surface();
 	//visual_surface_processing();
@@ -314,5 +322,7 @@ int main() {
 	//test_rational();
 	//test_poly();
 	//go_through_temperature_interpolation();
+	make_peak_exmple();
+	//test_orientation();
 	return 0;
 }

@@ -27,3 +27,8 @@ void mesh_parameterization(
 
 void mesh_parameter_perturbation(const Eigen::MatrixXd &para_in, const Eigen::MatrixXi &F,
 	Eigen::MatrixXd &para_out, int itr);
+// given a 2d point set V, detect its borders loop
+void find_border_loop(const Eigen::MatrixXd& V, Eigen::VectorXi& loop);
+void constrained_delaunay_triangulation(
+	const Eigen::MatrixXd& V, const Eigen::VectorXi& Edge_ids,
+	Eigen::MatrixXi& F);
