@@ -305,6 +305,7 @@ void test_orientation() {
 	std::cout << "ori " << orient_2d(p, q, r) << std::endl;
 }
 int main() {
+	srand(29);
 	//test_opengl();
 	//int p = 3;
 	//std::vector<double>U = { {0,0,0,0,0.1,0.4,0.7,0.9,1,1,1,1} };

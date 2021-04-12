@@ -329,7 +329,7 @@ void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::Ma
 
 void make_peak_exmple() {
 	Eigen::MatrixXd ver; Eigen::MatrixXi faces;
-	int nbr = 100;// nbr of points
+	int nbr = 200;// nbr of points
 	ver.resize(nbr, 3);
 	for (int i = 0; i < nbr; i++) {
 		Vector3d para3d = Vector3d::Random();
@@ -356,15 +356,42 @@ void make_peak_exmple() {
 	constrained_delaunay_triangulation(paras, loop, F);
 	Eigen::MatrixXd boundary_uv;
 	map_vertices_to_square(ver, loop, boundary_uv);
-	Eigen::MatrixXd param;
-	igl::harmonic(ver,F,loop,boundary_uv,1,param);
+	Eigen::MatrixXd param, param_perturbed;
+	igl::harmonic(ver,F,loop,boundary_uv,1,param);// parametrization finished
+	mesh_parameter_perturbation(param, F, param_perturbed, 5);
+	std::vector<double> U, V;
+	Eigen::MatrixXi grid_map;
+	generate_UV_grid(param_perturbed, F, U, V, grid_map);
+	std::cout << "U size " << U.size() << std::endl;
+	std::cout << "V size " << V.size() << std::endl;
+	std::cout << "para size " << param.rows() << std::endl;
+	//print_vector(U);
+
+	//next smooth
+	Eigen::MatrixXd Vs;// smoothed vertices
+	std::vector<int> fixed;
+	Eigen::MatrixXd Vfixed;
+	{
+		int nbr_fixed = 30;
+		Vfixed.resize(nbr_fixed, 3);
+		double h = 0.01;
+		for (int i = 0; i < nbr_fixed; i++) {
+			fixed.push_back(i);
+			Vfixed.row(i) = ver.row(i);
+		}
+		
+		smooth_mesh_vertices(ver, F, h, fixed,15, Vs);
+	}
+
+	
 
 	igl::opengl::glfw::Viewer viewer;
 	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
 	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;
+	viewer.data().add_points(Vfixed, ecolor);
 	/*viewer.data().add_points(ver, ecolor);
 	viewer.data().add_points(bdver, fcolor);
 	viewer.data().set_edges(bdver, edges, fcolor);*/
-	viewer.data().set_mesh(param, F);
+	viewer.data().set_mesh(Vs, F);
 	viewer.launch();
 }

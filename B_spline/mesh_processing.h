@@ -32,3 +32,10 @@ void find_border_loop(const Eigen::MatrixXd& V, Eigen::VectorXi& loop);
 void constrained_delaunay_triangulation(
 	const Eigen::MatrixXd& V, const Eigen::VectorXi& Edge_ids,
 	Eigen::MatrixXi& F);
+void smooth_mesh_vertices(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F,
+	const double h, const std::vector<int> &fixed,
+	const int itrs, Eigen::MatrixXd&Vout);
+// given parameters and the connectivity, get the U and V parameters, and a map showing the positions of the points
+// in U and V
+void generate_UV_grid(const Eigen::MatrixXd& param, const Eigen::MatrixXi& F,
+	std::vector<double>& U, std::vector<double>&V, Eigen::MatrixXi& map);

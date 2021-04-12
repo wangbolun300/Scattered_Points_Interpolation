@@ -353,11 +353,12 @@ void mesh_parameter_perturbation(const Eigen::MatrixXd &para_in, const Eigen::Ma
 	int rows = para_in.rows();
 	 Eigen::MatrixXi pinfo= Eigen::MatrixXi::Constant(rows, 2, -1);// perturbed info
 	 std::cout << "before perturbation" << std::endl;
-	for (int i = 0; i < itr; i++) {
-		double perturb_dist = shortest_edge_length_of_parametric_domain(para_modified, F);
-		perturb_dist /= 2;// the perturbation threshold
-		
-		
+	 double perturb_dist = 0;// perturbing threshold
+	 for (int i = 0; i < itr; i++) {
+		 double half_shortest = 0.5*shortest_edge_length_of_parametric_domain(para_modified, F);
+		 // make sure each iteration the perturb_dist get larger
+		 perturb_dist = std::max(half_shortest, 1.2*perturb_dist);
+
 		for (int j = 0; j < 2; j++) {// perturb u or v
 			for (int k = 1; k < rows - 1; k++) {
 				Eigen::VectorXi order;
@@ -545,4 +546,80 @@ void constrained_delaunay_triangulation(
 	igl::triangle::triangulate(Vin, Ein, H, "", WV, WF);
 	F = WF;
 	assert(WV.rows() == Vin.rows());
+}
+
+// given parameters and the connectivity, get the U and V parameters, and a map showing the positions of the points
+// in U and V
+void generate_UV_grid(const Eigen::MatrixXd& param, const Eigen::MatrixXi& F,
+	std::vector<double>& U, std::vector<double>&V, Eigen::MatrixXi& map) {
+	std::vector<int> Umap, Vmap;
+	int pnbr = param.rows();
+	Umap.resize(pnbr);// show the u parameter correspond to which U
+	Vmap.resize(pnbr);
+	U.clear();
+	V.clear();
+	U.reserve(pnbr);
+	V.reserve(pnbr);
+	auto cmp = [](std::pair<double, int> i1, std::pair<double, int> i2) {
+		return i1.first > i2.first;
+	};
+
+	std::priority_queue<std::pair<double, int>, std::vector<std::pair<double, int>>, decltype(cmp)> queue_u(cmp);
+	std::priority_queue<std::pair<double, int>, std::vector<std::pair<double, int>>, decltype(cmp)> queue_v(cmp);
+	for (int i = 0; i < pnbr; i++) {
+		std::pair<double, int> upair;
+		std::pair<double, int> vpair;
+		upair.first = param(i, 0);
+		upair.second = i;
+		vpair.first = param(i, 1);
+		vpair.second = i;
+		queue_u.push(upair);
+		queue_v.push(vpair);
+	}
+	double ut = -1, vt = -1;
+	for (int i = 0; i < pnbr; i++) {
+		if (queue_u.top().first != ut) {
+			ut = queue_u.top().first;
+			U.push_back(ut);
+		}
+		if (queue_v.top().first != vt) {
+			vt = queue_v.top().first;
+			V.push_back(vt);
+		}
+		Umap[i] = U.size() - 1;
+		Vmap[i] = V.size() - 1;
+		queue_u.pop();
+		queue_v.pop();
+	}
+	map = Eigen::MatrixXi::Constant(U.size(), V.size(), -1);
+	for (int i = 0; i < pnbr; i++) {
+		int urefer = Umap[i];
+		int vrefer = Vmap[i];
+		map(urefer, vrefer) = i;
+	}
+}
+#include <igl/cotmatrix.h>
+// smooth the given mesh, h is the parameter corresponding to the time step, itrs is the number of iterations
+// fixed are the ids of the vertices that do not move
+void smooth_mesh_vertices(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F,
+	const double h, const std::vector<int> &fixed,
+	const int itrs,  Eigen::MatrixXd&Vout) {
+	Eigen::MatrixXd vt;
+	vt = V;
+	for (int i = 0; i < itrs; i++) {
+		Eigen::SparseMatrix<double> L;
+		igl::cotmatrix(vt, F, L);
+		vt = vt + h * L*vt;
+		for (int j = 0; j < fixed.size(); j++) {
+			vt.row(fixed[j]) = V.row(fixed[j]);
+		}
+	}
+	Vout = vt;
+}
+
+void remeshing_based_on_map_grid(const Eigen::MatrixXd& param, const Eigen::MatrixXd& vertices,
+	const Eigen::MatrixXi& F,
+	const std::vector<double>& U, const std::vector<double>&V, const Eigen::MatrixXi& map, 
+	Eigen::MatrixXd& ver_out, Eigen::MatrixXi& Fout) {
+
 }
