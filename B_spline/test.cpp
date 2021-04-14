@@ -326,10 +326,16 @@ void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::Ma
 	knot_intervals_to_mesh(degree1, degree2, Uout, Vout, knotP, knotE);
 	//std::cout << "param\n" << param << std::endl;
 }
-
+Eigen::MatrixXi inverse_faces(const Eigen::MatrixXi& F) {
+	Eigen::MatrixXi result(F.rows(), 3);
+	for (int i = 0; i < F.rows(); i++) {
+		result.row(i) << F(i, 0), F(i, 2), F(i, 1);
+	}
+	return result;
+}
 void make_peak_exmple() {
 	Eigen::MatrixXd ver; Eigen::MatrixXi faces;
-	int nbr = 200;// nbr of points
+	int nbr = 150;// nbr of points
 	ver.resize(nbr, 3);
 	for (int i = 0; i < nbr; i++) {
 		Vector3d para3d = Vector3d::Random();
@@ -358,19 +364,25 @@ void make_peak_exmple() {
 	map_vertices_to_square(ver, loop, boundary_uv);
 	Eigen::MatrixXd param, param_perturbed;
 	igl::harmonic(ver,F,loop,boundary_uv,1,param);// parametrization finished
-	mesh_parameter_perturbation(param, F, param_perturbed, 5);
+	mesh_parameter_perturbation(param, F, param_perturbed, 0);
 	std::vector<double> U, V;
 	Eigen::MatrixXi grid_map;
 	generate_UV_grid(param_perturbed, F, U, V, grid_map);
 	std::cout << "U size " << U.size() << std::endl;
 	std::cout << "V size " << V.size() << std::endl;
 	std::cout << "para size " << param.rows() << std::endl;
+	std::cout << " map size " << grid_map.rows()<<" "<<grid_map.cols()  << std::endl;
 	//print_vector(U);
+
+	Eigen::MatrixXd param_grid, ver_grid;
+	Eigen::MatrixXi F_grid;
+	remeshing_based_on_map_grid(param_perturbed, ver, F, U, V, grid_map, param_grid, ver_grid, F_grid);
+
 
 	//next smooth
 	Eigen::MatrixXd Vs;// smoothed vertices
 	std::vector<int> fixed;
-	Eigen::MatrixXd Vfixed;
+	/*Eigen::MatrixXd Vfixed;
 	{
 		int nbr_fixed = 30;
 		Vfixed.resize(nbr_fixed, 3);
@@ -381,17 +393,28 @@ void make_peak_exmple() {
 		}
 		
 		smooth_mesh_vertices(ver, F, h, fixed,15, Vs);
+	}*/
+	Eigen::MatrixXd ver_para(ver.rows(), 3);
+	ver_para << param_perturbed, ver.col(2);
+	Eigen::MatrixXd tmp_pts(ver.rows(), 3);
+	int counter = 0;
+	for (int i = 0; i < U.size(); i++) {
+		for (int j = 0; j < V.size(); j++) {
+			if (grid_map(i, j) != -1) {
+				tmp_pts.row(counter) << U[i], V[j], ver(grid_map(i, j), 2);
+				counter++;
+			}
+		}
 	}
-
 	
 
 	igl::opengl::glfw::Viewer viewer;
 	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
 	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;
-	viewer.data().add_points(Vfixed, ecolor);
-	/*viewer.data().add_points(ver, ecolor);
-	viewer.data().add_points(bdver, fcolor);
+
+	/*
 	viewer.data().set_edges(bdver, edges, fcolor);*/
-	viewer.data().set_mesh(Vs, F);
+	viewer.data().add_points(ver, ecolor);
+	viewer.data().set_mesh(ver_grid, inverse_faces(F_grid));
 	viewer.launch();
 }

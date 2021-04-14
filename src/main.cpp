@@ -304,6 +304,29 @@ void test_orientation() {
 	Vector2d p(0, 0), q(0, 1), r(1, 0);
 	std::cout << "ori " << orient_2d(p, q, r) << std::endl;
 }
+void test_interpolation() {
+	int Fid = 0;
+	double u = 1;
+	double v = 1;
+	Eigen::MatrixXd vertices(3, 3);
+	Vector3d v0(0, 0, 0), v1(4, 0, 2), v2(0, 3, 1);
+	vertices.row(0) = v0;
+	vertices.row(1) = v1;
+	vertices.row(2) = v2;
+	Eigen::MatrixXd param(3, 2);
+	Vector2d pa0(0, 0), pa1(4, 0), pa2(0, 3);
+	
+	param.row(0) = pa0;
+	param.row(1) = pa1;
+	param.row(2) = pa2;
+	std::cout << "param \n" << param << std::endl;
+	Eigen::MatrixXi F(1,3);
+	F << 0, 1, 2;
+	Vector3d point =linear_interpolation( Fid,  u,  v,
+		 vertices, param,
+		F);
+	std::cout << "point\n" << point << std::endl;
+}
 int main() {
 	srand(29);
 	//test_opengl();
@@ -324,6 +347,7 @@ int main() {
 	//test_poly();
 	//go_through_temperature_interpolation();
 	make_peak_exmple();
+	//test_interpolation();
 	//test_orientation();
 	return 0;
 }

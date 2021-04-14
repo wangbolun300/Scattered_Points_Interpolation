@@ -577,6 +577,7 @@ void generate_UV_grid(const Eigen::MatrixXd& param, const Eigen::MatrixXi& F,
 		queue_v.push(vpair);
 	}
 	double ut = -1, vt = -1;
+	int uorder = -1, vorder = -1;
 	for (int i = 0; i < pnbr; i++) {
 		if (queue_u.top().first != ut) {
 			ut = queue_u.top().first;
@@ -586,8 +587,8 @@ void generate_UV_grid(const Eigen::MatrixXd& param, const Eigen::MatrixXi& F,
 			vt = queue_v.top().first;
 			V.push_back(vt);
 		}
-		Umap[i] = U.size() - 1;
-		Vmap[i] = V.size() - 1;
+ 		Umap[queue_u.top().second] = U.size() - 1;
+		Vmap[queue_v.top().second] = V.size() - 1;
 		queue_u.pop();
 		queue_v.pop();
 	}
@@ -617,9 +618,156 @@ void smooth_mesh_vertices(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F,
 	Vout = vt;
 }
 
+// given a parameter u and v, we find one ring triangle in F, and returns the orientation of F
+// the statement is: 
+// 0, in the middle of the triangle
+// 1, on edge F0, F1
+// 2, on edge F1, F2
+// 3, on edge F2, F0
+// since in our algorithm, the point is not possible on the vertices of the mesh
+int find_one_ring_for_param(const double u, const double v, const Eigen::MatrixXd& param, const Eigen::MatrixXi& F,
+	int &orientation, int &statement) {
+	Vector2d p(u, v);
+	for (int i = 0; i < F.rows(); i++) {
+		Vector2d v0 = param.row(F(i, 0));
+		Vector2d v1 = param.row(F(i, 1));
+		Vector2d v2 = param.row(F(i, 2));
+		int o0 = orient_2d(v0, v1, p);
+		int o1 = orient_2d(v1, v2, p);
+		int o2 = orient_2d(v2, v0, p);
+		if (o0 == o1 && o1 == o2) {
+			orientation = o0;
+			statement = 0;
+			return i;
+		}
+		if (o0 == o1 && o2 == 0) {
+			orientation = o0;
+			statement = 3;
+			return i;
+		}
+		if (o1 == o2 && o0 == 0) {
+			orientation = o1;
+			statement = 1;
+			return i;
+		}
+		if (o2 == o0 && o1 == 0) {
+			orientation = o0;
+			statement = 2;
+			return i;
+		}
+	}
+	assert(1);
+	std::cout << " The Code Should Not Go Here" << std::endl;
+	return -1;
+}
+double area2d(const Vector2d&p0, const Vector2d&p1, const Vector2d&p2) {
+	Eigen::MatrixXd m(2, 2);
+	m << p0 - p1, p0 - p2;
+	double v = m.determinant();
+	//Vector2d vec = (p0 - p1).cross(p0 - p2);
+	//double v = vec.norm();
+	return fabs(v / 2);
+	return 0;
+}
+// statement sees function find_one_ring_for_param()
+Vector3d linear_interpolation(const int Fid, const double u, const double v, 
+	const Eigen::MatrixXd& vertices, const Eigen::MatrixXd& param,
+	const Eigen::MatrixXi& F) {
+	int pid0 = F(Fid, 0);
+	int pid1 = F(Fid, 1);
+	int pid2 = F(Fid, 2);
+	Vector2d para = Vector2d(u, v);
+	Vector2d para0 = param.row(pid0);
+	Vector2d para1 = param.row(pid1);
+	Vector2d para2 = param.row(pid2);
+	Vector3d v0 = vertices.row(pid0);
+	Vector3d v1 = vertices.row(pid1);
+	Vector3d v2 = vertices.row(pid2);
+	Vector3d result;
+
+	// barycenter coordinates
+	double area_all = area2d(para0, para1, para2);
+	if (!area_all > 0) {
+		std::cout << "wrong here area is " << area_all << std::endl;
+		std::cout << para0 << "\n\n" << para1 << "\n\n" << para2 << std::endl;
+		if (para0[0] == para1[0]&&para0[0]==para2[0]) {
+			std::cout << "the three vertices same line" << std::endl;
+			std::cout << "the three vertices same line" << std::endl;
+		}
+	}
+	assert(area_all > 0);
+	// for debug
+	
+	double lambda0 = area2d(para, para1, para2) / area_all;
+	double lambda1 = area2d(para, para2, para0) / area_all;
+	double lambda2 = 1 - lambda0 - lambda1;
+	result = lambda0 * v0 + lambda1 * v1 + lambda2 * v2;
+	
+	return result;
+
+}
+bool check_UV_validation(const std::vector<double >&U) {
+	for (int i = 0; i < U.size() - 1; i++) {
+		if (U[i] >= U[i + 1]) {
+			return false;
+		}
+	}
+	return true;
+}
 void remeshing_based_on_map_grid(const Eigen::MatrixXd& param, const Eigen::MatrixXd& vertices,
 	const Eigen::MatrixXi& F,
 	const std::vector<double>& U, const std::vector<double>&V, const Eigen::MatrixXi& map, 
-	Eigen::MatrixXd& ver_out, Eigen::MatrixXi& Fout) {
+	Eigen::MatrixXd& paramout, Eigen::MatrixXd& ver_out, Eigen::MatrixXi& Fout) {
+	assert(U.size() == map.rows() && V.size() == map.cols());
+	assert(check_UV_validation(U));
+	assert(check_UV_validation(V));
+	// reset parameters
+	int nbr_block = (U.size() - 1)*(V.size() - 1)*2;
+	Eigen::MatrixXi Ftmp(nbr_block, 3);
+	paramout.resize(U.size()*V.size(), 2);
+	int parow = 0;
+	for (int i = 0; i < U.size(); i++) {
+		for (int j = 0; j < V.size(); j++) {
+			paramout(parow, 0) = U[i];
+			paramout(parow, 1) = V[j];
+			parow++;
+		}
+	}
 
+	// rebuild connectivity
+	int frow = 0;
+	int pnbr = 0;// shows which point are we refering to
+	for (int i = 0; i < U.size() - 1; i++) {
+		for (int j = 0; j < V.size() - 1; j++) {
+			// the four corners of the quad are:
+			// pnbr, pnbr+1, pnbr+V.size(), pnbr+V.size()+1
+			pnbr = i * V.size() + j;
+			Ftmp.row(frow) = Vector3i(pnbr, pnbr + V.size() , pnbr + V.size() + 1);
+			Ftmp.row(frow + 1) = Vector3i(pnbr, pnbr + V.size() + 1, pnbr + 1);
+			
+			frow += 2;
+		}
+	}
+	Fout = Ftmp;
+
+	// calculate the missing vertices, using linear interpolation
+	ver_out.resize(U.size()*V.size(), 3);
+	parow = 0;
+	for (int i = 0; i < U.size(); i++) {
+		for (int j = 0; j < V.size(); j++) {
+			
+			if (map(i, j) == -1) { // if this parameter doesn't have a 
+				int orientation;
+				int statement;
+				
+				int Fid = find_one_ring_for_param(U[i], V[j], param, F, orientation, statement);
+				Vector3d position = linear_interpolation(Fid, U[i], V[j], vertices, param, F);
+				ver_out.row(parow) = position;
+			}
+			else {
+				ver_out.row(parow) = vertices.row(map(i, j));
+			}
+			parow++;
+		}
+	}
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include<igl/read_triangle_mesh.h>
+#include<Types.hpp>
 void read_and_visual_mesh(const std::string &filename, Eigen::MatrixXd &V, Eigen::MatrixXi &F);
 
 // map the vertices loop to a [0,1]x[0,1] square
@@ -39,3 +40,14 @@ void smooth_mesh_vertices(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F,
 // in U and V
 void generate_UV_grid(const Eigen::MatrixXd& param, const Eigen::MatrixXi& F,
 	std::vector<double>& U, std::vector<double>&V, Eigen::MatrixXi& map);
+
+// statement sees function find_one_ring_for_param()
+Vector3d linear_interpolation(const int Fid, const double u, const double v,
+	const Eigen::MatrixXd& vertices, const Eigen::MatrixXd& param,
+	const Eigen::MatrixXi& F);
+
+//  remesh the grid for the smoothing.
+void remeshing_based_on_map_grid(const Eigen::MatrixXd& param, const Eigen::MatrixXd& vertices,
+	const Eigen::MatrixXi& F,
+	const std::vector<double>& U, const std::vector<double>&V, const Eigen::MatrixXi& map,
+	Eigen::MatrixXd& paramout, Eigen::MatrixXd& ver_out, Eigen::MatrixXi& Fout);
