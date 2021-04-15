@@ -364,7 +364,7 @@ void make_peak_exmple() {
 	map_vertices_to_square(ver, loop, boundary_uv);
 	Eigen::MatrixXd param, param_perturbed;
 	igl::harmonic(ver,F,loop,boundary_uv,1,param);// parametrization finished
-	mesh_parameter_perturbation(param, F, param_perturbed, 0);
+	mesh_parameter_perturbation(param, F, param_perturbed, 5);
 	std::vector<double> U, V;
 	Eigen::MatrixXi grid_map;
 	generate_UV_grid(param_perturbed, F, U, V, grid_map);
