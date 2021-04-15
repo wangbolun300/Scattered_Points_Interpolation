@@ -415,6 +415,10 @@ void make_peak_exmple() {
 	/*
 	viewer.data().set_edges(bdver, edges, fcolor);*/
 	viewer.data().add_points(ver, ecolor);
+	
+	// see the linear interpolated surface
 	viewer.data().set_mesh(ver_grid, inverse_faces(F_grid));
+
+	//viewer.data().set_mesh(ver, F);
 	viewer.launch();
 }

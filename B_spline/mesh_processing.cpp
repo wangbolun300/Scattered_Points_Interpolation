@@ -422,7 +422,7 @@ void mesh_parameter_perturbation(const Eigen::MatrixXd &para_in, const Eigen::Ma
 					if (check) {// if perturbable, reset parameters and info
 						para_modified = para_tmp;
 						pinfo = update_info;
-						std::cout << "perturbed" << std::endl;
+						
 					}
 				}
 			}
@@ -640,6 +640,38 @@ void smooth_mesh_vertices(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F,
 	Vout = vt;
 }
 
+// 0, in the middle of the triangle
+// 1, on edge F0, F1
+// 2, on edge F1, F2
+// 3, on edge F2, F0
+// since in our algorithm, the point is not possible on the vertices of the mesh
+bool is_point_in_triangle_2d(const Vector2d& v0, const Vector2d&v1, const Vector2d&v2, const Vector2d&p,
+	int &orientation, int &statement) {
+	
+	int o0 = orient_2d(v0, v1, p);
+	int o1 = orient_2d(v1, v2, p);
+	int o2 = orient_2d(v2, v0, p);
+	if (o0 == o1 && o1 == o2) {
+		orientation = o0;
+		statement = 0;
+		return true;
+	}
+	if (o0 == o1 && o2 == 0) {
+		orientation = o0;
+		statement = 3;
+		return true;
+	}
+	if (o1 == o2 && o0 == 0) {
+		orientation = o1;
+		statement = 1;
+		return true;
+	}
+	if (o2 == o0 && o1 == 0) {
+		orientation = o0;
+		statement = 2;
+		return true;
+	}
+}
 // given a parameter u and v, we find one ring triangle in F, and returns the orientation of F
 // the statement is: 
 // 0, in the middle of the triangle
@@ -654,29 +686,11 @@ int find_one_ring_for_param(const double u, const double v, const Eigen::MatrixX
 		Vector2d v0 = param.row(F(i, 0));
 		Vector2d v1 = param.row(F(i, 1));
 		Vector2d v2 = param.row(F(i, 2));
-		int o0 = orient_2d(v0, v1, p);
-		int o1 = orient_2d(v1, v2, p);
-		int o2 = orient_2d(v2, v0, p);
-		if (o0 == o1 && o1 == o2) {
-			orientation = o0;
-			statement = 0;
+		
+		if (is_point_in_triangle_2d(v0, v1, v2, p, orientation, statement)) {
 			return i;
 		}
-		if (o0 == o1 && o2 == 0) {
-			orientation = o0;
-			statement = 3;
-			return i;
-		}
-		if (o1 == o2 && o0 == 0) {
-			orientation = o1;
-			statement = 1;
-			return i;
-		}
-		if (o2 == o0 && o1 == 0) {
-			orientation = o0;
-			statement = 2;
-			return i;
-		}
+		
 	}
 	assert(1);
 	std::cout << " The Code Should Not Go Here" << std::endl;
@@ -706,7 +720,9 @@ Vector3d linear_interpolation(const int Fid, const double u, const double v,
 	Vector3d v1 = vertices.row(pid1);
 	Vector3d v2 = vertices.row(pid2);
 	Vector3d result;
-
+	int orien;
+	int state;
+	assert(is_point_in_triangle_2d(para0, para1, para2, para, orien, state));
 	// barycenter coordinates
 	double area_all = area2d(para0, para1, para2);
 	if (!area_all > 0) {
@@ -722,9 +738,25 @@ Vector3d linear_interpolation(const int Fid, const double u, const double v,
 	assert(area_all > 0);
 	// for debug
 	
-	double lambda0 = area2d(para, para1, para2) / area_all;
-	double lambda1 = area2d(para, para2, para0) / area_all;
-	double lambda2 = 1 - lambda0 - lambda1;
+	double lambda0 = area2d(para, para1, para2) ;
+	double lambda1 = area2d(para, para2, para0) ;
+	double lambda2 = area2d(para, para1, para0);
+	area_all = lambda0 + lambda1 + lambda2;
+	lambda0 = lambda0 / area_all;
+	lambda1 = lambda1 / area_all;
+	lambda2 = lambda2 / area_all;
+	if (lambda0 >= 0 && lambda0 <= 1 && lambda1 >= 0 && lambda1 <= 1 && lambda2 >= 0 && lambda2 <= 1) {
+
+	}
+	else {
+		std::cout << "area_all " << area_all << std::endl;
+		std::cout << "area_0 " << area2d(para, para1, para2) << std::endl;
+		std::cout << "area_1 " << area2d(para, para2, para0) << std::endl;
+		std::cout << "lambda0 " << lambda0 << " lambda1 " << lambda1 << " lambda2 " << lambda2 << std::endl;
+	}
+	/*assert(lambda0 >= 0 && lambda0 <= 1);
+	assert(lambda1 >= 0 && lambda1 <= 1);
+	assert(lambda2 >= 0 && lambda2 <= 1);*/
 	result = lambda0 * v0 + lambda1 * v1 + lambda2 * v2;
 	
 	return result;
