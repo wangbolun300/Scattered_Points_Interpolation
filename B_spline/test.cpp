@@ -333,6 +333,12 @@ Eigen::MatrixXi inverse_faces(const Eigen::MatrixXi& F) {
 	}
 	return result;
 }
+
+// 
+int map_ij_to_list_id(const int i, const int j,const int isize, const int jsize) {
+	
+	return i * jsize + j;
+}
 void make_peak_exmple() {
 	Eigen::MatrixXd ver; Eigen::MatrixXi faces;
 	int nbr = 150;// nbr of points
@@ -407,10 +413,20 @@ void make_peak_exmple() {
 		}
 	}
 	
+	Eigen::MatrixXd e0(V.size(),3), e1(V.size(), 3);
+	{
+		int uid = 30;
+		for (int i = 0; i < V.size()-1; i++) {
+			int id=map_ij_to_list_id(uid, i, U.size(), V.size());
+			int id1 = map_ij_to_list_id(uid, i+1, U.size(), V.size());
+			e0.row(i) = ver_grid.row(id);
+			e1.row(i) = ver_grid.row(id1);
+		}
+	}
 
 	igl::opengl::glfw::Viewer viewer;
-	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
-	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;
+	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3), pcolor(1, 3);
+	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;; pcolor << 0, 0.9, 0.5;
 
 	/*
 	viewer.data().set_edges(bdver, edges, fcolor);*/
@@ -418,6 +434,7 @@ void make_peak_exmple() {
 	
 	// see the linear interpolated surface
 	viewer.data().set_mesh(ver_grid, inverse_faces(F_grid));
+	viewer.data().add_edges(e0, e1, pcolor);
 
 	//viewer.data().set_mesh(ver, F);
 	viewer.launch();

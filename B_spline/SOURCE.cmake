@@ -15,6 +15,8 @@ B_spline/exact_calculation.cpp
 B_spline/Rational.hpp
 B_spline/energy.h
 B_spline/energy.cpp
+B_spline/curve_energy.cpp
+
 )
 ################################################################################
 # Subfolders

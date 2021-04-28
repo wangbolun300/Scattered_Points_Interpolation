@@ -671,6 +671,7 @@ bool is_point_in_triangle_2d(const Vector2d& v0, const Vector2d&v1, const Vector
 		statement = 2;
 		return true;
 	}
+	return false;
 }
 // given a parameter u and v, we find one ring triangle in F, and returns the orientation of F
 // the statement is: 
@@ -724,36 +725,56 @@ Vector3d linear_interpolation(const int Fid, const double u, const double v,
 	int state;
 	assert(is_point_in_triangle_2d(para0, para1, para2, para, orien, state));
 	// barycenter coordinates
-	double area_all = area2d(para0, para1, para2);
-	if (!area_all > 0) {
-		std::cout << "wrong here area is " << area_all << std::endl;
-		std::cout << para0 << "\n\n" << para1 << "\n\n" << para2 << std::endl;
-		if (para0[0] == para1[0]&&para0[0]==para2[0]) {
-			std::cout << "the three vertices same line" << std::endl;
-		}
-		if (para0[1] == para1[1] && para0[1] == para2[1]) {
-			std::cout << "the three vertices same line 2" << std::endl;
-		}
-	}
-	assert(area_all > 0);
-	// for debug
-	
-	double lambda0 = area2d(para, para1, para2) ;
-	double lambda1 = area2d(para, para2, para0) ;
-	double lambda2 = area2d(para, para1, para0);
-	area_all = lambda0 + lambda1 + lambda2;
-	lambda0 = lambda0 / area_all;
-	lambda1 = lambda1 / area_all;
-	lambda2 = lambda2 / area_all;
-	if (lambda0 >= 0 && lambda0 <= 1 && lambda1 >= 0 && lambda1 <= 1 && lambda2 >= 0 && lambda2 <= 1) {
+	double lambda0;
+	double lambda1;
+	double lambda2;
 
+	bool method = false;
+	if (method) {
+		double area_all = area2d(para0, para1, para2);
+		if (!area_all > 0) {
+			std::cout << "wrong here area is " << area_all << std::endl;
+			std::cout << para0 << "\n\n" << para1 << "\n\n" << para2 << std::endl;
+			if (para0[0] == para1[0] && para0[0] == para2[0]) {
+				std::cout << "the three vertices same line" << std::endl;
+			}
+			if (para0[1] == para1[1] && para0[1] == para2[1]) {
+				std::cout << "the three vertices same line 2" << std::endl;
+			}
+		}
+		assert(area_all > 0);
+		// for debug
+
+		double lambda0 = area2d(para, para1, para2);
+		double lambda1 = area2d(para, para2, para0);
+		double lambda2 = area2d(para, para1, para0);
+		area_all = lambda0 + lambda1 + lambda2;
+		lambda0 = lambda0 / area_all;
+		lambda1 = lambda1 / area_all;
+		lambda2 = lambda2 / area_all;
+		if (lambda0 >= 0 && lambda0 <= 1 && lambda1 >= 0 && lambda1 <= 1 && lambda2 >= 0 && lambda2 <= 1) {
+
+		}
+		else {
+			std::cout << "area_all " << area_all << std::endl;
+			std::cout << "area_0 " << area2d(para, para1, para2) << std::endl;
+			std::cout << "area_1 " << area2d(para, para2, para0) << std::endl;
+			std::cout << "lambda0 " << lambda0 << " lambda1 " << lambda1 << " lambda2 " << lambda2 << std::endl;
+		}
 	}
 	else {
-		std::cout << "area_all " << area_all << std::endl;
-		std::cout << "area_0 " << area2d(para, para1, para2) << std::endl;
-		std::cout << "area_1 " << area2d(para, para2, para0) << std::endl;
-		std::cout << "lambda0 " << lambda0 << " lambda1 " << lambda1 << " lambda2 " << lambda2 << std::endl;
+		Eigen::MatrixXd A(3, 3), b(3, 1);
+		A << para0[0], para1[0], para2[0],
+			para0[1], para1[1], para2[1],
+			1, 1, 1;
+		b << u, v, 1;
+		double tool;
+		Eigen::MatrixXd ps = slove_linear_system(A, b,false,tool);
+		lambda0 = ps(0, 0);
+		lambda1 = ps(1, 0);
+		lambda2 = ps(2, 0);
 	}
+
 	/*assert(lambda0 >= 0 && lambda0 <= 1);
 	assert(lambda1 >= 0 && lambda1 <= 1);
 	assert(lambda2 >= 0 && lambda2 <= 1);*/

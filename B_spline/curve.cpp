@@ -1,6 +1,10 @@
 #include"curve.h"
 #include <Eigen/Dense>
 #include<iostream>
+
+int Bcurve::nu() {
+	return U.size() - 2 - degree;
+}
 // return a point position of a given curve
 Vector3d BsplinePoint(const int degree, const std::vector<double>& U, const double para,
 	const std::vector<Vector3d> &pts) {

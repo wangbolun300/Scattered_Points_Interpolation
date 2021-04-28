@@ -7,7 +7,16 @@ Vector3d BsplinePoint(const int degree, const std::vector<double>& U, const doub
 
 Vector3d BsplinePoint(const int degree, const std::vector<double>& U, const double para,
 	const Eigen::MatrixXd& pts);
-
+struct Bcurve {
+	int degree;
+	std::vector<double> U;
+	double upara;
+	std::vector<Vector3d> control_points;
+	int nu();// nu + 1 is the number of control points in u direction
+};
+//TODO this error is not what we want
+Eigen::MatrixXd slove_linear_system(const Eigen::MatrixXd& A, const Eigen::MatrixXd &b,
+	const bool check_error, double &relative_error);
 // Lease-Square approximation method
 Eigen::MatrixXd solve_curve_control_points(const int degree, const std::vector<double>& U,
 	const std::vector<double>& paras, const std::vector<Vector3d>& points);
