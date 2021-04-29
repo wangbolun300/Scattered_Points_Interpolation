@@ -220,17 +220,23 @@ std::vector<double> knot_vector_insert_values(const std::vector<double>& U, cons
 	std::vector<int> need_fix_intervals, std::vector<std::vector<int>> para_ids) {
 	// for each interval we need to fix, we insert one value
 	std::vector<double> insert_values;
-
+	int psize = paras.size();
+	std::cout << "before first for, need_fix_intervals.size() "<< need_fix_intervals.size() << std::endl;
 	for (int i = 0; i < need_fix_intervals.size(); i++) {
-		
-		insert_values.push_back(get_the_mean_value(paras, para_ids[need_fix_intervals[i]]));
+		std::cout << i << std::endl;
+		std::cout << "this value" << need_fix_intervals[i] << std::endl;
+		double insert = need_fix_intervals[i] >= 0 ? get_the_mean_value(paras, para_ids[need_fix_intervals[i]])
+			: 0.5*(paras[psize - 1] + paras[psize - 2]);
+		insert_values.push_back(insert);
 	}
+	std::cout << "after first for" << std::endl;
 	// now need to insert insert_values[i] to U
 	std::vector<double> result = U;
-
+	std::cout << "before second for" << std::endl;
 	for (int i = 0; i < insert_values.size(); i++) {
 		result = knot_vector_insert_one_value(result, insert_values[i]);
 	}
+	std::cout << "before second for" << std::endl;
 	assert(result.size() == U.size() + insert_values.size());
 	return result;
 }
@@ -277,7 +283,8 @@ void fix_stairs_row_too_many(const int degree, const std::vector<double>& Uin,
 
 }
 
-// given a problematic row number (this row must be on a stair whose multiplicity is larger than 1)
+// given a problematic row number (this row must be on a stair whose multiplicity is larger than 1, or maybe it 
+// is the paras.back())
 // and insert one knot to this stair
 // since one block (sub_A*x=sub_b) may split one stair into two, construct_method can select from
 // STAIR_FORWARD or STAIR_BACKWARD to select certain rows that count into mean value calculation
@@ -325,9 +332,10 @@ void insert_a_knot_to_a_stair(const int degree, const int pro_row_id, const std:
 
 
 	// down here, we need to insert one value to U
-
+	std::cout << "pro_row_id " << pro_row_id << std::endl;
+	std::cout << "before insert" << std::endl;
 	Uout = knot_vector_insert_values(Uin, paras, need_fix_intervals, para_ids);
-
+	std::cout << "finish insert" << std::endl;
 	return;
 
 }
@@ -385,7 +393,7 @@ void insert_a_knot_to_a_stair_largest_rows(const int degree, const int pro_row_i
 	}
 	
 
-
+	
 	// down here, we need to insert one value to U
 
 	Uout = knot_vector_insert_values(Uin, paras, need_fix_intervals, para_ids);
@@ -562,6 +570,7 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 
 
 			std::cout << "branch 1" << std::endl;
+			
 			insert_a_knot_to_a_stair(degree, start_row + nbr_rows - 1, expanded_U, paras, tempU, STAIR_FORWARD);
 
 		}
@@ -578,7 +587,8 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 		if (have_solution1 && have_solution2) {
 			// deal with knots, start_row=0, nbr_rows=m+1; calculate have_solution
 			// if both of them have solution, pick a random one to solve
-			std::cout << "branch 1" << std::endl;
+			std::cout << "branch 3" << std::endl;
+			std::cout << "A\n" << A << std::endl; 
 			insert_a_knot_to_a_stair(degree, start_row + nbr_rows - 1, expanded_U, paras, tempU, STAIR_FORWARD);
 
 		}

@@ -39,3 +39,11 @@ bool equation_has_solution(const Eigen::MatrixXd& A,
 // using boolean predicates to conservatively fix a knot vector to interpolate curve
 std::vector<double> fix_knot_vector_to_interpolate_curve_boolean(const int degree, const std::vector<double>& init_vec,
 	const std::vector<double>& paras);
+
+// the output is the curve.control_points
+// trying to find a curve minimizing the energy, while interpolating the points whose parameters are paras.
+void solve_control_points_for_fairing_curve(Bcurve& curve, const std::vector<double>& paras,
+	const Eigen::MatrixXd & points, const double a, const double b);
+
+void solve_control_points_for_fairing_curve(Bcurve& curve, const std::vector<double>& paras,
+	const std::vector<Vector3d> & pts, const double a, const double b);

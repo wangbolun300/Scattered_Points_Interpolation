@@ -339,9 +339,63 @@ int map_ij_to_list_id(const int i, const int j,const int isize, const int jsize)
 	
 	return i * jsize + j;
 }
+void fit_border_with_curve(const Eigen::MatrixXd& paras, const Eigen::MatrixXd &ver, const Eigen::MatrixXi& map,
+	const bool is_v, const int line_id, Bcurve& curve, const double a, const double b, std::vector<Vector3d> &points) {
+	std::vector<double> paralist;
+	
+	if (is_v) {
+		//curve.U = V;
+		for (int i = 0; i < map.rows(); i++) {// iso-v
+			
+			if (map(i, line_id) >= 0) {
+				double value = paras(map(i, line_id), 0);
+				Vector3d vertex = ver.row(map(i, line_id));
+				paralist.push_back(value);
+				points.push_back(vertex);
+			}
+			
+		}
+	}
+	else {
+		//curve.U = U;
+		
+		for (int i = 0; i < map.cols(); i++) {// iso-u
+			if (map(line_id, i) >= 0) {
+				double value = paras(map(line_id, i), 1);
+				paralist.push_back(value);
+				Vector3d vertex = ver.row(map(line_id, i));
+				points.push_back(vertex);
+			}
+		}
+	}
+	std::cout << "paras and points" << std::endl;
+	print_vector(paralist);
+	curve.degree = 3;
+	std::vector<double> kv = { {0,0,0,0,0.1,0.2,0.4,0.5,0.6,0.7,0.8,1,1,1,1} };
+	
+	std::vector<double> kv_new = fix_knot_vector_to_interpolate_curve(curve.degree, kv, paralist, points);
+	std::cout << "knot vector get fixed" << std::endl;
+
+	
+
+	curve.U = kv_new;
+	print_vector(kv_new);
+	solve_control_points_for_fairing_curve(curve, paralist, points, a, b);
+}
+void curve_to_edge_list(const Bcurve&curve, const int nbr, Eigen::MatrixXd&e0, Eigen::MatrixXd &e1) {
+	e0.resize(nbr, 3);
+	e1.resize(nbr, 3);
+	for (int i = 0; i < nbr; i++) {
+		double para0 = double(i) / (nbr);
+		double para1 = double(i + 1) / (nbr);
+		e0.row(i) = BsplinePoint(curve.degree, curve.U, para0, curve.control_points);
+		e1.row(i) = BsplinePoint(curve.degree, curve.U, para1, curve.control_points);
+	}
+	return;
+}
 void make_peak_exmple() {
 	Eigen::MatrixXd ver; Eigen::MatrixXi faces;
-	int nbr = 150;// nbr of points
+	int nbr = 100;// nbr of points
 	ver.resize(nbr, 3);
 	for (int i = 0; i < nbr; i++) {
 		Vector3d para3d = Vector3d::Random();
@@ -377,12 +431,16 @@ void make_peak_exmple() {
 	std::cout << "U size " << U.size() << std::endl;
 	std::cout << "V size " << V.size() << std::endl;
 	std::cout << "para size " << param.rows() << std::endl;
-	std::cout << " map size " << grid_map.rows()<<" "<<grid_map.cols()  << std::endl;
+	std::cout << "map size " << grid_map.rows()<<" "<<grid_map.cols()  << std::endl;
+	
+	Bcurve curve;
+	std::vector<Vector3d> inter_pts;// points to be interpolated
+	fit_border_with_curve(param_perturbed, ver, grid_map, true, 0, curve, 10, 10, inter_pts);
 	//print_vector(U);
 
-	Eigen::MatrixXd param_grid, ver_grid;
-	Eigen::MatrixXi F_grid;
-	remeshing_based_on_map_grid(param_perturbed, ver, F, U, V, grid_map, param_grid, ver_grid, F_grid);
+	//Eigen::MatrixXd param_grid, ver_grid;
+	//Eigen::MatrixXi F_grid;
+	//remeshing_based_on_map_grid(param_perturbed, ver, F, U, V, grid_map, param_grid, ver_grid, F_grid);
 
 
 	//next smooth
@@ -400,7 +458,7 @@ void make_peak_exmple() {
 		
 		smooth_mesh_vertices(ver, F, h, fixed,15, Vs);
 	}*/
-	Eigen::MatrixXd ver_para(ver.rows(), 3);
+	/*Eigen::MatrixXd ver_para(ver.rows(), 3);
 	ver_para << param_perturbed, ver.col(2);
 	Eigen::MatrixXd tmp_pts(ver.rows(), 3);
 	int counter = 0;
@@ -411,9 +469,9 @@ void make_peak_exmple() {
 				counter++;
 			}
 		}
-	}
+	}*/
 	
-	Eigen::MatrixXd e0(V.size(),3), e1(V.size(), 3);
+	/*Eigen::MatrixXd e0(V.size(),3), e1(V.size(), 3);
 	{
 		int uid = 30;
 		for (int i = 0; i < V.size()-1; i++) {
@@ -422,7 +480,11 @@ void make_peak_exmple() {
 			e0.row(i) = ver_grid.row(id);
 			e1.row(i) = ver_grid.row(id1);
 		}
-	}
+	}*/
+	Eigen::MatrixXd edge0, edge1;
+	curve_to_edge_list(curve, 100, edge0, edge1);
+
+
 
 	igl::opengl::glfw::Viewer viewer;
 	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3), pcolor(1, 3);
@@ -430,11 +492,11 @@ void make_peak_exmple() {
 
 	/*
 	viewer.data().set_edges(bdver, edges, fcolor);*/
-	viewer.data().add_points(ver, ecolor);
+	viewer.data().add_points(vector_to_matrix_3d(inter_pts), ecolor);
 	
 	// see the linear interpolated surface
-	viewer.data().set_mesh(ver_grid, inverse_faces(F_grid));
-	viewer.data().add_edges(e0, e1, pcolor);
+	//viewer.data().set_mesh(param, F);
+	viewer.data().add_edges(edge0, edge1, pcolor);
 
 	//viewer.data().set_mesh(ver, F);
 	viewer.launch();
