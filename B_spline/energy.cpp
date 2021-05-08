@@ -97,10 +97,16 @@ std::vector<double> Nip_func(const int i, const int p, const double u, const std
 		}
 	}
 	std::vector<double> v;
-	v = { {-U[i],1} };
-	std::vector<double> result1 = polynomial_times(handle_division_func(v, U[i + p] - U[i]), Nip(i, p - 1, u, U));
-	v = { {U[i + p + 1],-1} };
-	std::vector<double> result2 = polynomial_times(handle_division_func(v, U[i + p + 1] - U[i + 1]), Nip(i + 1, p - 1, u, U));
+	v = { {-U[i],1} };// u - U[i]
+	std::vector<double> result1 = polynomial_times(handle_division_func(v, U[i + p] - U[i]), Nip_func(i, p - 1, u, U));
+	/*std::cout << "**this degree " << p << std::endl;
+	std::cout << "v "  << std::endl;
+	print_vector(v);
+	std::cout << "lower degree " << p-1 << std::endl;
+	print_vector(Nip(i, p - 1, u, U));*/
+
+	v = { {U[i + p + 1],-1} };// U[i+p+1] - u 
+	std::vector<double> result2 = polynomial_times(handle_division_func(v, U[i + p + 1] - U[i + 1]), Nip_func(i + 1, p - 1, u, U));
 	return polynomial_add(result1, result2);
 }
 double polynomial_value(const std::vector<double>& poly, const double para) {
@@ -162,16 +168,25 @@ double construct_an_integration(const int degree, const std::vector<double>& U,
 	
 	std::vector<double> func1 = Nip_func(i1, degree, u1, U);
 	std::vector<double> func2 = Nip_func(i2, degree, u1, U);
-
+	//std::cout << "degree, "<<degree << std::endl;
+	//std::cout << "func1 and func2" << std::endl;
+	//print_vector(func1);
+	//print_vector(func2);
 	func1 = polynomial_differential(func1, partial1);
 	func2 = polynomial_differential(func2, partial2);
-
+	//std::cout << "differencial" << std::endl;
+	//print_vector(func1);
+	//print_vector(func2);
 	std::vector<double> func = polynomial_times(func1, func2);
+	//std::cout << "times" << std::endl;
+	//print_vector(func);
 	double upper = u2;
 	if (u2 == U.back()) {
 		upper = U.back() - SCALAR_ZERO;
 	}
 	double result = polynomial_integration(func, u1, upper);
+	std::cout << "integration range, " <<u1<<","<<upper<<", result, "<<result<< std::endl;
+
 	return result;
 }
 

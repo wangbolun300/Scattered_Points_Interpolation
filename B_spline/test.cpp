@@ -435,7 +435,7 @@ void make_peak_exmple() {
 	
 	Bcurve curve;
 	std::vector<Vector3d> inter_pts;// points to be interpolated
-	fit_border_with_curve(param_perturbed, ver, grid_map, true, 0, curve, 10, 10, inter_pts);
+	fit_border_with_curve(param_perturbed, ver, grid_map, true, 0, curve, 1, 0.2, inter_pts);
 	//print_vector(U);
 
 	//Eigen::MatrixXd param_grid, ver_grid;

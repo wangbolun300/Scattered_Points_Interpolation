@@ -14,12 +14,16 @@ double curve_energy_least_square(const Bcurve& curve, const int i, const int j, 
 		if (j<k1 - degree || j>k1) {
 			continue;
 		}
+		if (curve.U[k1] == curve.U[k1 + 1]) {
+			continue;
+		}
+		double value1 = a == 0 ? 0 : construct_an_integration(degree, curve.U, 1, 1, i, j, curve.U[k1], curve.U[k1 + 1]);
 		
-		double value1 = construct_an_integration(degree, curve.U, 1, 1, i, j, curve.U[k1], curve.U[k1 + 1]);
-		double value2 = construct_an_integration(degree, curve.U, 2, 2, i, j, curve.U[k1], curve.U[k1 + 1]);
+	
+		double value2 = b == 0 ? 0 : construct_an_integration(degree, curve.U, 2, 2, i, j, curve.U[k1], curve.U[k1 + 1]);
 		//value2 = 0;
 		//value1 = 0;
-		xx wrong here
+		
 		result += a*value1 + b*value2;
 		
 	}
