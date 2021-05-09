@@ -25,6 +25,13 @@ Eigen::MatrixXd list_to_matrix_3d(const std::vector<std::vector<double>>& v);
 Eigen::MatrixXd list_to_matrix_3d(const std::vector<Vector3d>& v, const std::vector<int>& selected);
 int orient_2d(const Vector2d& a, const Vector2d &b, const Vector2d &c);
 
+// solving tool for linear algebra
+//TODO this error is not what we want
+Eigen::MatrixXd slove_linear_system(const Eigen::MatrixXd& A, const Eigen::MatrixXd &b,
+	const bool check_error, double &relative_error);
+void push_p_lambda_vector_to_control_points(const Eigen::MatrixXd &pl,
+	const int dimension, std::vector<Vector3d>& control_points);
+
 #ifdef SPARSE_INTERP_WITH_GMP
 #include<Rational.hpp>
 typedef Eigen::Matrix<Rational, Eigen::Dynamic, Eigen::Dynamic> MatrixXs;

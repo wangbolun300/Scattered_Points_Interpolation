@@ -191,12 +191,12 @@ double construct_an_integration(const int degree, const std::vector<double>& U,
 }
 
 // do partial difference to Pi, the cofficient of jth element Pj.
-double energy_element_value( Bsurface& surface, const int i, const int j) {
-	// locate Pij
+double surface_energy_least_square( Bsurface& surface, const int i, const int j) {
+	// figure out which Pij corresponding to the ith control point
 	int partial_i = i / (surface.nv()+1);
 	int partial_j = i - partial_i * (surface.nv()+1);
 
-	// locate the cofficient of pij
+	// figure out which Pij corresponding to the jth control point
 	int coff_i = j / (surface.nv() + 1);
 	int coff_j = j - coff_i * (surface.nv() + 1);
 
@@ -241,13 +241,111 @@ double energy_element_value( Bsurface& surface, const int i, const int j) {
 
 
 // which_part = 0: Suu; which_part = 1, Suv; which_part = 2, Svv.
-Eigen::MatrixXd energy_part_of_solving_control_points(Bsurface& surface) {
+Eigen::MatrixXd energy_part_of_surface_least_square(Bsurface& surface) {
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
 	Eigen::MatrixXd result(psize, psize);
 	for (int i = 0; i < psize; i++) {
 		for (int j = 0; j < psize; j++) {
-			result(i, j) = energy_element_value(surface, i, j);
+			result(i, j) = surface_energy_least_square(surface, i, j);
 		}
 	}
 	return result;
+}
+
+Eigen::MatrixXd eqality_part_of_surface_least_square(Bsurface& surface, const Eigen::MatrixXd& paras) {
+	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
+	Eigen::MatrixXd result(paras.rows(), psize);
+	int degree1 = surface.degree1;
+	int degree2 = surface.degree2;
+	std::vector<double> U = surface.U;
+	std::vector<double> V = surface.V;
+	for (int i = 0; i < result.rows(); i++) {
+		for (int j = 0; j < result.cols(); j++) {
+			// figure out the jth control point corresponding to which Pij
+			int coff_i = j / (surface.nv() + 1);
+			int coff_j = j - coff_i * (surface.nv() + 1);
+			double u = paras(i, 0);
+			double v = paras(i, 1);
+			// the corresponding cofficient should be N_coffi(u) and N_coffj(v)
+			double N1 = Nip(coff_i, degree1, u, U);
+			double N2 = Nip(coff_j, degree2, v, V);
+			result(i, j) = N1 * N2;
+		}
+	}
+	return result;
+}
+
+Eigen::MatrixXd lambda_part_of_surface_least_square(Bsurface& surface, const Eigen::MatrixXd& paras) {
+	Eigen::MatrixXd A = eqality_part_of_surface_least_square(surface, paras);
+	Eigen::MatrixXd result = -A.transpose();
+	return result;
+}
+
+Eigen::MatrixXd surface_least_square_lambda_multiplier_left_part(Bsurface& surface, const Eigen::MatrixXd& paras) {
+	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
+	int target_size = paras.rows();// nbr of target data points
+	int size = psize + target_size;
+	Eigen::MatrixXd result(size, size);
+	Eigen::MatrixXd rd = Eigen::MatrixXd::Zero(target_size, target_size);// right down corner part
+	Eigen::MatrixXd lu = energy_part_of_surface_least_square(surface);
+	Eigen::MatrixXd ru = lambda_part_of_surface_least_square(surface, paras);
+	Eigen::MatrixXd ld = eqality_part_of_surface_least_square(surface, paras);
+	result << lu, ru,
+		ld, rd;
+	return result;
+}
+
+Eigen::MatrixXd surface_least_square_lambda_multiplier_right_part(Bsurface& surface, const Eigen::MatrixXd& paras,
+	const Eigen::MatrixXd & points, const int dimension) {
+	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
+	int target_size = paras.rows();// nbr of target data points
+	int size = psize + target_size;
+	Eigen::MatrixXd result(size, 1);
+	for (int i = 0; i < psize; i++) {
+		result(i, 0) = 0;
+	}
+	int counter = 0;
+	for (int i = psize; i < size; i++) {
+		result(i, 0) = points(counter, dimension);
+		counter++;
+	}
+	assert(counter == target_size);
+	return result;
+}
+
+void push_control_point_list_into_surface(Bsurface& surface, const std::vector<Vector3d>& cps) {
+	int id = 0;
+	std::vector<std::vector<Vector3d>> control;
+	control.resize(surface.nu() + 1);
+	int vs = surface.nv() + 1;
+	for (int i = 0; i < control.size(); i++) {
+		control[i].resize(vs);
+		for (int j = 0; j < vs; j++) {
+			control[i][j] = cps[id];
+			id++;
+		}
+	}
+	surface.control_points = control;
+	return;
+}
+void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::MatrixXd& paras,
+	const Eigen::MatrixXd & points) {
+	assert(paras.rows() == points.rows());
+	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
+	std::vector<Vector3d> cps(psize);// control points
+	Eigen::MatrixXd A = surface_least_square_lambda_multiplier_left_part(surface, paras);
+	std::cout << "print A\n" << A << std::endl;
+
+	for (int i = 0; i < 3; i++) {
+		Eigen::MatrixXd b = surface_least_square_lambda_multiplier_right_part(surface, paras, points, i);
+		double err = 0.0;
+
+		// solve the matrix contains the p and lambda
+		std::cout << "before solving" << std::endl;
+		Eigen::MatrixXd p_lambda = slove_linear_system(A, b, false, err);
+		std::cout << "after solving" << std::endl;
+		push_p_lambda_vector_to_control_points(p_lambda, i, cps);
+	}
+	push_control_point_list_into_surface(surface, cps);
+	return;
 }
