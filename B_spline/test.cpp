@@ -7,6 +7,7 @@
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/harmonic.h>
 #include<energy.h>
+#include <igl/write_triangle_mesh.h>
 void test_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control_pts_color,
 	Eigen::MatrixXd& curve_pts, Eigen::MatrixXd& curve_pts_color,
 	Eigen::MatrixXd& target_pts, Eigen::MatrixXd& target_pts_color) {
@@ -209,8 +210,8 @@ void B_spline_surface_to_mesh(const Bsurface &surface, const int pnbr, Eigen::Ma
 	int fline = 0;
 	for (int i = 0; i < pnbr - 1; i++) {
 		for (int j = 0; j < pnbr - 1; j++) {
-			faces.row(fline) = Vector3i(i + pnbr * j, i + pnbr * (j + 1), i + pnbr * (1 + j) + 1);
-			faces.row(fline + 1) = Vector3i(i + pnbr * j, i + pnbr * (1 + j) + 1, i + pnbr * j + 1);
+			faces.row(fline) = Vector3i( i + pnbr * (j + 1), i + pnbr * j, i + pnbr * (1 + j) + 1);
+			faces.row(fline + 1) = Vector3i( i + pnbr * (1 + j) + 1, i + pnbr * j, i + pnbr * j + 1);
 			fline += 2;
 		}
 	}
@@ -398,13 +399,13 @@ void curve_visulization(const Bcurve&curve, const int nbr, Eigen::MatrixXd&e0, E
 	return;
 }
 
-void surface_visulization(Bsurface& surface, const int nbr, Eigen::MatrixXd & v, Eigen::MatrixXi f) {
+void surface_visulization(Bsurface& surface, const int nbr, Eigen::MatrixXd & v, Eigen::MatrixXi &f) {
 	B_spline_surface_to_mesh(surface, nbr, v, f);
 	return;
 }
 void make_peak_exmple() {
 	Eigen::MatrixXd ver;
-	int nbr = 100;// nbr of points
+	int nbr = 30;// nbr of points
 	ver.resize(nbr, 3);
 	for (int i = 0; i < nbr; i++) {
 		Vector3d para3d = Vector3d::Random();
@@ -438,7 +439,7 @@ void make_peak_exmple() {
 	std::cout << "F\n" << F << std::endl;
 	Eigen::MatrixXd param, param_perturbed;
 	igl::harmonic(ver,F,loop,boundary_uv,1,param);// parametrization finished
-	mesh_parameter_perturbation(param, F, param_perturbed, 0);
+	mesh_parameter_perturbation(param, F, param_perturbed, 5);
 	std::vector<double> U, V;
 	Eigen::MatrixXi grid_map;
 	generate_UV_grid(param_perturbed, F, U, V, grid_map);
@@ -466,7 +467,15 @@ void make_peak_exmple() {
 	std::cout << "knotV is" << std::endl;
 	print_vector(knotV);
 	
-	//solve_control_points_for_fairing_surface(surface, param_perturbed, ver);
+	solve_control_points_for_fairing_surface(surface, param_perturbed, ver);
+	Eigen::MatrixXd SPs;
+	Eigen::MatrixXi SFs;
+	surface_visulization(surface, 100, SPs, SFs);
+
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+	igl::write_triangle_mesh(path + "peak_surface_less_control_pts.obj", SPs, SFs);
+	//igl::write_triangle_mesh(path + "peak.obj", ver, F);
+	//std::cout << "SPs\n" << SPs << std::endl;
 	// // curve fitting test
 	//Bcurve curve;
 	//std::vector<Vector3d> inter_pts;// points to be interpolated
@@ -530,9 +539,11 @@ void make_peak_exmple() {
 	//viewer.data().add_points(vector_to_matrix_3d(inter_pts), ecolor);
 	
 	// see the linear interpolated surface
-	viewer.data().set_mesh(paras, F);
+	//viewer.data().set_mesh(param, F);
 	//viewer.data().add_edges(edge0, edge1, pcolor);
 
 	//viewer.data().set_mesh(ver, F);
+	viewer.data().set_mesh(SPs, SFs);
+	viewer.data().add_points(ver, ecolor);
 	viewer.launch();
 }
