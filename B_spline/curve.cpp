@@ -519,7 +519,7 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 	assert(points.size() == paras.size());
 	int n = expanded_U.size() - 2 - degree;// n + 1 = number of control points
 	int m = paras.size() - 1;// m + 1 = the number of data points
-
+	int prob_id;
 	Eigen::MatrixXd A;
 	Eigen::VectorXd b;
 
@@ -529,7 +529,16 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 	b = build_Vector_b(points, dimension);
 
 	bool have_solution = equation_has_solution(A, b);
-
+	//std::cout << "have solution? " << have_solution << std::endl;
+	//std::cout << "can interpolate? " << curve_can_be_interpolated(expanded_U, degree, paras) << std::endl;
+	if (curve_can_be_interpolated(expanded_U, degree, paras, prob_id)) {
+		assert(have_solution);
+	}
+	if (!have_solution) {
+		assert(!curve_can_be_interpolated(expanded_U, degree, paras, prob_id));
+	}
+	
+	
 	int start_row = 0;// initialized row nbr is 0
 	int nbr_rows = m + 1;// initialized block has m+1 rows
 
@@ -545,12 +554,12 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 		sub_b1 = build_Vector_b(points, dimension, start_row, nbr_rows - 1);
 
 		bool have_solution1 = equation_has_solution(sub_A1, sub_b1, rank_diff1);
-
+		
 		sub_A2 = build_matrix_A(degree, expanded_U, paras, start_row + 1, nbr_rows - 1);
 		sub_b2 = build_Vector_b(points, dimension, start_row + 1, nbr_rows - 1);
 
 		bool have_solution2 = equation_has_solution(sub_A2, sub_b2, rank_diff2);
-
+		
 		if ((!have_solution1) && (!have_solution2)) {// if no solution, check next level;
 			if (rank_diff1 <= rank_diff2) {
 				start_row = start_row;
@@ -598,6 +607,13 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 		b = build_Vector_b(points, dimension);
 
 		have_solution = equation_has_solution(A, b);
+		
+		if (curve_can_be_interpolated(expanded_U, degree, paras, prob_id)) {
+			assert(have_solution);
+		}
+		if (!have_solution) {
+			assert(!curve_can_be_interpolated(expanded_U, degree, paras, prob_id));
+		}
 
 	}
 	std::cout << "A\n" << A << std::endl;
@@ -611,4 +627,51 @@ std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const
 		result = fix_knot_vector_to_interpolate_curve(degree, result, paras, points, dim);
 	}
 	return result;
+}
+
+bool curve_can_be_interpolated(const std::vector<double>& U,const int degree, const Eigen::VectorXd & paras, 
+	int &prob_id) {
+	prob_id = -1;
+	std::vector<std::vector<int>> para_ids(U.size() - 1);// there are U.size()-1 intervals
+	int nu = U.size() - 2 - degree;// n + 1 = number of control points
+	for (int i = 0; i < paras.size(); i++) {
+		for (int j = 0; j < U.size() - 1; j++) {
+			if (paras[i] >= U[j] && paras[i] < U[j + 1]) {
+				para_ids[j].push_back(i);
+				break;
+			}
+		}
+	}
+	int k = 0;
+	// now para_ids contains the information which parameter falls into which interval
+	for (int i = 0; i < para_ids.size(); i++) {
+		if (para_ids.size() == 0) {
+			continue;
+		}
+		for (int j = 0; j < para_ids[i].size(); j++) {
+			// now this parameter is in [U[i], U[i+1]]
+			bool itp_this = false; // if this point can be interpolated
+			while (!itp_this) {
+				if (k > nu) {
+					prob_id = para_ids[i][j];
+					return false;
+				}
+				if (k >= i - degree && k <= i) {
+					itp_this = true;
+				}
+				k++;
+			}
+		}
+	}
+	return true;
+
+}
+bool curve_can_be_interpolated(const std::vector<double>& U, const int degree, const std::vector<double> & paras,
+	int &prob_id) {
+	Eigen::VectorXd prs;
+	prs.resize(paras.size());
+	for (int i = 0; i < paras.size(); i++) {
+		prs[i] = paras[i];
+	}
+	return curve_can_be_interpolated(U, degree, prs,prob_id);
 }

@@ -45,3 +45,6 @@ void solve_control_points_for_fairing_curve(Bcurve& curve, const std::vector<dou
 
 void solve_control_points_for_fairing_curve(Bcurve& curve, const std::vector<double>& paras,
 	const std::vector<Vector3d> & pts, const double a, const double b);
+
+bool curve_can_be_interpolated(const std::vector<double>& U, const int degree, const Eigen::VectorXd & paras, int &prob_id);
+bool curve_can_be_interpolated(const std::vector<double>& U, const int degree, const std::vector<double> & paras, int &prob_id);
