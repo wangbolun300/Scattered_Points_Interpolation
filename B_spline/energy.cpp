@@ -185,7 +185,7 @@ double construct_an_integration(const int degree, const std::vector<double>& U,
 		upper = U.back() - SCALAR_ZERO;
 	}
 	double result = polynomial_integration(func, u1, upper);
-	std::cout << "integration range, " <<u1<<","<<upper<<", result, "<<result<< std::endl;
+	
 
 	return result;
 }
@@ -245,10 +245,12 @@ Eigen::MatrixXd energy_part_of_surface_least_square(Bsurface& surface) {
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
 	Eigen::MatrixXd result(psize, psize);
 	for (int i = 0; i < psize; i++) {
+		//std::cout << "the ith row of matrix" << std::endl;
 		for (int j = 0; j < psize; j++) {
 			result(i, j) = surface_energy_least_square(surface, i, j);
 		}
 	}
+	std::cout << "energy matrix finish calculation" << std::endl;
 	return result;
 }
 
@@ -290,6 +292,11 @@ Eigen::MatrixXd surface_least_square_lambda_multiplier_left_part(Bsurface& surfa
 	Eigen::MatrixXd lu = energy_part_of_surface_least_square(surface);
 	Eigen::MatrixXd ru = lambda_part_of_surface_least_square(surface, paras);
 	Eigen::MatrixXd ld = eqality_part_of_surface_least_square(surface, paras);
+	std::cout << "sizes" << std::endl;
+	std::cout << "lu, " << lu.rows() << " " << lu.cols() << std::endl;
+	std::cout << "ru, " << ru.rows() << " " << ru.cols() << std::endl;
+	std::cout << "ld, " << ld.rows() << " " << ld.cols() << std::endl;
+	std::cout << "rd, " << rd.rows() << " " << rd.cols() << std::endl;
 	result << lu, ru,
 		ld, rd;
 	return result;
@@ -334,7 +341,7 @@ void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::Ma
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
 	std::vector<Vector3d> cps(psize);// control points
 	Eigen::MatrixXd A = surface_least_square_lambda_multiplier_left_part(surface, paras);
-	std::cout << "print A\n" << A << std::endl;
+	//std::cout << "print A\n" << A << std::endl;
 
 	for (int i = 0; i < 3; i++) {
 		Eigen::MatrixXd b = surface_least_square_lambda_multiplier_right_part(surface, paras, points, i);

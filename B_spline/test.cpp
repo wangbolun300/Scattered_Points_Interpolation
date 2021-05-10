@@ -6,6 +6,7 @@
 #include<mesh_processing.h>
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/harmonic.h>
+#include<energy.h>
 void test_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control_pts_color,
 	Eigen::MatrixXd& curve_pts, Eigen::MatrixXd& curve_pts_color,
 	Eigen::MatrixXd& target_pts, Eigen::MatrixXd& target_pts_color) {
@@ -186,6 +187,9 @@ void test_curve_knot_fixing() {
 double peak_function(const double x, const double y) {
 	double r = 3 * pow(1 - x, 2)*exp(-x * x - (y + 1)*(y + 1)) - 10 * (0.2*x - pow(x, 3) - pow(y, 5))*
 		exp(-x * x - y * y) - 1 / 3 * exp(-pow(x + 1, 2) - y * y);
+	if (fabs(r) < SCALAR_ZERO) {
+		r = 0;
+	}
 	return r;
 }
 
@@ -382,7 +386,7 @@ void fit_border_with_curve(const Eigen::MatrixXd& paras, const Eigen::MatrixXd &
 	print_vector(kv_new);
 	solve_control_points_for_fairing_curve(curve, paralist, points, a, b);
 }
-void curve_to_edge_list(const Bcurve&curve, const int nbr, Eigen::MatrixXd&e0, Eigen::MatrixXd &e1) {
+void curve_visulization(const Bcurve&curve, const int nbr, Eigen::MatrixXd&e0, Eigen::MatrixXd &e1) {
 	e0.resize(nbr, 3);
 	e1.resize(nbr, 3);
 	for (int i = 0; i < nbr; i++) {
@@ -393,8 +397,13 @@ void curve_to_edge_list(const Bcurve&curve, const int nbr, Eigen::MatrixXd&e0, E
 	}
 	return;
 }
+
+void surface_visulization(Bsurface& surface, const int nbr, Eigen::MatrixXd & v, Eigen::MatrixXi f) {
+	B_spline_surface_to_mesh(surface, nbr, v, f);
+	return;
+}
 void make_peak_exmple() {
-	Eigen::MatrixXd ver; Eigen::MatrixXi faces;
+	Eigen::MatrixXd ver;
 	int nbr = 100;// nbr of points
 	ver.resize(nbr, 3);
 	for (int i = 0; i < nbr; i++) {
@@ -422,28 +431,54 @@ void make_peak_exmple() {
 	constrained_delaunay_triangulation(paras, loop, F);
 	Eigen::MatrixXd boundary_uv;
 	map_vertices_to_square(ver, loop, boundary_uv);
+	std::cout << "boundary uv\n"<<boundary_uv << std::endl;
+	std::cout << "ver\n" << ver << std::endl;
+	std::cout << "paras\n" << paras << std::endl;
+	std::cout << "loop\n" << loop << std::endl;
+	std::cout << "F\n" << F << std::endl;
 	Eigen::MatrixXd param, param_perturbed;
 	igl::harmonic(ver,F,loop,boundary_uv,1,param);// parametrization finished
-	mesh_parameter_perturbation(param, F, param_perturbed, 5);
+	mesh_parameter_perturbation(param, F, param_perturbed, 0);
 	std::vector<double> U, V;
 	Eigen::MatrixXi grid_map;
 	generate_UV_grid(param_perturbed, F, U, V, grid_map);
 	std::cout << "U size " << U.size() << std::endl;
+	print_vector(U);
 	std::cout << "V size " << V.size() << std::endl;
+	print_vector(V);
 	std::cout << "para size " << param.rows() << std::endl;
 	std::cout << "map size " << grid_map.rows()<<" "<<grid_map.cols()  << std::endl;
 	
-	Bcurve curve;
-	std::vector<Vector3d> inter_pts;// points to be interpolated
-	fit_border_with_curve(param_perturbed, ver, grid_map, true, 0, curve, 1, 0.2, inter_pts);
-	//print_vector(U);
-
+	Bsurface surface;
+	surface.degree1 = 3;
+	surface.degree2 = 3;
+	std::vector<double> zeros = { {0,0,0} };
+	std::vector<double> ones = { {1,1,1} };
+	std::vector<double> knotU = zeros, knotV = zeros;
+	knotU.insert(knotU.end(), U.begin(), U.end());
+	knotV.insert(knotV.end(), V.begin(), V.end());
+	knotU.insert(knotU.end(), ones.begin(), ones.end());
+	knotV.insert(knotV.end(), ones.begin(), ones.end());
+	surface.U = knotU;
+	surface.V = knotV;
+	std::cout << "knotU is" << std::endl;
+	print_vector(knotU);
+	std::cout << "knotV is" << std::endl;
+	print_vector(knotV);
+	
+	//solve_control_points_for_fairing_surface(surface, param_perturbed, ver);
+	// // curve fitting test
+	//Bcurve curve;
+	//std::vector<Vector3d> inter_pts;// points to be interpolated
+	//fit_border_with_curve(param_perturbed, ver, grid_map, true, 0, curve, 1, 0.2, inter_pts);
+	
+	// // remeshing test
 	//Eigen::MatrixXd param_grid, ver_grid;
 	//Eigen::MatrixXi F_grid;
 	//remeshing_based_on_map_grid(param_perturbed, ver, F, U, V, grid_map, param_grid, ver_grid, F_grid);
 
 
-	//next smooth
+	//next smoothing test
 	Eigen::MatrixXd Vs;// smoothed vertices
 	std::vector<int> fixed;
 	/*Eigen::MatrixXd Vfixed;
@@ -481,8 +516,8 @@ void make_peak_exmple() {
 			e1.row(i) = ver_grid.row(id1);
 		}
 	}*/
-	Eigen::MatrixXd edge0, edge1;
-	curve_to_edge_list(curve, 100, edge0, edge1);
+	//Eigen::MatrixXd edge0, edge1;
+	//curve_visulization(curve, 100, edge0, edge1);
 
 
 
@@ -492,11 +527,11 @@ void make_peak_exmple() {
 
 	/*
 	viewer.data().set_edges(bdver, edges, fcolor);*/
-	viewer.data().add_points(vector_to_matrix_3d(inter_pts), ecolor);
+	//viewer.data().add_points(vector_to_matrix_3d(inter_pts), ecolor);
 	
 	// see the linear interpolated surface
-	//viewer.data().set_mesh(param, F);
-	viewer.data().add_edges(edge0, edge1, pcolor);
+	viewer.data().set_mesh(paras, F);
+	//viewer.data().add_edges(edge0, edge1, pcolor);
 
 	//viewer.data().set_mesh(ver, F);
 	viewer.launch();

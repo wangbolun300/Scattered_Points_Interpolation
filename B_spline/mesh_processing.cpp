@@ -562,10 +562,12 @@ void constrained_delaunay_triangulation(
 	Eigen::MatrixXi WF,WE;
 	Eigen::VectorXi J;
 	Eigen::MatrixXd H;
-	H.resize(1, 2);
+	H.resize(0, 0);// there is no hole
 	std::string flags = "-c";
 	//igl::triangle::cdt(Vin, Ein, flags, WV, WF, WE, J);
+	std::cout << "start triangulation" << std::endl;
 	igl::triangle::triangulate(Vin, Ein, H, "", WV, WF);
+	std::cout << "finish triangulation" << std::endl;
 	F = WF;
 	assert(WV.rows() == Vin.rows());
 }

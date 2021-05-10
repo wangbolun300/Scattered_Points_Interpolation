@@ -1,5 +1,6 @@
 #pragma once
 #include <basis.h>
+#include<surface.h>
 std::vector<double> polynomial_simplify(const std::vector<double>& poly);
 std::vector<double> polynomial_add(const std::vector<double>& poly1, const std::vector<double>& poly2);
 std::vector<double> polynomial_times(const std::vector<double>& poly1, const std::vector<double>& poly2);
@@ -13,3 +14,6 @@ double polynomial_integration(const std::vector<double>& poly, const double lowe
 // the integration domain is [u1, u2]
 double construct_an_integration(const int degree, const std::vector<double>& U,
 	const int partial1, const int partial2, const int i1, const int i2, const double u1, const double u2);
+
+void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::MatrixXd& paras,
+	const Eigen::MatrixXd & points);
