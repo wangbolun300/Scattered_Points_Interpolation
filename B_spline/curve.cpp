@@ -1,7 +1,7 @@
 #include"curve.h"
 #include <Eigen/Dense>
 #include<iostream>
-
+#include<queue>
 int Bcurve::nu() {
 	return U.size() - 2 - degree;
 }
@@ -674,4 +674,101 @@ bool curve_can_be_interpolated(const std::vector<double>& U, const int degree, c
 		prs[i] = paras[i];
 	}
 	return curve_can_be_interpolated(U, degree, prs,prob_id);
+}
+
+// this is from [W.K. Wang, 2008, CAD]
+bool curve_can_be_interpolated_wkw(const std::vector<double>& U, const int degree, const Eigen::VectorXd & paras,
+	int &prob_id) {
+	//TODO implement here. maybe no need to keep this function
+	return false;
+}
+
+std::vector<double> merge_two_knot_vectors(const std::vector<double> &U1, const std::vector<double> &U2, const int degree) {
+	std::vector<double>v;
+	std::priority_queue<double> queue;
+	int size=
+	for (int i = degree + 1; i < U1.size() - 1 - degree; i++) {
+		queue.push(U1[i]);
+	}
+	for (int i = degree + 1; i < U2.size() - 1 - degree; i++) {
+		queue.push(U2[i]);
+	}
+	for()
+	
+}
+
+std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, const std::vector<double>& init_vec,
+	const std::vector<double>& paras, const double per) {
+	std::vector<double> result;
+	int s = paras.size() - 1;// s+1 is the para number
+	int m = init_vec.size() - degree - 2;// m+degree+2 is the size 
+	int hUsize = //s + degree + 2; // 
+		std::max(s + degree + 2, 2 * degree + 2); // the minimal size should be 2*degree+2
+	
+	if (hUsize == 2 * degree + 2) {// if there are too few parameters to fit, just return the initial one;
+		return init_vec;
+	}
+	std::vector<double> hU(hUsize);
+	for (int i = 0; i < degree + 1; i++) { // from 0 to degree, the total number is degree+1
+		hU[i] = 0;
+		result.push_back(0);
+	}
+	for (int i = hUsize - degree - 1; i < hUsize; i++) {// from size-degree-1 to size-1, degree + 1 elements 
+		hU[i] = init_vec.back();
+	}
+	
+	for (int i = degree + 1; i < s + 1; i++) {
+		double add = 0;
+		for (int j = i - degree; j < i; j++) {
+			add += paras[j];
+		} 
+		hU[i] = add / degree;
+	}
+
+	bool breakloop = false;
+	int interval = 0;
+	for (int i = degree + 1; i < s + 1; i++) {// from degree+1 to s
+		std::cout << "\ndealing with the ith " << i << std::endl;
+		double alpha = (paras[i - 1] - (paras[i - degree] + paras[i - degree - 1]) / 2) / 
+			(paras[i - 1] - paras[i - degree - 1]);
+		double belta = ((paras[i] + paras[i - 1]) / 2 - paras[i - degree]) /
+			(paras[i] - paras[i - degree]);
+		double a = (1 - per * alpha)*hU[i] + per * alpha*hU[i - 1];
+		double b = (1 - per * belta)*hU[i] + per * belta*hU[i + 1];
+		while (init_vec[i + interval] < a) {
+			interval += 1;
+			if (init_vec[i + interval] >= a) {
+				std::cout << "front interval, " << interval << std::endl;
+			}
+			if (i + interval > m) { // when i + interval = m+1, it will be 1
+				breakloop = true;
+				std::cout << "break here" << std::endl;
+				break;
+			}
+		}
+		if (breakloop) {
+			break;
+		}
+		std::cout << "back interval, " << interval << std::endl;
+		if (init_vec[i + interval] <= b) {
+			result.push_back(init_vec[i + interval]);
+			std::cout << "directly push value satisfies" << std::endl;
+		}
+		else {
+			result.push_back(hU[i]);
+			interval -= 1;
+			std::cout << "push value not satisfies" << std::endl;
+		}
+	}
+	int nowsize = result.size();
+	for (int i = nowsize; i < s + degree + 2; i++) {
+		result.push_back(hU[i]);
+	}
+	print_vector(hU);
+	print_vector(result);
+	assert(result.size() == hU.size());
+
+	
+	return result;
+
 }
