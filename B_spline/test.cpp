@@ -442,7 +442,7 @@ void make_peak_exmple() {
 	mesh_parameter_perturbation(param, F, param_perturbed, 5);
 	std::vector<double> U, V;
 	Eigen::MatrixXi grid_map;
-	generate_UV_grid(param_perturbed, F, U, V, grid_map);
+	generate_UV_grid(param_perturbed, U, V, grid_map);
 	std::cout << "U size " << U.size() << std::endl;
 	print_vector(U);
 	std::cout << "V size " << V.size() << std::endl;

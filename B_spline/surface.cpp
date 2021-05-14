@@ -914,3 +914,135 @@ void easist_way_to_fix_knot_vector_to_interpolate_surface(const int degree1, con
 	bool eq = (Vout[Vout.size() - 5] == 1);
 	std::cout << "eq " << eq << std::endl;
 }
+
+// id_list may contain id, if contains, return the one right after id; if the one is the id is the last of id_list,
+	// still return id. this happens when:
+/*
+t0: oxoo
+t1: ooxx
+t2:     xooo
+t3:     oxoo
+*/
+// where the xs are the choosen ones. x in the first row is the choosen control point of t0, and then t1 can choose two 
+// control points
+	
+// if not contain id, return the first element of id_list(t2 row);
+
+int find_the_id_after_this_one(const int id, const std::vector<int>& id_list) {
+	int which = -1;
+	for (int i = 0; i < id_list.size(); i++) {
+		if (id == id_list[i]) {
+			which = i;
+			break;
+		}
+	}
+	if (which == -1) {
+		return id_list[0];
+	}
+	else {
+		if (which == id_list.size() - 1) {
+			return id;
+		}
+		else {
+			return id_list[which + 1];
+		}
+	}
+
+	std::cout << "ERROR: SHOUD NOT GO HERE IN int find_the_id_after_this_one()!!!" << std::endl;
+	return -1;
+}
+
+// get feasible control point matrix. if checking v direction control points (v_direction=true), make sure that the Uin knot vector
+// is already fixed. for the explanation of Ugrid, Vgrid and UVmap, see function generate_UV_grid() in 'mesh_processing.h'
+Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int degree2,
+	const std::vector<double>& Uin, const std::vector<double>& Vin, const bool v_direction,
+	const Eigen::MatrixXd& paras, const std::vector<double>& Ugrid, std::vector<double>&Vgrid, Eigen::MatrixXi& UVmap) {
+	// if checking v_direction, the control points distribution depends on Uin
+	
+	assert(paras.cols() == 2);
+	assert(UVmap.rows() == Ugrid.size() && UVmap.cols() == Vgrid.size());
+	std::vector<double> kv;// knot vector
+	int degree;
+	std::vector<double> grid, other_grid;
+	if (v_direction) {
+		kv = Uin;
+		degree = degree1;
+		grid = Vgrid;//  the v parameter of each iso-v line
+		other_grid = Ugrid;
+	}
+	else {
+		kv = Vin;
+		degree = degree2;
+		grid = Ugrid;
+		other_grid = Vgrid;
+	}
+	int csize = kv.size() - degree - 1;// Nip is from 0 to csize-1. 
+	int rows = grid.size();
+	Eigen::MatrixXi result= Eigen::MatrixXi::Constant(rows, csize, -1); // initialize the matrix with -1
+	std::vector<std::vector<std::vector<int>>> feasible;
+	feasible.resize(rows);
+	for (int i = 0; i < rows; i++) {
+		feasible[i].resize(csize);
+	}
+
+	// get basic feasible points, there are overlaps meaning this control points affect more than one parameter
+	for (int i = 0; i < rows; i++) {// for each iso-line
+		for (int j = 0; j < other_grid.size(); j++) {
+			int id = v_direction ? UVmap(j, i) : UVmap(i, j);
+			if (id < 0) {
+				continue;
+			}
+			double para = other_grid[j];
+			// get the bacis feasible points of parameter whose index is id
+			std::vector<int> basic_fp = feasible_control_point_of_given_parameter(para, kv, degree);
+			for (int r = 0; r < basic_fp.size(); r++) {
+				feasible[i][basic_fp[r]].push_back(id);
+			}
+		}
+	}
+
+	// next deal with duplication to generate a reduced_feasible matrix, for each ith row and jth column, there
+	// are at most 1 element
+	std::vector<std::vector<std::vector<int>>> reduced_feasible;
+	reduced_feasible.resize(rows);
+	for (int i = 0; i < rows; i++) {
+		reduced_feasible[i].resize(csize);
+	}
+	for (int i = 0; i < rows; i++) {
+		int now_checking = -1;
+		for (int j = 0; j < csize; j++) {
+			int ij_size = feasible[i][j].size();
+			if (ij_size == 0) {
+				now_checking = -1;
+				continue;
+			}
+			if (ij_size == 1) {
+				now_checking = feasible[i][j][0];// the current id
+				reduced_feasible[i][j].push_back(now_checking);
+			}
+			if (ij_size > 1) {
+				if (now_checking == -1) {// should take the first element 
+					now_checking= feasible[i][j][0];// the current id
+					reduced_feasible[i][j].push_back(now_checking);
+				}
+				else {
+					now_checking = find_the_id_after_this_one(now_checking, feasible[i][j]);
+					reduced_feasible[i][j].push_back(now_checking);
+				}
+			}
+		}
+	}
+	// now there are at most one feasible point in each grid 
+
+	for (int i = 0; i < result.rows(); i++) {
+		for (int j = 0; j < result.cols(); j++) {
+			int rf_size = reduced_feasible[i][j].size();
+			if (rf_size == 0) { 
+				continue; 
+			}
+			result(i,j) = reduced_feasible[i][j][0];
+		}
+	}
+
+	return result;
+}

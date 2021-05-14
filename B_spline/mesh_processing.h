@@ -38,7 +38,7 @@ void smooth_mesh_vertices(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F,
 	const int itrs, Eigen::MatrixXd&Vout);
 // given parameters and the connectivity, get the U and V parameters, and a map showing the positions of the points
 // in U and V
-void generate_UV_grid(const Eigen::MatrixXd& param, const Eigen::MatrixXi& F,
+void generate_UV_grid(const Eigen::MatrixXd& param, 
 	std::vector<double>& U, std::vector<double>&V, Eigen::MatrixXi& map);
 
 // statement sees function find_one_ring_for_param()

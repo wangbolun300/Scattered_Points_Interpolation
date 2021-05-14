@@ -574,7 +574,7 @@ void constrained_delaunay_triangulation(
 
 // given parameters and the connectivity, get the U and V parameters, and a map showing the positions of the points
 // in U and V
-void generate_UV_grid(const Eigen::MatrixXd& param, const Eigen::MatrixXi& F,
+void generate_UV_grid(const Eigen::MatrixXd& param,
 	std::vector<double>& U, std::vector<double>&V, Eigen::MatrixXi& map) {
 	std::vector<int> Umap, Vmap;
 	int pnbr = param.rows();

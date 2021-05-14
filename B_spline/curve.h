@@ -50,3 +50,4 @@ bool curve_can_be_interpolated(const std::vector<double>& U, const int degree, c
 bool curve_can_be_interpolated(const std::vector<double>& U, const int degree, const std::vector<double> & paras, int &prob_id);
 std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, const std::vector<double>& init_vec,
 	const std::vector<double>& paras, const double per = 0.5);
+std::vector<int> feasible_control_point_of_given_parameter(const double para, const std::vector<double>&U, const int degree);

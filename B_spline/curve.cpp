@@ -685,16 +685,29 @@ bool curve_can_be_interpolated_wkw(const std::vector<double>& U, const int degre
 
 std::vector<double> merge_two_knot_vectors(const std::vector<double> &U1, const std::vector<double> &U2, const int degree) {
 	std::vector<double>v;
-	std::priority_queue<double> queue;
-	int size=
+	std::priority_queue<double, std::vector<double>, std::greater<double>> queue;
+	
 	for (int i = degree + 1; i < U1.size() - 1 - degree; i++) {
 		queue.push(U1[i]);
 	}
 	for (int i = degree + 1; i < U2.size() - 1 - degree; i++) {
 		queue.push(U2[i]);
 	}
-	for()
-	
+	for (int i = 0; i < degree + 1; i++) {
+		v.push_back(U1.front());
+	}
+	while (!queue.empty()) {
+		if (v.back() != queue.top()) {
+			v.push_back(queue.top());
+		}
+		
+		queue.pop();
+	}
+	for (int i = 0; i < degree + 1; i++) {
+		v.push_back(U1.back());
+	}
+	print_vector(v);
+	return v;
 }
 
 std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, const std::vector<double>& init_vec,
@@ -764,11 +777,49 @@ std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, c
 	for (int i = nowsize; i < s + degree + 2; i++) {
 		result.push_back(hU[i]);
 	}
-	print_vector(hU);
+	//print_vector(hU);
 	print_vector(result);
 	assert(result.size() == hU.size());
-
+	std::cout << "check A validation\n"<< build_matrix_A(degree,result,paras) << std::endl;
+	result = merge_two_knot_vectors(result, init_vec, degree);
 	
 	return result;
 
+}
+
+std::vector<int> feasible_control_point_of_given_parameter(const double para, const std::vector<double>&U, const int degree) {
+	int which = -1;
+	int nu = U.size() - 2 - degree;// n + 1 = number of control points
+	std::vector<int> result;
+	if (para != U.back()) {// when para !=1, we check which interval it is in
+		for (int i = 0; i < U.size() - 1; i++) {
+			if (para >= U[i] && para < U[i + 1]) {
+				which = i;
+				break;
+			}
+		}
+	}
+	else {// if para == 1, the nth control point is feasible 
+		result.resize(1);
+		result[0] = nu;
+		return result;
+	}
+	// if which >= 0, the para is in [u_which, u_{which+1}).
+	double alpha = (U[which + degree] - (U[which] + U[which + 1]) / 2) / (U[which + degree] - U[which]);
+	double belta = ((U[which + 1] + U[which]) / 2 - U[which - degree + 1]) / (U[which + 1] - U[which - degree + 1]);
+	double a = U[which + 1] + alpha * (U[which] - U[which + 1]);
+	double b = U[which] + belta * (U[which + 1] - U[which]);
+	// U[i]<a<b<U[i+1]
+	result.resize(0);
+	if (para <= b) { // if para not too close to U[i+1], then N(i-p) is feasible
+		result.push_back(which - degree);
+	}
+	for (int k = which - degree + 1; k < which; k++) {// from i-p to i-1
+		result.push_back(k);
+	}
+	if (para >= a) { // if para not too close to U[i], then N(i) is feasible
+		result.push_back(which);
+	}
+	assert(result.size() > 0);
+	return result;
 }
