@@ -1000,7 +1000,6 @@ Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int d
 			}
 		}
 	}
-
 	// next deal with duplication to generate a reduced_feasible matrix, for each ith row and jth column, there
 	// are at most 1 element
 	std::vector<std::vector<std::vector<int>>> reduced_feasible;
@@ -1044,5 +1043,12 @@ Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int d
 		}
 	}
 
+	return result;
+}
+
+
+Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(const Eigen::MatrixXi& fcp) {
+	Eigen::MatrixXi result;
+	//TODO implement here
 	return result;
 }

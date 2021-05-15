@@ -342,7 +342,7 @@ int main() {
 	//draw_a_line();
 	//draw_a_curve();
 	//test_fitting();
-	test1();
+	//test1();
 //plot_fitting_result();
 	//test_curve_knot_fixing();
 	//visual_mesh();
@@ -354,7 +354,7 @@ int main() {
 	//test_rational();
 	//test_poly();
 	//go_through_temperature_interpolation();
-	//make_peak_exmple();
+make_peak_exmple();
 	//test_interpolation();
 	//test_orientation();
 	return 0;

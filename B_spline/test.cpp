@@ -403,6 +403,32 @@ void surface_visulization(Bsurface& surface, const int nbr, Eigen::MatrixXd & v,
 	B_spline_surface_to_mesh(surface, nbr, v, f);
 	return;
 }
+
+// if v_direction is true, then checking iso-v lines
+std::vector<double> get_iso_line_parameters(const int degree1, const int degree2, const bool v_direction, const int line_id,
+	const std::vector<double>& Ugrid, const std::vector<double>& Vgrid, const Eigen::MatrixXi& grid_map) {
+	std::vector<double> result;
+	std::vector<double> grid;
+	Eigen::VectorXi line_map;
+	if (v_direction) {
+		grid = Ugrid;
+		line_map = grid_map.col(line_id);
+	}
+	else {
+		grid = Vgrid;
+		line_map = grid_map.row(line_id);
+	}
+
+	assert(grid.size() == line_map.size());
+	for (int i = 0; i < grid.size(); i++) {
+		if (line_map[i] >= 0) {
+			result.push_back(grid[i]);
+		}
+	}
+	return result;
+
+}
+
 void make_peak_exmple() {
 	Eigen::MatrixXd ver;
 	int nbr = 30;// nbr of points
@@ -440,40 +466,58 @@ void make_peak_exmple() {
 	Eigen::MatrixXd param, param_perturbed;
 	igl::harmonic(ver,F,loop,boundary_uv,1,param);// parametrization finished
 	mesh_parameter_perturbation(param, F, param_perturbed, 5);
-	std::vector<double> U, V;
+	std::vector<double> Ugrid, Vgrid;
 	Eigen::MatrixXi grid_map;
-	generate_UV_grid(param_perturbed, U, V, grid_map);
-	std::cout << "U size " << U.size() << std::endl;
-	print_vector(U);
-	std::cout << "V size " << V.size() << std::endl;
-	print_vector(V);
+	generate_UV_grid(param_perturbed, Ugrid, Vgrid, grid_map);
+	std::cout << "U grid size " << Ugrid.size() << std::endl;
+	print_vector(Ugrid);
+	std::cout << "V grid size " << Vgrid.size() << std::endl;
+	print_vector(Vgrid);
 	std::cout << "para size " << param.rows() << std::endl;
 	std::cout << "map size " << grid_map.rows()<<" "<<grid_map.cols()  << std::endl;
 	
-	Bsurface surface;
-	surface.degree1 = 3;
-	surface.degree2 = 3;
-	std::vector<double> zeros = { {0,0,0} };
-	std::vector<double> ones = { {1,1,1} };
-	std::vector<double> knotU = zeros, knotV = zeros;
-	knotU.insert(knotU.end(), U.begin(), U.end());
-	knotV.insert(knotV.end(), V.begin(), V.end());
-	knotU.insert(knotU.end(), ones.begin(), ones.end());
-	knotV.insert(knotV.end(), ones.begin(), ones.end());
-	surface.U = knotU;
-	surface.V = knotV;
-	std::cout << "knotU is" << std::endl;
-	print_vector(knotU);
-	std::cout << "knotV is" << std::endl;
-	print_vector(knotV);
-	
-	solve_control_points_for_fairing_surface(surface, param_perturbed, ver);
-	Eigen::MatrixXd SPs;
-	Eigen::MatrixXi SFs;
-	surface_visulization(surface, 100, SPs, SFs);
+	// fix iso-v lines knot vector
+	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
+	std::vector<double> Vknot = Uknot;
+	std::cout << "grid map\n" << grid_map << std::endl;
+	for (int i = 0; i < Vgrid.size(); i++) {
+		std::vector<double> paras = get_iso_line_parameters(3, 3, true, i, Ugrid, Vgrid, grid_map);
+		std::cout << "\nthe " << i << "th iso line parameters " << std::endl;
+		print_vector(paras);
+		Uknot = fix_knot_vector_to_interpolate_curve_WKW(3, Uknot, paras);
+	}
+	std::cout << "\n** the fixed U knot" << std::endl;
+	print_vector(Uknot);
+	Eigen::MatrixXi FCP = get_feasible_control_point_matrix(3, 3, Uknot, Vknot, true, paras, Ugrid, Vgrid, grid_map);
+	std::cout << "\nthe feasible control points grid\n" << FCP << std::endl;
 
-	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	igl::write_triangle_mesh(path + "peak_surface_less_control_pts.obj", SPs, SFs);
+
+	if (0) {
+		/*Bsurface surface;
+		surface.degree1 = 3;
+		surface.degree2 = 3;
+		std::vector<double> zeros = { {0,0,0} };
+		std::vector<double> ones = { {1,1,1} };
+		std::vector<double> knotU = zeros, knotV = zeros;
+		knotU.insert(knotU.end(), U.begin(), U.end());
+		knotV.insert(knotV.end(), V.begin(), V.end());
+		knotU.insert(knotU.end(), ones.begin(), ones.end());
+		knotV.insert(knotV.end(), ones.begin(), ones.end());
+		surface.U = knotU;
+		surface.V = knotV;
+		std::cout << "knotU is" << std::endl;
+		print_vector(knotU);
+		std::cout << "knotV is" << std::endl;
+		print_vector(knotV);
+
+		solve_control_points_for_fairing_surface(surface, param_perturbed, ver);
+		Eigen::MatrixXd SPs;
+		Eigen::MatrixXi SFs;
+		surface_visulization(surface, 100, SPs, SFs);
+
+		const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+		igl::write_triangle_mesh(path + "peak_surface_less_control_pts.obj", SPs, SFs);*/
+	}
 	//igl::write_triangle_mesh(path + "peak.obj", ver, F);
 	//std::cout << "SPs\n" << SPs << std::endl;
 	// // curve fitting test
@@ -488,8 +532,7 @@ void make_peak_exmple() {
 
 
 	//next smoothing test
-	Eigen::MatrixXd Vs;// smoothed vertices
-	std::vector<int> fixed;
+	
 	/*Eigen::MatrixXd Vfixed;
 	{
 		int nbr_fixed = 30;
@@ -543,7 +586,7 @@ void make_peak_exmple() {
 	//viewer.data().add_edges(edge0, edge1, pcolor);
 
 	//viewer.data().set_mesh(ver, F);
-	viewer.data().set_mesh(SPs, SFs);
+	//viewer.data().set_mesh(SPs, SFs);
 	viewer.data().add_points(ver, ecolor);
 	viewer.launch();
 }

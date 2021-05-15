@@ -47,3 +47,9 @@ void easist_way_to_fix_knot_vector_to_interpolate_surface(const int degree1, con
 	const std::vector<double>& Uin, const std::vector<double>& Vin,
 	const Eigen::MatrixXd& paras, const Eigen::MatrixXd& points,
 	std::vector<double>& Uout, std::vector<double>& Vout);
+
+// get feasible control point matrix. if checking v direction control points (v_direction=true), make sure that the Uin knot vector
+// is already fixed. for the explanation of Ugrid, Vgrid and UVmap, see function generate_UV_grid() in 'mesh_processing.h'
+Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int degree2,
+	const std::vector<double>& Uin, const std::vector<double>& Vin, const bool v_direction,
+	const Eigen::MatrixXd& paras, const std::vector<double>& Ugrid, std::vector<double>&Vgrid, Eigen::MatrixXi& UVmap);

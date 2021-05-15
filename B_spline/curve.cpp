@@ -787,6 +787,7 @@ std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, c
 
 }
 
+// TODO add a parameter weight to control the percentage
 std::vector<int> feasible_control_point_of_given_parameter(const double para, const std::vector<double>&U, const int degree) {
 	int which = -1;
 	int nu = U.size() - 2 - degree;// n + 1 = number of control points
@@ -814,11 +815,17 @@ std::vector<int> feasible_control_point_of_given_parameter(const double para, co
 	if (para <= b) { // if para not too close to U[i+1], then N(i-p) is feasible
 		result.push_back(which - degree);
 	}
+	else {
+		std::cout << para << " is too close to " << U[which + 1]<<" N(i-p) is "<<Nip(which-degree,degree,para,U) << std::endl;
+	}
 	for (int k = which - degree + 1; k < which; k++) {// from i-p to i-1
 		result.push_back(k);
 	}
 	if (para >= a) { // if para not too close to U[i], then N(i) is feasible
 		result.push_back(which);
+	}
+	else {
+		std::cout << para << " is too close to " << U[which] << " N(i) is " << Nip(which, degree, para, U) << std::endl;
 	}
 	assert(result.size() > 0);
 	return result;
