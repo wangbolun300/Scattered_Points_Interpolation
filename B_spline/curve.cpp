@@ -741,7 +741,7 @@ std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, c
 	bool breakloop = false;
 	int interval = 0;
 	for (int i = degree + 1; i < s + 1; i++) {// from degree+1 to s
-		std::cout << "\ndealing with the ith " << i << std::endl;
+		//std::cout << "\ndealing with the ith " << i << std::endl;
 		double alpha = (paras[i - 1] - (paras[i - degree] + paras[i - degree - 1]) / 2) / 
 			(paras[i - 1] - paras[i - degree - 1]);
 		double belta = ((paras[i] + paras[i - 1]) / 2 - paras[i - degree]) /
@@ -751,26 +751,26 @@ std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, c
 		while (init_vec[i + interval] < a) {
 			interval += 1;
 			if (init_vec[i + interval] >= a) {
-				std::cout << "front interval, " << interval << std::endl;
+				//std::cout << "front interval, " << interval << std::endl;
 			}
 			if (i + interval > m) { // when i + interval = m+1, it will be 1
 				breakloop = true;
-				std::cout << "break here" << std::endl;
+				//std::cout << "break here" << std::endl;
 				break;
 			}
 		}
 		if (breakloop) {
 			break;
 		}
-		std::cout << "back interval, " << interval << std::endl;
+		//std::cout << "back interval, " << interval << std::endl;
 		if (init_vec[i + interval] <= b) {
 			result.push_back(init_vec[i + interval]);
-			std::cout << "directly push value satisfies" << std::endl;
+			//std::cout << "directly push value satisfies" << std::endl;
 		}
 		else {
 			result.push_back(hU[i]);
 			interval -= 1;
-			std::cout << "push value not satisfies" << std::endl;
+			//std::cout << "push value not satisfies" << std::endl;
 		}
 	}
 	int nowsize = result.size();
@@ -780,7 +780,7 @@ std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, c
 	//print_vector(hU);
 	print_vector(result);
 	assert(result.size() == hU.size());
-	std::cout << "check A validation\n"<< build_matrix_A(degree,result,paras) << std::endl;
+	//std::cout << "check A validation\n"<< build_matrix_A(degree,result,paras) << std::endl;
 	result = merge_two_knot_vectors(result, init_vec, degree);
 	
 	return result;
@@ -816,7 +816,7 @@ std::vector<int> feasible_control_point_of_given_parameter(const double para, co
 		result.push_back(which - degree);
 	}
 	else {
-		std::cout << para << " is too close to " << U[which + 1]<<" N(i-p) is "<<Nip(which-degree,degree,para,U) << std::endl;
+		//std::cout << para << " is too close to " << U[which + 1]<<" N(i-p) is "<<Nip(which-degree,degree,para,U) << std::endl;
 	}
 	for (int k = which - degree + 1; k < which; k++) {// from i-p to i-1
 		result.push_back(k);
@@ -825,8 +825,9 @@ std::vector<int> feasible_control_point_of_given_parameter(const double para, co
 		result.push_back(which);
 	}
 	else {
-		std::cout << para << " is too close to " << U[which] << " N(i) is " << Nip(which, degree, para, U) << std::endl;
+		//std::cout << para << " is too close to " << U[which] << " N(i) is " << Nip(which, degree, para, U) << std::endl;
 	}
 	assert(result.size() > 0);
 	return result;
 }
+

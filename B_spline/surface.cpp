@@ -1,6 +1,7 @@
 #include<surface.h>
 #include<curve.h>
 #include <iomanip> 
+#include<mesh_processing.h>
 int Bsurface::nu() {
 	return U.size() - 2 - degree1;
 }
@@ -956,10 +957,11 @@ int find_the_id_after_this_one(const int id, const std::vector<int>& id_list) {
 // is already fixed. for the explanation of Ugrid, Vgrid and UVmap, see function generate_UV_grid() in 'mesh_processing.h'
 Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int degree2,
 	const std::vector<double>& Uin, const std::vector<double>& Vin, const bool v_direction,
-	const Eigen::MatrixXd& paras, const std::vector<double>& Ugrid, std::vector<double>&Vgrid, Eigen::MatrixXi& UVmap) {
+	 const std::vector<double>& Ugrid, const std::vector<double>&Vgrid, const Eigen::MatrixXi& UVmap,
+	const int nbr_para, std::vector<std::vector<std::array<int, 2>>>&para_to_feasible) {
 	// if checking v_direction, the control points distribution depends on Uin
+	para_to_feasible.resize(nbr_para);
 	
-	assert(paras.cols() == 2);
 	assert(UVmap.rows() == Ugrid.size() && UVmap.cols() == Vgrid.size());
 	std::vector<double> kv;// knot vector
 	int degree;
@@ -1018,15 +1020,18 @@ Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int d
 			if (ij_size == 1) {
 				now_checking = feasible[i][j][0];// the current id
 				reduced_feasible[i][j].push_back(now_checking);
+				para_to_feasible[now_checking].push_back({ {i,j} });
 			}
 			if (ij_size > 1) {
 				if (now_checking == -1) {// should take the first element 
 					now_checking= feasible[i][j][0];// the current id
 					reduced_feasible[i][j].push_back(now_checking);
+					para_to_feasible[now_checking].push_back({ {i,j} });
 				}
 				else {
 					now_checking = find_the_id_after_this_one(now_checking, feasible[i][j]);
 					reduced_feasible[i][j].push_back(now_checking);
+					para_to_feasible[now_checking].push_back({ {i,j} });
 				}
 			}
 		}
@@ -1039,16 +1044,356 @@ Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int d
 			if (rf_size == 0) { 
 				continue; 
 			}
+			assert(rf_size == 1);
 			result(i,j) = reduced_feasible[i][j][0];
 		}
 	}
-
+	for (int i = 0; i < para_to_feasible.size(); i++) {
+		assert(!para_to_feasible[i].empty());
+	}
 	return result;
 }
 
+// bool updated shows if there is difference between the input and output
+// maximal_selection is the maximal number of fcps we select in this step
+Eigen::MatrixXi select_FCP_based_on_weight(const Eigen::MatrixXi& fcp, std::vector<std::vector<std::array<int, 2>>> &para_to_feasible,
+	const Eigen::MatrixXd &weight_matrix, bool& updated, const int maximal_selection) {
+	updated = false;
 
-Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(const Eigen::MatrixXi& fcp) {
-	Eigen::MatrixXi result;
-	//TODO implement here
+	// reorder the weight
+	std::vector<std::vector<std::vector<std::array<int, 2>>>> selected(para_to_feasible.size());
+	int selected_nbr = 0;
+	for (int i = 0; i < para_to_feasible.size(); i++) {
+		double weight = 0;
+		for (int j = 0; j < para_to_feasible[i].size(); j++) {
+			int id0 = para_to_feasible[i][j][0];
+			int id1 = para_to_feasible[i][j][1];
+			double w = weight_matrix(id0, id1);
+			if (w > weight) {
+				std::vector<std::array<int,2>> newlist;
+				newlist.push_back({ {id0,id1} });
+				selected[i].push_back(newlist);
+				weight = w;
+			}
+			else {
+				if (w == weight) {
+					selected[i].back().push_back({ {id0,id1} });
+				}
+			}
+		}
+	}
+
+	// select highest weighted fcp
+	std::cout << "MAX SELECTION " << maximal_selection << std::endl;
+	bool total_copy = false;
+	Eigen::MatrixXi result = Eigen::MatrixXi::Constant(fcp.rows(), fcp.cols(), -1);
+	for (int i = 0; i < para_to_feasible.size(); i++) {
+		assert(!selected[i].empty());
+		
+		if (selected[i].size() > 1&&!total_copy) {
+			std::cout << "selected size " << selected[i].size() <<" "<<i<< std::endl;
+			selected_nbr += 1;
+			if (selected_nbr > maximal_selection) {
+				total_copy = true;
+			}
+			updated = true;
+		}
+		if (total_copy) {
+			for (int j = 0; j < para_to_feasible[i].size(); j++) {
+				int id0 = para_to_feasible[i][j][0];
+				int id1 = para_to_feasible[i][j][1];
+				result(id0, id1) = i;
+			}
+		}
+		else {
+			std::vector<std::array<int, 2>> highest = selected[i].back();
+			para_to_feasible[i] = highest;
+			for (int j = 0; j < highest.size(); j++) {
+				int id0 = highest[j][0];
+				int id1 = highest[j][1];
+				result(id0, id1) = i;
+				if (weight_matrix(id0, id1) == 1) {// if no one shares fcp, meaning the parameter is 0 or 1, choose one fcp is enough
+					break;
+				}
+			}
+		}
+		
+	}
 	return result;
+
+}
+
+// pick one fcp for each parameter. this function is used only when the selecting based on weight is finished but
+// still have redundant fcps
+Eigen::MatrixXi remove_redundant_FCP(const Eigen::MatrixXi& fcp, std::vector<std::vector<std::array<int, 2>>> &para_to_feasible) {
+
+	Eigen::MatrixXi result = Eigen::MatrixXi::Constant(fcp.rows(), fcp.cols(), -1);
+	for (int i = 0; i < para_to_feasible.size(); i++) {
+		
+		int id0 = para_to_feasible[i][0][0];
+		int id1 = para_to_feasible[i][0][1];
+		result(id0, id1) = i;
+	}
+	return result;
+
+}
+
+
+// calculate weights and select ACP according to the weight
+Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(const Eigen::MatrixXi& fcp,const bool v_direction,
+	const std::vector<double> &Uknot, const std::vector<double> &Vknot, 
+	const Eigen::MatrixXd& paras, const int degree1, const int degree2, 
+	std::vector<std::vector<std::array<int, 2>>> &para_to_feasible) {
+	const int target_steps = 10;
+	assert(para_to_feasible.size() == paras.rows());
+	int maximal_processing = std::max(1, int(para_to_feasible.size() / target_steps));
+
+	// if return -2, the parameter is 0 or 1, then no one share control points with it
+	const auto para_in_which_interval = [](const double para, const std::vector<double> &knots) {
+		int result = -2;
+		for (int i = 0; i < knots.size() - 1; i++) {
+			if (para == knots.front()) {
+				break;
+			}
+			if (para >= knots[i] && para < knots[i + 1]) {
+				result = i;
+				break;
+			}
+		}
+		return result;
+	};
+	
+	// we define weight here. when more fcp share control points, the weight is smaller;
+	// when there are more points in this row, the weight is smaller
+	const auto weight_calculation = [](const std::vector<int>& vec, const int nbr_points) {
+		int sum = 0;
+		// weight is the 
+		for (int i = 1; i < vec.size(); i++) {
+			sum += vec[i]*vec[i] * i;
+		}
+		double result = 1 / double(sum*nbr_points);
+		return result;
+	};
+
+	
+
+	int rows = fcp.rows();
+	int cols = fcp.cols();
+
+	// initialize para_matrix. it will record the u or v parameters of each fcp
+	Eigen::MatrixXd para_matrix = Eigen::MatrixXd::Constant(rows, cols, -1);
+
+	// initialize weight matrix
+	Eigen::MatrixXd weight_matrix = Eigen::MatrixXd::Constant(rows, cols, -1);
+
+	// initialize interval matrix. it will record which interval [u_i, u_(i+1)] does the parameters in
+	Eigen::MatrixXi interval_matrix = Eigen::MatrixXi::Constant(rows, cols, -1);
+	int uv = v_direction ? 1 : 0;
+	for (int i = 0; i < rows; i++) {
+		for (int j = 0; j < cols; j++) {
+			if (fcp(i, j) < 0) {
+				continue;
+			}
+			para_matrix(i, j) = paras(fcp(i, j), uv);
+		}
+	}
+
+	std::vector<double> kv;
+	int degree;
+	if (v_direction) {// if control points belongs to iso-v lines, then we are considering v knot vector
+		kv = Vknot;
+		degree = degree2;
+	}
+	else {
+		kv = Uknot;
+		degree = degree1;
+	}
+	for (int i = 0; i < rows; i++) {
+		for (int j = 0; j < cols; j++) {
+			if (fcp(i, j) < 0) {
+				continue;
+			}
+			double para = para_matrix(i, j);
+			int which = para_in_which_interval(para, kv);
+			interval_matrix(i, j) = which;
+		}
+	}
+
+	// now in interval_matrix, value = -1 means no fcp here; value = -2 means the parameter is 0 or 1; otherwise, 
+	// the value implies the parameter is in [u_value, u_(value+1)]
+	// interval_matrix no need updating, fcp need to be updated
+
+	bool updated = true;
+	Eigen::MatrixXi selected_fcp = fcp;
+	while (updated) {
+		// calculate weight
+		weight_matrix= Eigen::MatrixXd::Constant(rows, cols, -1);
+		for (int j = 0; j < cols; j++) {// for each column
+			for (int i = 0; i < rows; i++) {
+				if (selected_fcp(i, j) < 0) {
+					continue;
+				}
+				int interval = interval_matrix(i, j);
+				std::vector<int> interval_info(degree + 2, 0);// h = interval_info[r] means there are h fcps sharing r control points 
+				if (interval < 0) {// interval value is -2: no other fcp share control points with it 
+					weight_matrix(i, j) = 1;
+				}
+				else {// search this column if there is overlap
+					int col_nbr_pts = 0;// how many points there are in this column (except for whose parameter is 0 or 1)
+					for (int k = 0; k < rows; k++) {
+						if (selected_fcp(k, j) < 0) {// if this point does not exist
+							continue;
+						}
+						int other_interval = interval_matrix(k, j);
+						if (other_interval < 0) {// if -1 or -2, no need to count 
+							continue;
+						}
+						col_nbr_pts += 1;
+						int diff = abs(other_interval - interval);
+						if (diff > degree) {
+							continue;
+						}
+						int nbr_share = degree + 1 - diff;// meaning that fcp(i,j) share nbr_share points with fcp(k,j).
+						assert(nbr_share > 0);
+						interval_info[nbr_share] += 1;
+					}
+					double weight = weight_calculation(interval_info, col_nbr_pts);
+					weight_matrix(i, j) = weight;
+				}
+			}
+		}
+		// calculate weight finished
+		selected_fcp = select_FCP_based_on_weight(fcp, para_to_feasible, weight_matrix,updated, maximal_processing);
+		std::cout << "weight matrix\n" << weight_matrix << std::endl;
+		std::cout << "\nselected FCP\n" << selected_fcp << std::endl;
+	}
+
+	selected_fcp = remove_redundant_FCP(selected_fcp, para_to_feasible);
+	std::cout << "\nfinal selected FCP\n" << selected_fcp << std::endl;
+	
+	 
+
+	
+	return selected_fcp;
+}
+std::vector<double> get_iso_line_parameters_from_ACP(const Eigen::MatrixXi&ACP, const int id, const Eigen::MatrixXd& paras, const bool v_direction) {
+	int uv = v_direction ? 0 : 1;// if checking iso-v lines, then we are dealing with V parameters
+	std::vector<double> result;
+	Eigen::VectorXi indices = ACP.col(id);
+	for (int i = 0; i < indices.size(); i++) {
+		if (indices[i] < 0) {
+			continue;
+		}
+		result.push_back(paras(indices[i], uv));
+	}
+	return result;
+}
+// return true, then the surface knot fixing for both u and v is finished
+bool progressively_generate_interpolation_knot_vectors(const bool v_direction, int degree1, int degree2,
+	std::vector<double>& Uknot, std::vector<double>& Vknot, const std::vector<double> Ugrid, const std::vector<double>& Vgrid,
+	const Eigen::MatrixXi& grid_map, const Eigen::MatrixXd& param) {
+	const int nbr_para = param.rows();
+	std::vector<std::vector<std::array<int, 2>>> para_to_feasible;
+	Eigen::MatrixXi FCP = get_feasible_control_point_matrix(3, 3, Uknot, Vknot, v_direction, Ugrid, Vgrid, grid_map, nbr_para,
+		para_to_feasible);
+	Eigen::MatrixXi ACP = calculate_active_control_points_from_feasible_control_points(FCP, v_direction, Uknot, Vknot, param,
+		3, 3, para_to_feasible);
+
+	std::vector<double> kv, kv_other;
+	if (v_direction) {// if checking iso-v lines, then we are fixing V knot vector
+		kv = Vknot;
+		kv_other = Uknot;
+	}
+	else {
+		kv = Uknot;
+		kv_other = Vknot;
+	}
+	bool finished = false;
+	for (int i = 0; i < ACP.cols(); i++) {
+		std::vector<double> parameters = get_iso_line_parameters_from_ACP(ACP, i, param, v_direction);
+		std::vector<double> kv_new = fix_knot_vector_to_interpolate_curve_WKW(3, kv, parameters);
+		kv = kv_new;
+		if (i == ACP.cols() - 1) {
+			finished = true;
+		}
+		if (kv.size() > kv_other.size()) {// the size difference between Uknot and Vknot decides which knot vector to refine
+			break;
+		}
+		
+	}
+	if (v_direction) {// if checking iso-v lines, then we are fixing V knot vector
+		Vknot = kv;
+		
+	}
+	else {
+		Uknot = kv;
+	}
+
+	return finished;
+}
+
+// if v_direction is true, then checking iso-v lines
+std::vector<double> get_iso_line_parameters(const int degree1, const int degree2, const bool v_direction, const int line_id,
+	const std::vector<double>& Ugrid, const std::vector<double>& Vgrid, const Eigen::MatrixXi& grid_map) {
+	std::vector<double> result;
+	std::vector<double> grid;
+	Eigen::VectorXi line_map;
+	if (v_direction) {
+		grid = Ugrid;
+		line_map = grid_map.col(line_id);
+	}
+	else {
+		grid = Vgrid;
+		line_map = grid_map.row(line_id);
+	}
+
+	assert(grid.size() == line_map.size());
+	for (int i = 0; i < grid.size(); i++) {
+		if (line_map[i] >= 0) {
+			result.push_back(grid[i]);
+		}
+	}
+	return result;
+
+}
+void generate_interpolation_knot_vectors(const bool start_from_v_direction, int degree1, int degree2,
+	std::vector<double>& Uknot, std::vector<double>& Vknot,
+	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed,const Eigen::MatrixXi& F, const int mesh_perturbation_level) {
+	Eigen::MatrixXd param;
+	mesh_parameter_perturbation(param_original, F, param, mesh_perturbation_level);
+	std::vector<double> Ugrid, Vgrid;
+	Eigen::MatrixXi grid_map;
+	generate_UV_grid(param, Ugrid, Vgrid, grid_map);
+	for (int i = 0; i < Vgrid.size(); i++) {
+		std::vector<double> paras = get_iso_line_parameters(degree1, degree2, true, i, Ugrid, Vgrid, grid_map);
+		//std::cout << "\nthe " << i << "th iso line parameters " << std::endl;
+		//print_vector(paras);
+		Uknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Uknot, paras);
+	}
+	/*std::cout << "\n** the fixed U knot" << std::endl;
+	print_vector(Uknot);*/
+
+	// fix iso-u lines knot vector
+	for (int i = 0; i < Ugrid.size(); i++) {// for each u parameter
+		std::vector<double> paras = get_iso_line_parameters(degree1, degree2, false, i, Ugrid, Vgrid, grid_map);
+		/*std::cout << "\nthe " << i << "th iso line parameters " << std::endl;
+		print_vector(paras);*/
+		Vknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Vknot, paras);
+	}
+	bool finished = false;
+	bool v_direction = start_from_v_direction;
+	while (!finished) {
+		finished = progressively_generate_interpolation_knot_vectors(v_direction, degree1, degree2, Uknot, Vknot, Ugrid, Vgrid, grid_map, param);
+		v_direction = !v_direction;
+		if (!finished) {
+			std::cout << "switched" << std::endl;
+
+		}
+		std::cout << "Uknot" << std::endl;
+		print_vector(Uknot);
+		std::cout << "Vknot" << std::endl;
+		print_vector(Vknot);
+	}
+	param_perturbed = param;
+	return;
 }

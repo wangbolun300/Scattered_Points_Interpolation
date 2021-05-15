@@ -52,4 +52,19 @@ void easist_way_to_fix_knot_vector_to_interpolate_surface(const int degree1, con
 // is already fixed. for the explanation of Ugrid, Vgrid and UVmap, see function generate_UV_grid() in 'mesh_processing.h'
 Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int degree2,
 	const std::vector<double>& Uin, const std::vector<double>& Vin, const bool v_direction,
-	const Eigen::MatrixXd& paras, const std::vector<double>& Ugrid, std::vector<double>&Vgrid, Eigen::MatrixXi& UVmap);
+	const std::vector<double>& Ugrid, const std::vector<double>&Vgrid, const Eigen::MatrixXi& UVmap,
+	const int nbr_para, std::vector<std::vector<std::array<int, 2>>>&para_to_feasible);
+
+// calculate weights and select ACP according to the weight
+Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(const Eigen::MatrixXi& fcp, const bool v_direction,
+	const std::vector<double> &Uknot, const std::vector<double> &Vknot,
+	const Eigen::MatrixXd& paras, const int degree1, const int degree2, 
+	std::vector<std::vector<std::array<int, 2>>> &para_to_feasible);
+
+std::vector<double> get_iso_line_parameters_from_ACP(const Eigen::MatrixXi&ACP, const int id, const Eigen::MatrixXd& paras, const bool v_direction);
+
+std::vector<double> get_iso_line_parameters(const int degree1, const int degree2, const bool v_direction, const int line_id,
+	const std::vector<double>& Ugrid, const std::vector<double>& Vgrid, const Eigen::MatrixXi& grid_map);
+void generate_interpolation_knot_vectors(const bool start_from_v_direction, int degree1, int degree2,
+	std::vector<double>& Uknot, std::vector<double>& Vknot,
+	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed, const Eigen::MatrixXi& F, const int mesh_perturbation_level);
