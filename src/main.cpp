@@ -329,10 +329,10 @@ void test_interpolation() {
 }
 
 void test1() {
-	int degree = 3;
-	std::vector<double> init_vec = { {0,0,0,0,0.1,0.13,0.15,0.2,1,1,1,1} };
-	std::vector<double> paras = { {0,0.1, 0.2, 0.3, 0.4 ,0.5 , 0.6, 0.7, 0.8} };
-	fix_knot_vector_to_interpolate_curve_WKW(degree, init_vec, paras);
+	//int degree = 3;
+	//std::vector<double> init_vec = { {0,0,0,0,0.1,0.13,0.15,0.2,1,1,1,1} };
+	//std::vector<double> paras = { {0,0.1, 0.2, 0.3, 0.4 ,0.5 , 0.6, 0.7, 0.8} };
+	//fix_knot_vector_to_interpolate_curve_WKW(degree, init_vec, paras);
 }
 int main() {
 	srand(26);

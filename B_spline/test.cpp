@@ -406,7 +406,7 @@ void surface_visulization(Bsurface& surface, const int nbr, Eigen::MatrixXd & v,
 
 // if no boundary is specified, this code will project vertices on x-y plane, and find the convex hull of the 2d vertices,
 // then use the boundary of convex hull as boundary of u-v domain, then do parametrization in [0,1]x[0,1]
-void no_specified_boundary_parametrization(const Eigen::MatrixXd& ver, Eigen::MatrixXd &param, Eigen::MatrixXi &F) {
+void find_boundar_and_parametrization(const Eigen::MatrixXd& ver, Eigen::MatrixXd &param, Eigen::MatrixXi &F) {
 	
 	Eigen::MatrixXd paras(ver.rows(), 2); //the 2d projection of the points 
 	paras << ver.col(0), ver.col(1);
@@ -436,9 +436,69 @@ void no_specified_boundary_parametrization(const Eigen::MatrixXd& ver, Eigen::Ma
 	std::cout << "F\n" << F << std::endl;
 	
 }
+
+// direct project x y as u v, and rescale the scene into [0, 1]x[0, 1] 
+void direct_project_x_y_and_parametrization(const Eigen::MatrixXd& ver, Eigen::MatrixXd &param, Eigen::MatrixXi &F) {
+
+	Eigen::MatrixXd paras(ver.rows(), 2), para_new; //the 2d projection of the points 
+	paras << ver.col(0), ver.col(1);
+	para_new = paras;
+	Eigen::VectorXi loop;
+	std::cout << "start find border" << std::endl;
+	// find the convex hull on 2d,
+	find_border_loop(paras, loop);
+	if (0) {// if user is interested in this part
+		Eigen::MatrixXd bdver(loop.size(), 3);
+		for (int i = 0; i < loop.size(); i++) {
+			bdver.row(i) = ver.row(loop[i]);
+		}
+		std::cout << "finish find border" << std::endl;
+		Eigen::MatrixXi edges;
+		vertices_to_edges(bdver, edges);
+
+	}
+	// triangulation
+	constrained_delaunay_triangulation(paras, loop, F);
+	double xmin = paras(0, 0);
+	double xmax = paras(0, 0);
+	double ymin = paras(0, 1);
+	double ymax = paras(0, 1);
+	for (int i = 0; i < paras.rows(); i++) {
+		double x = paras(i, 0);
+		double y = paras(i, 1);
+		if (xmin > x) {
+			xmin = x;
+		}
+		if (xmax < x) {
+			xmax = x;
+		}
+		if (ymin > y) {
+			ymin = y;
+		}
+		if (ymax < y) {
+			ymax = y;
+		}
+	}
+	std::cout << "bounding box: (" << xmin << ", " << ymin << "), (" << xmax << ", " << ymax << ")" << std::endl;
+	
+	double xsize = xmax - xmin;
+	double ysize = ymax - ymin;
+	for (int i = 0; i < paras.rows(); i++) {
+		double x = paras(i, 0);
+		double y = paras(i, 1);
+		x = x - xmin;
+		y = y - ymin;
+		x = x / xsize;
+		y = y / ysize;
+		para_new(i, 0) = x;
+		para_new(i, 1) = y;
+	}
+	param = para_new;
+	std::cout << "check directly parametrization\n" << param << std::endl;
+}
 void make_peak_exmple() {
 	Eigen::MatrixXd ver;
-	int nbr = 50;// nbr of points
+	int nbr = 100;// nbr of points
 	ver.resize(nbr, 3);
 	for (int i = 0; i < nbr; i++) {
 		Vector3d para3d = Vector3d::Random();
@@ -452,7 +512,9 @@ void make_peak_exmple() {
 
 	Eigen::MatrixXi F;
 	Eigen::MatrixXd param, param_perturbed;
-	no_specified_boundary_parametrization(ver, param, F);
+	//find_boundar_and_parametrization(ver, param, F);
+	direct_project_x_y_and_parametrization(ver, param, F);
+	
 	// to here
 
 	int degree1 = 3;
@@ -460,13 +522,14 @@ void make_peak_exmple() {
 	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
 	std::vector<double> Vknot = Uknot;
 	int perturb_itr = 5;
-	double per_ours = 0.1;
-	double per = 0.25;
-	
+	double per_ours = 0.3;
+	double per = 0.2;
+	int target_steps = 10; 
+	bool enable_max_fix_nbr = true;
 
 	mesh_parameter_perturbation(param, F, param_perturbed, perturb_itr);
 	std::cout << "param_perturbed\n" << param_perturbed << std::endl;
-	generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr,per_ours,per);
+	generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr,per_ours,per, target_steps, enable_max_fix_nbr);
 	Bsurface surface;
 	Eigen::MatrixXd SPs;
 	Eigen::MatrixXi SFs;
@@ -481,7 +544,7 @@ void make_peak_exmple() {
 	}
 
 	bool write_file = true;
-	if (false)
+	if (write_file)
 	{
 		const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
 		igl::write_triangle_mesh(path + "0516_high_energy.obj", SPs, SFs);

@@ -56,10 +56,10 @@ Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int d
 	const int nbr_para, std::vector<std::vector<std::array<int, 2>>>&para_to_feasible,const double per_ours);
 
 // calculate weights and select ACP according to the weight
-Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(const Eigen::MatrixXi& fcp, const bool v_direction,
-	const std::vector<double> &Uknot, const std::vector<double> &Vknot,
-	const Eigen::MatrixXd& paras, const int degree1, const int degree2, 
-	std::vector<std::vector<std::array<int, 2>>> &para_to_feasible);
+//Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(const Eigen::MatrixXi& fcp, const bool v_direction,
+//	const std::vector<double> &Uknot, const std::vector<double> &Vknot,
+//	const Eigen::MatrixXd& paras, const int degree1, const int degree2, 
+//	std::vector<std::vector<std::array<int, 2>>> &para_to_feasible);
 
 std::vector<double> get_iso_line_parameters_from_ACP(const Eigen::MatrixXi&ACP, const int id, const Eigen::MatrixXd& paras, const bool v_direction);
 
@@ -68,5 +68,5 @@ std::vector<double> get_iso_line_parameters(const int degree1, const int degree2
 void generate_interpolation_knot_vectors(const bool start_from_v_direction, int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
 	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed, const Eigen::MatrixXi& F, const int mesh_perturbation_level,
-	const double per_ours, const double per);
+	const double per_ours, const double per, const int target_steps, const bool enable_max_fix_nbr);
 void output_timing();

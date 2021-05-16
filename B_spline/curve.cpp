@@ -710,15 +710,19 @@ std::vector<double> merge_two_knot_vectors(const std::vector<double> &U1, const 
 	return v;
 }
 
+// fix_nbr is a parameter that decide how many knot do we want to insert in this step. by default it is -1 which means
+// the knot will be fully fixed. when fix_nbr>0, if insert more than fix_nbr knots, the function directly returns. 
 std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, const std::vector<double>& init_vec,
-	const std::vector<double>& paras, const double per) {
+	const std::vector<double>& paras, const double per,  bool &fully_fixed, const int fix_nbr) {
 	std::vector<double> result;
+	
 	int s = paras.size() - 1;// s+1 is the para number
 	int m = init_vec.size() - degree - 2;// m+degree+2 is the size 
 	int hUsize = //s + degree + 2; // 
 		std::max(s + degree + 2, 2 * degree + 2); // the minimal size should be 2*degree+2
 	
 	if (hUsize == 2 * degree + 2) {// if there are too few parameters to fit, just return the initial one;
+		fully_fixed = true;
 		return init_vec;
 	}
 	std::vector<double> hU(hUsize);
@@ -740,6 +744,7 @@ std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, c
 
 	bool breakloop = false;
 	int interval = 0;
+	int nbr_of_inserted = 0;
 	for (int i = degree + 1; i < s + 1; i++) {// from degree+1 to s
 		//std::cout << "\ndealing with the ith " << i << std::endl;
 		double alpha = (paras[i - 1] - (paras[i - degree] + paras[i - degree - 1]) / 2) / 
@@ -770,16 +775,42 @@ std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, c
 		else {
 			result.push_back(hU[i]);
 			interval -= 1;
+			nbr_of_inserted += 1;
+			if (fix_nbr >= 0) {
+				if (nbr_of_inserted > fix_nbr) {
+					break;
+				}
+			}
 			//std::cout << "push value not satisfies" << std::endl;
 		}
 	}
 	int nowsize = result.size();
-	for (int i = nowsize; i < s + degree + 2; i++) {
+	for (int i = nowsize; i < s + 1; i++) {
+		nbr_of_inserted += 1;
+		result.push_back(hU[i]);
+		if (fix_nbr >= 0) {
+			if (nbr_of_inserted > fix_nbr) {
+				break;
+			}
+		}
+	}
+	for (int i = s + 1; i < s + degree + 2; i++) {
 		result.push_back(hU[i]);
 	}
 	//print_vector(hU);
 	//print_vector(result);
-	assert(result.size() == hU.size());
+	
+	if (result.size() == hU.size()) {
+		fully_fixed = true;
+	}
+	else {
+		
+		fully_fixed = false;
+	}
+	if (fix_nbr < 0) {
+		assert(result.size() == hU.size());// by default, the two sizes should be the same. but if not fully fixed, this is not true
+	}
+	
 	//std::cout << "check A validation\n"<< build_matrix_A(degree,result,paras) << std::endl;
 	result = merge_two_knot_vectors(result, init_vec, degree);
 	

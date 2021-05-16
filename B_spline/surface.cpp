@@ -993,17 +993,9 @@ Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int d
 			}
 			double para = other_grid[j];
 			// get the bacis feasible points of parameter whose index is id
-			if (i == 17) {
-				std::cout << "* this point " << id << " is on line " << i << std::endl;
-			}
-			if (id == 6|| id == 38|| id == 4|| id == 28) {
-				std::cout << "DEBUG: before checking id " << id << std::endl;
-			}
+			
 			std::vector<int> basic_fp = feasible_control_point_of_given_parameter(para, kv, degree,per);
-			if (id == 6 || id == 38 || id == 4 || id == 28) {
-				std::cout << "DEBUG: id " << id <<", row nbr "<< i<<", basic_fps" << std::endl;
-				print_vector(basic_fp);
-			}
+			
 			for (int r = 0; r < basic_fp.size(); r++) {
 				feasible[i][basic_fp[r]].push_back(id);
 			}
@@ -1055,11 +1047,8 @@ Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int d
 			result(i,j) = reduced_feasible[i][j][0];
 		}
 	}
-	std::cout << "print the problematic matrix\n" << result << std::endl;
 	for (int i = 0; i < para_to_feasible.size(); i++) {
-		if (para_to_feasible[i].empty()) {
-			std::cout << "the empty id is " << i << " out of " << para_to_feasible.size();
-		}
+		
 		assert(!para_to_feasible[i].empty());
 	}
 	return result;
@@ -1095,14 +1084,13 @@ Eigen::MatrixXi select_FCP_based_on_weight(const Eigen::MatrixXi& fcp, std::vect
 	}
 
 	// select highest weighted fcp
-	std::cout << "MAX SELECTION " << maximal_selection << std::endl;
 	bool total_copy = false;
 	Eigen::MatrixXi result = Eigen::MatrixXi::Constant(fcp.rows(), fcp.cols(), -1);
 	for (int i = 0; i < para_to_feasible.size(); i++) {
 		assert(!selected[i].empty());
 		
 		if (selected[i].size() > 1&&!total_copy) {
-			std::cout << "selected size " << selected[i].size() <<" "<<i<< std::endl;
+			
 			selected_nbr += 1;
 			if (selected_nbr > maximal_selection) {
 				total_copy = true;
@@ -1154,8 +1142,8 @@ Eigen::MatrixXi remove_redundant_FCP(const Eigen::MatrixXi& fcp, std::vector<std
 Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(const Eigen::MatrixXi& fcp,const bool v_direction,
 	const std::vector<double> &Uknot, const std::vector<double> &Vknot, 
 	const Eigen::MatrixXd& paras, const int degree1, const int degree2, 
-	std::vector<std::vector<std::array<int, 2>>> &para_to_feasible) {
-	const int target_steps = 10;
+	std::vector<std::vector<std::array<int, 2>>> &para_to_feasible, const int target_steps) {
+	
 	assert(para_to_feasible.size() == paras.rows());
 	int maximal_processing = std::max(1, int(para_to_feasible.size() / target_steps));
 
@@ -1275,15 +1263,10 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 		}
 		// calculate weight finished
 		selected_fcp = select_FCP_based_on_weight(fcp, para_to_feasible, weight_matrix,updated, maximal_processing);
-		std::cout << "weight matrix\n" << weight_matrix << std::endl;
-		std::cout << "\nselected FCP\n" << selected_fcp << std::endl;
+		
 	}
 
 	selected_fcp = remove_redundant_FCP(selected_fcp, para_to_feasible);
-	std::cout << "\nfinal selected FCP\n" << selected_fcp << std::endl;
-	
-	 
-
 	
 	return selected_fcp;
 }
@@ -1302,13 +1285,13 @@ std::vector<double> get_iso_line_parameters_from_ACP(const Eigen::MatrixXi&ACP, 
 // return true, then the surface knot fixing for both u and v is finished
 bool progressively_generate_interpolation_knot_vectors(const bool v_direction, int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot, const std::vector<double> Ugrid, const std::vector<double>& Vgrid,
-	const Eigen::MatrixXi& grid_map, const Eigen::MatrixXd& param, const double per_ours,const double per) {
+	const Eigen::MatrixXi& grid_map, const Eigen::MatrixXd& param, const double per_ours,const double per, const int target_steps, const bool enable_max_fix_nbr) {
 	const int nbr_para = param.rows();
 	std::vector<std::vector<std::array<int, 2>>> para_to_feasible;
 	Eigen::MatrixXi FCP = get_feasible_control_point_matrix(3, 3, Uknot, Vknot, v_direction, Ugrid, Vgrid, grid_map, nbr_para,
 		para_to_feasible,per_ours);
 	Eigen::MatrixXi ACP = calculate_active_control_points_from_feasible_control_points(FCP, v_direction, Uknot, Vknot, param,
-		3, 3, para_to_feasible);
+		degree1, degree2, para_to_feasible, target_steps);
 
 	std::vector<double> kv, kv_other;
 	if (v_direction) {// if checking iso-v lines, then we are fixing V knot vector
@@ -1320,9 +1303,19 @@ bool progressively_generate_interpolation_knot_vectors(const bool v_direction, i
 		kv_other = Vknot;
 	}
 	bool finished = false;
+	int nbr_fixed_in_each_itr;
+	if (enable_max_fix_nbr) {
+		int estimate_nbr_cp = param.rows()*param.rows() / 2;
+		nbr_fixed_in_each_itr = std::max((int)sqrt(estimate_nbr_cp) / target_steps, 2);
+	}
+	else {
+		nbr_fixed_in_each_itr = -1;
+	}
+
 	for (int i = 0; i < ACP.cols(); i++) {
+		bool fully_fixed = false;
 		std::vector<double> parameters = get_iso_line_parameters_from_ACP(ACP, i, param, v_direction);
-		std::vector<double> kv_new = fix_knot_vector_to_interpolate_curve_WKW(3, kv, parameters,per);
+		std::vector<double> kv_new = fix_knot_vector_to_interpolate_curve_WKW(3, kv, parameters,per, fully_fixed, nbr_fixed_in_each_itr);
 		kv = kv_new;
 		if (i == ACP.cols() - 1) {
 			finished = true;
@@ -1349,7 +1342,7 @@ std::vector<double> get_iso_line_parameters(const int degree1, const int degree2
 	std::vector<double> result;
 	std::vector<double> grid;
 	Eigen::VectorXi line_map;
-	bool dbg = false;
+	
 	if (v_direction) {
 		grid = Ugrid;
 		line_map = grid_map.col(line_id);
@@ -1357,19 +1350,14 @@ std::vector<double> get_iso_line_parameters(const int degree1, const int degree2
 	else {
 		grid = Vgrid;
 		line_map = grid_map.row(line_id);
-		if (line_id == 17) {
-			dbg = true;
-			std::cout << "on line row nbr " << line_id << ", the ids are\n" << line_map << std::endl;
-		}
+		
 	}
 
 	assert(grid.size() == line_map.size());
 	for (int i = 0; i < grid.size(); i++) {
 		if (line_map[i] >= 0) {
 			result.push_back(grid[i]);
-			if (dbg) {
-				std::cout << line_map[i] << "th para " << grid[i] << std::endl;
-			}
+			
 		}
 		
 	}
@@ -1404,17 +1392,19 @@ std::vector<double> temp_refine_knot_vector(const std::vector<double>&U, const i
 void generate_interpolation_knot_vectors(const bool start_from_v_direction, int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
 	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed,const Eigen::MatrixXi& F, const int mesh_perturbation_level,
-	const double per_ours,const double per) {
+	const double per_ours,const double per, const int target_steps, const bool enable_max_fix_nbr) {
 	Eigen::MatrixXd param;
 	mesh_parameter_perturbation(param_original, F, param, mesh_perturbation_level);
 	std::vector<double> Ugrid, Vgrid;
 	Eigen::MatrixXi grid_map;
 	generate_UV_grid(param, Ugrid, Vgrid, grid_map);
+	bool fully_fixed;
 	for (int i = 0; i < Vgrid.size(); i++) {
 		std::vector<double> paras = get_iso_line_parameters(degree1, degree2, true, i, Ugrid, Vgrid, grid_map);
 		//std::cout << "\nthe " << i << "th iso line parameters " << std::endl;
 		//print_vector(paras);
-		Uknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Uknot, paras,per);
+		Uknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Uknot, paras,per, fully_fixed);
+		assert(fully_fixed == true);
 	}
 	std::cout << "finished initialize Uknot" << std::endl;
 	print_vector(Uknot);
@@ -1426,16 +1416,19 @@ void generate_interpolation_knot_vectors(const bool start_from_v_direction, int 
 		std::vector<double> paras = get_iso_line_parameters(degree1, degree2, false, i, Ugrid, Vgrid, grid_map);
 		/*std::cout << "\nthe " << i << "th iso line parameters " << std::endl;
 		print_vector(paras);*/
-		Vknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Vknot, paras,per);
+		Vknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Vknot, paras,per,fully_fixed);
+		assert(fully_fixed == true);
 		
 	}
 	std::cout << "finished initialize Vknot" << std::endl;
 	print_vector(Vknot);
 	bool finished = false;
 	bool v_direction = start_from_v_direction;
+	
+
 	while (!finished) {
 		finished = progressively_generate_interpolation_knot_vectors(v_direction, degree1, degree2,
-			Uknot, Vknot, Ugrid, Vgrid, grid_map, param,per_ours,per);
+			Uknot, Vknot, Ugrid, Vgrid, grid_map, param, per_ours, per, target_steps, enable_max_fix_nbr);
 		v_direction = !v_direction;
 		if (!finished) {
 			std::cout << "switched" << std::endl;
