@@ -404,10 +404,41 @@ void surface_visulization(Bsurface& surface, const int nbr, Eigen::MatrixXd & v,
 	return;
 }
 
-
+// if no boundary is specified, this code will project vertices on x-y plane, and find the convex hull of the 2d vertices,
+// then use the boundary of convex hull as boundary of u-v domain, then do parametrization in [0,1]x[0,1]
+void no_specified_boundary_parametrization(const Eigen::MatrixXd& ver, Eigen::MatrixXd &param, Eigen::MatrixXi &F) {
+	
+	Eigen::MatrixXd paras(ver.rows(), 2); //the 2d projection of the points 
+	paras << ver.col(0), ver.col(1);
+	Eigen::VectorXi loop;
+	std::cout << "start find border" << std::endl;
+	// find the convex hull on 2d,
+	find_border_loop(paras, loop);
+	if (0) {// if user is interested in this part
+		Eigen::MatrixXd bdver(loop.size(), 3);
+		for (int i = 0; i < loop.size(); i++) {
+			bdver.row(i) = ver.row(loop[i]);
+		}
+		std::cout << "finish find border" << std::endl;
+		Eigen::MatrixXi edges;
+		vertices_to_edges(bdver, edges);
+		
+	}
+	Eigen::MatrixXd boundary_uv;
+	map_vertices_to_square(ver, loop, boundary_uv);
+	std::cout << "boundary uv\n" << boundary_uv << std::endl;
+	// triangulation
+	constrained_delaunay_triangulation(paras, loop, F);
+	igl::harmonic(ver, F, loop, boundary_uv, 1, param);// parametrization finished
+	std::cout << "ver\n" << ver << std::endl;
+	//std::cout << "paras\n" << paras << std::endl;
+	std::cout << "loop\n" << loop << std::endl;
+	std::cout << "F\n" << F << std::endl;
+	
+}
 void make_peak_exmple() {
 	Eigen::MatrixXd ver;
-	int nbr = 30;// nbr of points
+	int nbr = 50;// nbr of points
 	ver.resize(nbr, 3);
 	for (int i = 0; i < nbr; i++) {
 		Vector3d para3d = Vector3d::Random();
@@ -415,37 +446,48 @@ void make_peak_exmple() {
 		double y = -3 + 6 * para3d[1];
 		ver.row(i) << x, y, peak_function(x, y);
 	}
-	
+	/////////////////////from here 
 	Eigen::MatrixXd paras(ver.rows(), 2); //the parameters of the points 
 	paras << ver.col(0), ver.col(1);
-	Eigen::VectorXi loop;
 
-	std::cout << "start find border" << std::endl;
-
-	find_border_loop(paras, loop);
-	Eigen::MatrixXd bdver(loop.size(), 3);
-	for (int i = 0; i < loop.size(); i++) {
-		bdver.row(i) = ver.row(loop[i]);
-	}
-	std::cout << "finish find border" << std::endl;
-	Eigen::MatrixXi edges;
-	vertices_to_edges(bdver, edges);
 	Eigen::MatrixXi F;
-	constrained_delaunay_triangulation(paras, loop, F);
-	Eigen::MatrixXd boundary_uv;
-	map_vertices_to_square(ver, loop, boundary_uv);
-	std::cout << "boundary uv\n"<<boundary_uv << std::endl;
-	std::cout << "ver\n" << ver << std::endl;
-	std::cout << "paras\n" << paras << std::endl;
-	std::cout << "loop\n" << loop << std::endl;
-	std::cout << "F\n" << F << std::endl;
 	Eigen::MatrixXd param, param_perturbed;
-	igl::harmonic(ver,F,loop,boundary_uv,1,param);// parametrization finished
+	no_specified_boundary_parametrization(ver, param, F);
+	// to here
+
 	int degree1 = 3;
 	int degree2 = 3;
 	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
 	std::vector<double> Vknot = Uknot;
-	generate_interpolation_knot_vectors(true, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, 5);
+	int perturb_itr = 5;
+	double per_ours = 0.1;
+	double per = 0.25;
+	
+
+	mesh_parameter_perturbation(param, F, param_perturbed, perturb_itr);
+	std::cout << "param_perturbed\n" << param_perturbed << std::endl;
+	generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr,per_ours,per);
+	Bsurface surface;
+	Eigen::MatrixXd SPs;
+	Eigen::MatrixXi SFs;
+	if (1) {
+		surface.degree1 = 3;
+		surface.degree2 = 3;
+		surface.U = Uknot;
+		surface.V = Vknot;
+		solve_control_points_for_fairing_surface(surface, param_perturbed, ver);
+		
+		surface_visulization(surface, 100, SPs, SFs);
+	}
+
+	bool write_file = true;
+	if (false)
+	{
+		const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+		igl::write_triangle_mesh(path + "0516_high_energy.obj", SPs, SFs);
+	}
+	output_timing();
+	
 	//mesh_parameter_perturbation(param, F, param_perturbed, 5);
 	//std::vector<double> Ugrid, Vgrid;
 	//Eigen::MatrixXi grid_map;
@@ -501,15 +543,7 @@ void make_peak_exmple() {
 	//	std::cout << "\n** the fixed U knot" << std::endl;
 	//	print_vector(Uknot);
 	//}
-	Bsurface surface;
-	surface.degree1 = 3;
-	surface.degree2 = 3;
-	surface.U = Uknot;
-	surface.V = Vknot;
-	solve_control_points_for_fairing_surface(surface, param_perturbed, ver);
-	Eigen::MatrixXd SPs;
-	Eigen::MatrixXi SFs;
-	surface_visulization(surface, 100, SPs, SFs);
+
 	if (0) {
 		/*Bsurface surface;
 		surface.degree1 = 3;
@@ -603,7 +637,7 @@ void make_peak_exmple() {
 	//viewer.data().set_mesh(param, F);
 	//viewer.data().add_edges(edge0, edge1, pcolor);
 
-	//viewer.data().set_mesh(ver, F);
+	//viewer.data().set_mesh(param_perturbed, F);
 	viewer.data().set_mesh(SPs, SFs);
 	viewer.data().add_points(ver, ecolor);
 	viewer.launch();

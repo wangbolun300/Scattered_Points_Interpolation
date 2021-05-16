@@ -1,5 +1,8 @@
 #include<energy.h>
 #include<surface.h> 
+#include<igl/Timer.h>
+igl::Timer timer;
+double time0 = 0, time1 = 0, time2 = 0, time3 = 0;
 std::vector<double> polynomial_simplify(const std::vector<double>& poly) {
 	std::vector<double> result = poly;
 	int size = poly.size();
@@ -165,18 +168,24 @@ const std::vector<double> polynomial_differential(const std::vector<double>& fun
 // the integration domain is [u1, u2]
 double construct_an_integration(const int degree, const std::vector<double>& U,
 	const int partial1, const int partial2, const int i1, const int i2, const double u1, const double u2) {
-	
+	timer.start();
 	std::vector<double> func1 = Nip_func(i1, degree, u1, U);
 	std::vector<double> func2 = Nip_func(i2, degree, u1, U);
+	timer.stop();
+	time0 += timer.getElapsedTimeInMilliSec();
 	//std::cout << "degree, "<<degree << std::endl;
 	//std::cout << "func1 and func2" << std::endl;
 	//print_vector(func1);
 	//print_vector(func2);
+	timer.start();
 	func1 = polynomial_differential(func1, partial1);
 	func2 = polynomial_differential(func2, partial2);
+	timer.stop();
+	time1 += timer.getElapsedTimeInMilliSec();
 	//std::cout << "differencial" << std::endl;
 	//print_vector(func1);
 	//print_vector(func2);
+	timer.start();
 	std::vector<double> func = polynomial_times(func1, func2);
 	//std::cout << "times" << std::endl;
 	//print_vector(func);
@@ -185,7 +194,8 @@ double construct_an_integration(const int degree, const std::vector<double>& U,
 		upper = U.back() - SCALAR_ZERO;
 	}
 	double result = polynomial_integration(func, u1, upper);
-	
+	timer.stop();
+	time2 += timer.getElapsedTimeInMilliSec();
 
 	return result;
 }
@@ -355,4 +365,9 @@ void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::Ma
 	}
 	push_control_point_list_into_surface(surface, cps);
 	return;
+}
+void output_timing() {
+	std::cout << "get basis time " << time0 << std::endl;
+	std::cout << "get differential time " << time1 << std::endl;
+	std::cout << "get integration time " << time2 << std::endl;
 }

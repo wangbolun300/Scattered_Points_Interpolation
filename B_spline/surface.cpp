@@ -670,12 +670,6 @@ void DBG_insert_a_knot_to_problematic_area(const int degree1, const int degree2,
 
 }
 
-// construct the boolean matrix/net to show the key points to be interpolated
-// TODO
-void construct_boolean_matrix(const std::vector<double>& U, const std::vector<double>& V,
-	const Eigen::MatrixXd& paras, Eigen::MatrixXi& bm) {
-
-}
 //void fix_knot_vector_to_interpolate_surface_boolean(const int degree1, const int degree2,
 //	const std::vector<double>& Uin, const std::vector<double>& Vin,
 //	const Eigen::MatrixXd& paras, 
@@ -953,12 +947,15 @@ int find_the_id_after_this_one(const int id, const std::vector<int>& id_list) {
 	return -1;
 }
 
+//void print_vector(const std::vector<std::vector<int>> &vec) {
+//
+//}
 // get feasible control point matrix. if checking v direction control points (v_direction=true), make sure that the Uin knot vector
 // is already fixed. for the explanation of Ugrid, Vgrid and UVmap, see function generate_UV_grid() in 'mesh_processing.h'
 Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int degree2,
 	const std::vector<double>& Uin, const std::vector<double>& Vin, const bool v_direction,
 	 const std::vector<double>& Ugrid, const std::vector<double>&Vgrid, const Eigen::MatrixXi& UVmap,
-	const int nbr_para, std::vector<std::vector<std::array<int, 2>>>&para_to_feasible) {
+	const int nbr_para, std::vector<std::vector<std::array<int, 2>>>&para_to_feasible, const double per) {
 	// if checking v_direction, the control points distribution depends on Uin
 	para_to_feasible.resize(nbr_para);
 	
@@ -996,7 +993,17 @@ Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int d
 			}
 			double para = other_grid[j];
 			// get the bacis feasible points of parameter whose index is id
-			std::vector<int> basic_fp = feasible_control_point_of_given_parameter(para, kv, degree);
+			if (i == 17) {
+				std::cout << "* this point " << id << " is on line " << i << std::endl;
+			}
+			if (id == 6|| id == 38|| id == 4|| id == 28) {
+				std::cout << "DEBUG: before checking id " << id << std::endl;
+			}
+			std::vector<int> basic_fp = feasible_control_point_of_given_parameter(para, kv, degree,per);
+			if (id == 6 || id == 38 || id == 4 || id == 28) {
+				std::cout << "DEBUG: id " << id <<", row nbr "<< i<<", basic_fps" << std::endl;
+				print_vector(basic_fp);
+			}
 			for (int r = 0; r < basic_fp.size(); r++) {
 				feasible[i][basic_fp[r]].push_back(id);
 			}
@@ -1037,7 +1044,7 @@ Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int d
 		}
 	}
 	// now there are at most one feasible point in each grid 
-
+	
 	for (int i = 0; i < result.rows(); i++) {
 		for (int j = 0; j < result.cols(); j++) {
 			int rf_size = reduced_feasible[i][j].size();
@@ -1048,7 +1055,11 @@ Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int d
 			result(i,j) = reduced_feasible[i][j][0];
 		}
 	}
+	std::cout << "print the problematic matrix\n" << result << std::endl;
 	for (int i = 0; i < para_to_feasible.size(); i++) {
+		if (para_to_feasible[i].empty()) {
+			std::cout << "the empty id is " << i << " out of " << para_to_feasible.size();
+		}
 		assert(!para_to_feasible[i].empty());
 	}
 	return result;
@@ -1291,11 +1302,11 @@ std::vector<double> get_iso_line_parameters_from_ACP(const Eigen::MatrixXi&ACP, 
 // return true, then the surface knot fixing for both u and v is finished
 bool progressively_generate_interpolation_knot_vectors(const bool v_direction, int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot, const std::vector<double> Ugrid, const std::vector<double>& Vgrid,
-	const Eigen::MatrixXi& grid_map, const Eigen::MatrixXd& param) {
+	const Eigen::MatrixXi& grid_map, const Eigen::MatrixXd& param, const double per_ours,const double per) {
 	const int nbr_para = param.rows();
 	std::vector<std::vector<std::array<int, 2>>> para_to_feasible;
 	Eigen::MatrixXi FCP = get_feasible_control_point_matrix(3, 3, Uknot, Vknot, v_direction, Ugrid, Vgrid, grid_map, nbr_para,
-		para_to_feasible);
+		para_to_feasible,per_ours);
 	Eigen::MatrixXi ACP = calculate_active_control_points_from_feasible_control_points(FCP, v_direction, Uknot, Vknot, param,
 		3, 3, para_to_feasible);
 
@@ -1311,7 +1322,7 @@ bool progressively_generate_interpolation_knot_vectors(const bool v_direction, i
 	bool finished = false;
 	for (int i = 0; i < ACP.cols(); i++) {
 		std::vector<double> parameters = get_iso_line_parameters_from_ACP(ACP, i, param, v_direction);
-		std::vector<double> kv_new = fix_knot_vector_to_interpolate_curve_WKW(3, kv, parameters);
+		std::vector<double> kv_new = fix_knot_vector_to_interpolate_curve_WKW(3, kv, parameters,per);
 		kv = kv_new;
 		if (i == ACP.cols() - 1) {
 			finished = true;
@@ -1338,6 +1349,7 @@ std::vector<double> get_iso_line_parameters(const int degree1, const int degree2
 	std::vector<double> result;
 	std::vector<double> grid;
 	Eigen::VectorXi line_map;
+	bool dbg = false;
 	if (v_direction) {
 		grid = Ugrid;
 		line_map = grid_map.col(line_id);
@@ -1345,20 +1357,54 @@ std::vector<double> get_iso_line_parameters(const int degree1, const int degree2
 	else {
 		grid = Vgrid;
 		line_map = grid_map.row(line_id);
+		if (line_id == 17) {
+			dbg = true;
+			std::cout << "on line row nbr " << line_id << ", the ids are\n" << line_map << std::endl;
+		}
 	}
 
 	assert(grid.size() == line_map.size());
 	for (int i = 0; i < grid.size(); i++) {
 		if (line_map[i] >= 0) {
 			result.push_back(grid[i]);
+			if (dbg) {
+				std::cout << line_map[i] << "th para " << grid[i] << std::endl;
+			}
 		}
+		
 	}
 	return result;
 
 }
+std::vector<double> temp_refine_knot_vector(const std::vector<double>&U, const int degree) {
+	bool finished = false;
+	int nu = U.size() - 2 - degree;// n + 1 = number of control points
+	int intervals = nu - degree + 1;
+	std::vector<double> Unew = U;
+	double max_length = 1.0 / intervals*1.2;
+	while (!finished) {
+		
+		finished = true;
+		double insert = -1;
+		for (int i = degree; i < Unew.size() - 1 - degree; i++) {
+			double dis = Unew[i + 1] - Unew[i];
+			if (dis > max_length) {
+				finished = false;
+				insert = (Unew[i + 1] + Unew[i]) / 2;
+				break;
+			}
+		}
+		if (!finished) {
+			Unew = knot_vector_insert_one_value(Unew, insert);
+		}
+		
+	}
+	return Unew;
+}
 void generate_interpolation_knot_vectors(const bool start_from_v_direction, int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
-	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed,const Eigen::MatrixXi& F, const int mesh_perturbation_level) {
+	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed,const Eigen::MatrixXi& F, const int mesh_perturbation_level,
+	const double per_ours,const double per) {
 	Eigen::MatrixXd param;
 	mesh_parameter_perturbation(param_original, F, param, mesh_perturbation_level);
 	std::vector<double> Ugrid, Vgrid;
@@ -1368,22 +1414,28 @@ void generate_interpolation_knot_vectors(const bool start_from_v_direction, int 
 		std::vector<double> paras = get_iso_line_parameters(degree1, degree2, true, i, Ugrid, Vgrid, grid_map);
 		//std::cout << "\nthe " << i << "th iso line parameters " << std::endl;
 		//print_vector(paras);
-		Uknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Uknot, paras);
+		Uknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Uknot, paras,per);
 	}
+	std::cout << "finished initialize Uknot" << std::endl;
+	print_vector(Uknot);
 	/*std::cout << "\n** the fixed U knot" << std::endl;
-	print_vector(Uknot);*/
+	*/
 
 	// fix iso-u lines knot vector
 	for (int i = 0; i < Ugrid.size(); i++) {// for each u parameter
 		std::vector<double> paras = get_iso_line_parameters(degree1, degree2, false, i, Ugrid, Vgrid, grid_map);
 		/*std::cout << "\nthe " << i << "th iso line parameters " << std::endl;
 		print_vector(paras);*/
-		Vknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Vknot, paras);
+		Vknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Vknot, paras,per);
+		
 	}
+	std::cout << "finished initialize Vknot" << std::endl;
+	print_vector(Vknot);
 	bool finished = false;
 	bool v_direction = start_from_v_direction;
 	while (!finished) {
-		finished = progressively_generate_interpolation_knot_vectors(v_direction, degree1, degree2, Uknot, Vknot, Ugrid, Vgrid, grid_map, param);
+		finished = progressively_generate_interpolation_knot_vectors(v_direction, degree1, degree2,
+			Uknot, Vknot, Ugrid, Vgrid, grid_map, param,per_ours,per);
 		v_direction = !v_direction;
 		if (!finished) {
 			std::cout << "switched" << std::endl;
@@ -1394,6 +1446,12 @@ void generate_interpolation_knot_vectors(const bool start_from_v_direction, int 
 		std::cout << "Vknot" << std::endl;
 		print_vector(Vknot);
 	}
+	/*Uknot = temp_refine_knot_vector(Uknot, degree1);
+	Vknot = temp_refine_knot_vector(Vknot, degree2);*/
+
+	std::cout << "temporary refined U and V" << std::endl;
+	print_vector(Uknot);
+	print_vector(Vknot);
 	param_perturbed = param;
 	return;
 }

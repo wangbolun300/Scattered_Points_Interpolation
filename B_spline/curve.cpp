@@ -778,7 +778,7 @@ std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, c
 		result.push_back(hU[i]);
 	}
 	//print_vector(hU);
-	print_vector(result);
+	//print_vector(result);
 	assert(result.size() == hU.size());
 	//std::cout << "check A validation\n"<< build_matrix_A(degree,result,paras) << std::endl;
 	result = merge_two_knot_vectors(result, init_vec, degree);
@@ -788,7 +788,9 @@ std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, c
 }
 
 // TODO add a parameter weight to control the percentage
-std::vector<int> feasible_control_point_of_given_parameter(const double para, const std::vector<double>&U, const int degree) {
+// per in [0,1]. when per =0, we have larger tolerance for feasible points, which means it converges to tranditional methods
+std::vector<int> feasible_control_point_of_given_parameter(const double para, const std::vector<double>&U, 
+	const int degree, const double per) {
 	int which = -1;
 	int nu = U.size() - 2 - degree;// n + 1 = number of control points
 	std::vector<int> result;
@@ -806,8 +808,11 @@ std::vector<int> feasible_control_point_of_given_parameter(const double para, co
 		return result;
 	}
 	// if which >= 0, the para is in [u_which, u_{which+1}).
-	double alpha = (U[which + degree] - (U[which] + U[which + 1]) / 2) / (U[which + degree] - U[which]);
-	double belta = ((U[which + 1] + U[which]) / 2 - U[which - degree + 1]) / (U[which + 1] - U[which - degree + 1]);
+	// alpha, belta are slightly less than 1
+	double alpha_pre = (U[which + degree] - (U[which] + U[which + 1]) / 2) / (U[which + degree] - U[which]);
+	double belta_pre = ((U[which + 1] + U[which]) / 2 - U[which - degree + 1]) / (U[which + 1] - U[which - degree + 1]);
+	double alpha = (1 - alpha_pre)*(1 - per) + alpha_pre;
+	double belta = (1 - belta_pre)*(1 - per) + belta_pre;
 	double a = U[which + 1] + alpha * (U[which] - U[which + 1]);
 	double b = U[which] + belta * (U[which + 1] - U[which]);
 	// U[i]<a<b<U[i+1]
@@ -816,7 +821,7 @@ std::vector<int> feasible_control_point_of_given_parameter(const double para, co
 		result.push_back(which - degree);
 	}
 	else {
-		//std::cout << para << " is too close to " << U[which + 1]<<" N(i-p) is "<<Nip(which-degree,degree,para,U) << std::endl;
+		std::cout << para << " is too close to " << U[which + 1]<<"i-p is "<<which-degree<<" N(i-p) is "<<Nip(which-degree,degree,para,U) << std::endl;
 	}
 	for (int k = which - degree + 1; k < which; k++) {// from i-p to i-1
 		result.push_back(k);
@@ -825,7 +830,7 @@ std::vector<int> feasible_control_point_of_given_parameter(const double para, co
 		result.push_back(which);
 	}
 	else {
-		//std::cout << para << " is too close to " << U[which] << " N(i) is " << Nip(which, degree, para, U) << std::endl;
+		std::cout << para << " is too close to " << U[which] << "i is " << which  << " N(i) is " << Nip(which, degree, para, U) << std::endl;
 	}
 	assert(result.size() > 0);
 	return result;
