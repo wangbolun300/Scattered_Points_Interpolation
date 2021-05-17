@@ -1,6 +1,8 @@
 #include<energy.h>
 #include<surface.h> 
 #include<igl/Timer.h>
+#include <Eigen/Dense>
+#include<Eigen/Sparse>
 igl::Timer timer;
 double time0 = 0, time1 = 0, time2 = 0, time3 = 0;
 std::vector<double> polynomial_simplify(const std::vector<double>& poly) {
@@ -347,20 +349,52 @@ void push_control_point_list_into_surface(Bsurface& surface, const std::vector<V
 }
 void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::MatrixXd& paras,
 	const Eigen::MatrixXd & points) {
+	bool sparse_solve = false;
+	using namespace Eigen;
+	typedef SparseMatrix<double> SparseMatrixXd;
 	assert(paras.rows() == points.rows());
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
 	std::vector<Vector3d> cps(psize);// control points
-	Eigen::MatrixXd A = surface_least_square_lambda_multiplier_left_part(surface, paras);
-	//std::cout << "print A\n" << A << std::endl;
+	Eigen::MatrixXd A;
+	Eigen::FullPivLU<DenseBase<MatrixXd>::PlainMatrix> decomp;
+	A = surface_least_square_lambda_multiplier_left_part(surface, paras);
+	SparseMatrixXd matB;
+	Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
+	if (sparse_solve) {
+		matB = A.sparseView();
 
+		solver.compute(matB);
+		if (solver.info() != Success) {
+			// decomposition failed
+			std::cout << "solving failed" << std::endl;
+			return;
+		}
+	}
+	else {
+		decomp = A.fullPivLu();
+	}
+	
+	
 	for (int i = 0; i < 3; i++) {
 		Eigen::MatrixXd b = surface_least_square_lambda_multiplier_right_part(surface, paras, points, i);
 		double err = 0.0;
 
 		// solve the matrix contains the p and lambda
 		std::cout << "before solving" << std::endl;
-		Eigen::MatrixXd p_lambda = slove_linear_system(A, b, false, err);
-		std::cout << "after solving" << std::endl;
+		Eigen::MatrixXd p_lambda;
+		if (sparse_solve) {
+			p_lambda = solver.solve(b);
+			if (solver.info() != Success) {
+				std::cout << "solving failed" << std::endl;
+				return;
+			}
+		}
+		else {
+			p_lambda = decomp.solve(b);
+		}
+		
+		double relative_error = (A*p_lambda - b).norm() / b.norm(); // norm() is L2 norm
+		std::cout << "after solving, error is "<<relative_error << std::endl;
 		push_p_lambda_vector_to_control_points(p_lambda, i, cps);
 	}
 	push_control_point_list_into_surface(surface, cps);

@@ -1282,6 +1282,25 @@ std::vector<double> get_iso_line_parameters_from_ACP(const Eigen::MatrixXi&ACP, 
 	}
 	return result;
 }
+bool check_ACP_calidation(const Eigen::MatrixXi& ACP, const int nbr_para) {
+	std::vector<bool> check(nbr_para, false);
+	for (int i = 0; i < ACP.rows(); i++) {
+		for (int j = 0; j < ACP.cols(); j++) {
+			int value = ACP(i, j);
+			if (value >= 0) {
+				check[value] = true;
+			}
+		}
+	}
+	for (int i = 0; i < check.size(); i++) {
+		if (check[i] == false) {
+			std::cout << "ACP ERROR: MISSING #" << i << ", ACP:\n" << ACP << std::endl;
+			return false;
+		}
+	}
+	return true;
+}
+
 // return true, then the surface knot fixing for both u and v is finished
 bool progressively_generate_interpolation_knot_vectors(const bool v_direction, int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot, const std::vector<double> Ugrid, const std::vector<double>& Vgrid,
@@ -1292,7 +1311,7 @@ bool progressively_generate_interpolation_knot_vectors(const bool v_direction, i
 		para_to_feasible,per_ours);
 	Eigen::MatrixXi ACP = calculate_active_control_points_from_feasible_control_points(FCP, v_direction, Uknot, Vknot, param,
 		degree1, degree2, para_to_feasible, target_steps);
-
+	assert(check_ACP_calidation(ACP, nbr_para));
 	std::vector<double> kv, kv_other;
 	if (v_direction) {// if checking iso-v lines, then we are fixing V knot vector
 		kv = Vknot;
@@ -1369,7 +1388,7 @@ std::vector<double> temp_refine_knot_vector(const std::vector<double>&U, const i
 	int nu = U.size() - 2 - degree;// n + 1 = number of control points
 	int intervals = nu - degree + 1;
 	std::vector<double> Unew = U;
-	double max_length = 1.0 / intervals*1.2;
+	double max_length = 1.0 / intervals*1.5;
 	while (!finished) {
 		
 		finished = true;
@@ -1441,10 +1460,10 @@ void generate_interpolation_knot_vectors(const bool start_from_v_direction, int 
 	}
 	/*Uknot = temp_refine_knot_vector(Uknot, degree1);
 	Vknot = temp_refine_knot_vector(Vknot, degree2);*/
-
-	std::cout << "temporary refined U and V" << std::endl;
 	print_vector(Uknot);
 	print_vector(Vknot);
+	std::cout << "Uknot Vknot size "<<Uknot.size()<<" "<<Vknot.size() << std::endl;
+
 	param_perturbed = param;
 	return;
 }

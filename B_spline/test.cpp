@@ -457,8 +457,7 @@ void direct_project_x_y_and_parametrization(const Eigen::MatrixXd& ver, Eigen::M
 		vertices_to_edges(bdver, edges);
 
 	}
-	// triangulation
-	constrained_delaunay_triangulation(paras, loop, F);
+	
 	double xmin = paras(0, 0);
 	double xmax = paras(0, 0);
 	double ymin = paras(0, 1);
@@ -494,28 +493,55 @@ void direct_project_x_y_and_parametrization(const Eigen::MatrixXd& ver, Eigen::M
 		para_new(i, 1) = y;
 	}
 	param = para_new;
+	for (int i = 0; i < param.rows(); i++) {
+		assert(param(i, 0) <= 1 && param(i, 0) >= 0 && param(i, 1) <= 1 && param(i, 1) >= 0);
+	}
+	// triangulation
+	constrained_delaunay_triangulation(para_new, loop, F);
 	std::cout << "check directly parametrization\n" << param << std::endl;
 }
+Eigen::MatrixXd get_peak_sample_points(const int nbr, const int skip) {
+	Eigen::MatrixXd ver;
+	ver.resize(nbr - skip, 3);
+	for (int i = 0; i < nbr; i++) {
+		Vector3d para3d = Vector3d::Random();
+		if (i < skip) {
+			continue;
+		}
+		double x = 6 * para3d[0];
+		double y = 6 * para3d[1];
+		ver.row(i - skip) << x, y, peak_function(x, y);
+	}
+	return ver;
+}
+Eigen::MatrixXd get_peak_fine_sample_points(const int nbr, const int skip) {
+	Eigen::MatrixXd ver;
+	ver.resize(nbr - skip, 3);
+	for (int i = 0; i < nbr; i++) {
+		Vector3d para3d = Vector3d::Random();
+		if (i < skip) {
+			continue;
+		}
+		double x = 6 * para3d[0];
+		double y = 6 * para3d[1];
+		ver.row(i - skip) << x, y, peak_function(x, y);
+	}
+	return ver;
+}
+
+
 void make_peak_exmple() {
 	Eigen::MatrixXd ver;
 	int nbr = 100;// nbr of points
-	ver.resize(nbr, 3);
-	for (int i = 0; i < nbr; i++) {
-		Vector3d para3d = Vector3d::Random();
-		double x = -3 + 6 * para3d[0];
-		double y = -3 + 6 * para3d[1];
-		ver.row(i) << x, y, peak_function(x, y);
-	}
-	/////////////////////from here 
-	Eigen::MatrixXd paras(ver.rows(), 2); //the parameters of the points 
-	paras << ver.col(0), ver.col(1);
+	int skip = 0;
+	
+	ver = get_peak_sample_points(nbr, skip);
 
 	Eigen::MatrixXi F;
 	Eigen::MatrixXd param, param_perturbed;
 	//find_boundar_and_parametrization(ver, param, F);
 	direct_project_x_y_and_parametrization(ver, param, F);
 	
-	// to here
 
 	int degree1 = 3;
 	int degree2 = 3;
@@ -523,13 +549,21 @@ void make_peak_exmple() {
 	std::vector<double> Vknot = Uknot;
 	int perturb_itr = 5;
 	double per_ours = 0.3;
-	double per = 0.2;
+	double per = 0.1;
 	int target_steps = 10; 
 	bool enable_max_fix_nbr = true;
 
 	mesh_parameter_perturbation(param, F, param_perturbed, perturb_itr);
 	std::cout << "param_perturbed\n" << param_perturbed << std::endl;
 	generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr,per_ours,per, target_steps, enable_max_fix_nbr);
+	
+	igl::opengl::glfw::Viewer viewer;
+	/*viewer.data().set_mesh(param_perturbed, F);
+	viewer.launch();*/
+	Eigen::MatrixXd paramout(ver.rows(), 3), zeros(ver.rows(),1);
+	zeros = Eigen::MatrixXd::Constant(ver.rows(), 1, 0);
+	paramout << param_perturbed, zeros;
+
 	Bsurface surface;
 	Eigen::MatrixXd SPs;
 	Eigen::MatrixXi SFs;
@@ -547,148 +581,13 @@ void make_peak_exmple() {
 	if (write_file)
 	{
 		const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-		igl::write_triangle_mesh(path + "0516_high_energy.obj", SPs, SFs);
+		igl::write_triangle_mesh(path + "0517_missing.obj", SPs, SFs);
+		igl::write_triangle_mesh(path + "0517_missing_param.obj", paramout, F);
 	}
 	output_timing();
 	
-	//mesh_parameter_perturbation(param, F, param_perturbed, 5);
-	//std::vector<double> Ugrid, Vgrid;
-	//Eigen::MatrixXi grid_map;
-	//generate_UV_grid(param_perturbed, Ugrid, Vgrid, grid_map);
-	//std::cout << "U grid size " << Ugrid.size() << std::endl;
-	//print_vector(Ugrid);
-	//std::cout << "V grid size " << Vgrid.size() << std::endl;
-	//print_vector(Vgrid);
-	//std::cout << "para size " << param.rows() << std::endl;
-	//std::cout << "map size " << grid_map.rows()<<" "<<grid_map.cols()  << std::endl;
-	//
-	//
-	//std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
-	//std::vector<double> Vknot = Uknot;
-	//std::cout << "grid map\n" << grid_map << std::endl;
 
-	//// fix iso-v lines knot vector
-	//for (int i = 0; i < Vgrid.size(); i++) {
-	//	std::vector<double> paras = get_iso_line_parameters(3, 3, true, i, Ugrid, Vgrid, grid_map);
-	//	std::cout << "\nthe " << i << "th iso line parameters " << std::endl;
-	//	print_vector(paras);
-	//	Uknot = fix_knot_vector_to_interpolate_curve_WKW(3, Uknot, paras);
-	//}
-	//std::cout << "\n** the fixed U knot" << std::endl;
-	//print_vector(Uknot);
-
-	//// fix iso-u lines knot vector
-	//for (int i = 0; i < Ugrid.size(); i++) {// for each u parameter
-	//	std::vector<double> paras = get_iso_line_parameters(3, 3, false, i, Ugrid, Vgrid, grid_map);
-	//	std::cout << "\nthe " << i << "th iso line parameters " << std::endl;
-	//	print_vector(paras);
-	//	Vknot = fix_knot_vector_to_interpolate_curve_WKW(3, Vknot, paras);
-	//}
-	//std::cout << "\n** the fixed V knot" << std::endl;
-	//print_vector(Vknot);
-
-	//bool v_direction = false;
-	//// get feasible control points for iso-v lines
-	//const int nbr_para = param_perturbed.rows();
-	//std::vector<std::vector<std::array<int, 2>>> para_to_feasible;
-	//Eigen::MatrixXi FCP = get_feasible_control_point_matrix(3, 3, Uknot, Vknot, v_direction, Ugrid, Vgrid, grid_map, nbr_para,
-	//	para_to_feasible);
-	//std::cout << "\nthe feasible control points grid\n" << FCP << std::endl;
-	//Eigen::MatrixXi ACP = calculate_active_control_points_from_feasible_control_points(FCP, v_direction, Uknot, Vknot, param_perturbed,
-	//	3, 3, para_to_feasible);
-	//std::cout << "ACP\n" << ACP << std::endl;
-	//std::cout << "\n\n\n\nstart to fix knots" << std::endl;
-	//for (int i = 0; i < ACP.cols(); i++) {
-	//	std::vector<double> parameters = get_iso_line_parameters_from_ACP(ACP, i, param_perturbed, v_direction);
-	//	std::cout << "\n** parameters" << std::endl;
-	//	print_vector(parameters);
-	//	Uknot = fix_knot_vector_to_interpolate_curve_WKW(3, Uknot, parameters);
-	//	std::cout << "\n** the fixed U knot" << std::endl;
-	//	print_vector(Uknot);
-	//}
-
-	if (0) {
-		/*Bsurface surface;
-		surface.degree1 = 3;
-		surface.degree2 = 3;
-		std::vector<double> zeros = { {0,0,0} };
-		std::vector<double> ones = { {1,1,1} };
-		std::vector<double> knotU = zeros, knotV = zeros;
-		knotU.insert(knotU.end(), U.begin(), U.end());
-		knotV.insert(knotV.end(), V.begin(), V.end());
-		knotU.insert(knotU.end(), ones.begin(), ones.end());
-		knotV.insert(knotV.end(), ones.begin(), ones.end());
-		surface.U = knotU;
-		surface.V = knotV;
-		std::cout << "knotU is" << std::endl;
-		print_vector(knotU);
-		std::cout << "knotV is" << std::endl;
-		print_vector(knotV);
-
-		solve_control_points_for_fairing_surface(surface, param_perturbed, ver);
-		Eigen::MatrixXd SPs;
-		Eigen::MatrixXi SFs;
-		surface_visulization(surface, 100, SPs, SFs);
-
-		const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-		igl::write_triangle_mesh(path + "peak_surface_less_control_pts.obj", SPs, SFs);*/
-	}
-	//igl::write_triangle_mesh(path + "peak.obj", ver, F);
-	//std::cout << "SPs\n" << SPs << std::endl;
-	// // curve fitting test
-	//Bcurve curve;
-	//std::vector<Vector3d> inter_pts;// points to be interpolated
-	//fit_border_with_curve(param_perturbed, ver, grid_map, true, 0, curve, 1, 0.2, inter_pts);
 	
-	// // remeshing test
-	//Eigen::MatrixXd param_grid, ver_grid;
-	//Eigen::MatrixXi F_grid;
-	//remeshing_based_on_map_grid(param_perturbed, ver, F, U, V, grid_map, param_grid, ver_grid, F_grid);
-
-
-	//next smoothing test
-	
-	/*Eigen::MatrixXd Vfixed;
-	{
-		int nbr_fixed = 30;
-		Vfixed.resize(nbr_fixed, 3);
-		double h = 0.01;
-		for (int i = 0; i < nbr_fixed; i++) {
-			fixed.push_back(i);
-			Vfixed.row(i) = ver.row(i);
-		}
-		
-		smooth_mesh_vertices(ver, F, h, fixed,15, Vs);
-	}*/
-	/*Eigen::MatrixXd ver_para(ver.rows(), 3);
-	ver_para << param_perturbed, ver.col(2);
-	Eigen::MatrixXd tmp_pts(ver.rows(), 3);
-	int counter = 0;
-	for (int i = 0; i < U.size(); i++) {
-		for (int j = 0; j < V.size(); j++) {
-			if (grid_map(i, j) != -1) {
-				tmp_pts.row(counter) << U[i], V[j], ver(grid_map(i, j), 2);
-				counter++;
-			}
-		}
-	}*/
-	
-	/*Eigen::MatrixXd e0(V.size(),3), e1(V.size(), 3);
-	{
-		int uid = 30;
-		for (int i = 0; i < V.size()-1; i++) {
-			int id=map_ij_to_list_id(uid, i, U.size(), V.size());
-			int id1 = map_ij_to_list_id(uid, i+1, U.size(), V.size());
-			e0.row(i) = ver_grid.row(id);
-			e1.row(i) = ver_grid.row(id1);
-		}
-	}*/
-	//Eigen::MatrixXd edge0, edge1;
-	//curve_visulization(curve, 100, edge0, edge1);
-
-
-
-	igl::opengl::glfw::Viewer viewer;
 	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3), pcolor(1, 3);
 	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;; pcolor << 0, 0.9, 0.5;
 
@@ -701,6 +600,7 @@ void make_peak_exmple() {
 	//viewer.data().add_edges(edge0, edge1, pcolor);
 
 	//viewer.data().set_mesh(param_perturbed, F);
+	viewer.data().clear();
 	viewer.data().set_mesh(SPs, SFs);
 	viewer.data().add_points(ver, ecolor);
 	viewer.launch();

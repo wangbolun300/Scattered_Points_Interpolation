@@ -335,7 +335,7 @@ void test1() {
 	//fix_knot_vector_to_interpolate_curve_WKW(degree, init_vec, paras);
 }
 int main() {
-	srand(26);
+	srand(15);
 	//test_opengl();
 	//int p = 3;
 	//std::vector<double>U = { {0,0,0,0,0.1,0.4,0.7,0.9,1,1,1,1} };

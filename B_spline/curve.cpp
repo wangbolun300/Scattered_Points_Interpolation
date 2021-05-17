@@ -848,11 +848,30 @@ std::vector<int> feasible_control_point_of_given_parameter(const double para, co
 	double b = U[which] + belta * (U[which + 1] - U[which]);
 	// U[i]<a<b<U[i+1]
 	result.resize(0);
+	if (para == U.front()) {
+		result.push_back(0);
+		return result;
+	}
+	if (para == U.back()) {
+		result.push_back(nu);
+		return result;
+	}
+
+	std::string compare;
 	if (para <= b) { // if para not too close to U[i+1], then N(i-p) is feasible
 		result.push_back(which - degree);
 	}
 	else {
-		std::cout << para << " is too close to " << U[which + 1]<<"i-p is "<<which-degree<<" N(i-p) is "<<Nip(which-degree,degree,para,U) << std::endl;
+		if (para > U[which + 1]) {
+			compare = ">";
+		}
+		if (para < U[which + 1]) {
+			compare = "<";
+		}
+		if (para == U[which + 1]) {
+			compare = "=";
+		}
+		std::cout << para << compare<<" is too close to " << U[which + 1]<<"i-p is "<<which-degree<<" N(i-p) is "<<Nip(which-degree,degree,para,U) << std::endl;
 	}
 	for (int k = which - degree + 1; k < which; k++) {// from i-p to i-1
 		result.push_back(k);
@@ -861,7 +880,16 @@ std::vector<int> feasible_control_point_of_given_parameter(const double para, co
 		result.push_back(which);
 	}
 	else {
-		std::cout << para << " is too close to " << U[which] << "i is " << which  << " N(i) is " << Nip(which, degree, para, U) << std::endl;
+		if (para > U[which]) {
+			compare = ">";
+		}
+		if (para < U[which]) {
+			compare = "<";
+		}
+		if (para == U[which]) {
+			compare = "=";
+		}
+		std::cout << para <<compare<< " is too close to " << U[which] << "i is " << which  << " N(i) is " << Nip(which, degree, para, U) << std::endl;
 	}
 	assert(result.size() > 0);
 	return result;
