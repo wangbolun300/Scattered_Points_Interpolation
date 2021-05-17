@@ -152,8 +152,8 @@ void draw_axis(const double scale) {
 
 
 void visual_and_chop_mesh(const bool write_mesh) {
-	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	const std::string filename = path + "camel_b.obj";
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\simple\\";
+	const std::string filename = path + "blendspheres.obj";
 	Eigen::MatrixXd V, Vclean; Eigen::MatrixXi F;
 	read_and_visual_mesh(filename, V, F);
 	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3);
@@ -335,7 +335,7 @@ void test1() {
 	//fix_knot_vector_to_interpolate_curve_WKW(degree, init_vec, paras);
 }
 int main() {
-	srand(15);
+	srand(7);
 	//test_opengl();
 	//int p = 3;
 	//std::vector<double>U = { {0,0,0,0,0.1,0.4,0.7,0.9,1,1,1,1} };
@@ -347,7 +347,7 @@ int main() {
 	//test_curve_knot_fixing();
 	//visual_mesh();
 	//test_mesh_parameterization();
-	//visual_and_chop_mesh(true);
+	//visual_and_chop_mesh(false);
 	//visual_surface();
 	//visual_surface_processing();
 	//visual_surface_knot_fixing();

@@ -518,6 +518,72 @@ Eigen::MatrixXd get_peak_sample_points(const int nbr, const int skip) {
 	ver.row(nbr - skip - 1) << 6, -6, peak_function(6, -6);
 	return ver;
 }
+double contour_function(const double x, const double y) {
+	return 4 * x*exp(-x * x - y * y);
+}
+Eigen::MatrixXd get_contour_sample_points(const int nbr, const int skip) {
+	Eigen::MatrixXd ver;
+	ver.resize(nbr - skip, 3);
+	double s = 2;
+	for (int i = 0; i < nbr - 4; i++) {
+		Vector3d para3d = Vector3d::Random();
+		if (i < skip) {
+			continue;
+		}
+		double x = s * para3d[0];
+		double y = s * para3d[1];
+		ver.row(i - skip) << x, y, contour_function(x, y);
+	}
+	ver.row(nbr - skip - 4) << -s, -s, contour_function(-s, -s);
+	ver.row(nbr - skip - 3) << -s, s, contour_function(-s, s);
+	ver.row(nbr - skip - 2) << s, s, contour_function(s, s);
+	ver.row(nbr - skip - 1) << s, -s, contour_function(s, -s);
+	return ver;
+}
+double hyperbolic_function(const double x, const double y) {
+	return x *x - y * y;
+}
+Eigen::MatrixXd get_hyperbolic_sample_points(const int nbr, const int skip) {
+	Eigen::MatrixXd ver;
+	ver.resize(nbr - skip, 3);
+	double s = 1;
+	for (int i = 0; i < nbr - 4; i++) {
+		Vector3d para3d = Vector3d::Random();
+		if (i < skip) {
+			continue;
+		}
+		double x = s * para3d[0];
+		double y = s * para3d[1];
+		ver.row(i - skip) << x, y, hyperbolic_function(x, y);
+	}
+	ver.row(nbr - skip - 4) << -s, -s, hyperbolic_function(-s, -s);
+	ver.row(nbr - skip - 3) << -s, s, hyperbolic_function(-s, s);
+	ver.row(nbr - skip - 2) << s, s, hyperbolic_function(s, s);
+	ver.row(nbr - skip - 1) << s, -s, hyperbolic_function(s, -s);
+	return ver;
+}
+double sinus_function(const double x, const double y) {
+	return sin(3 * 3.1415926*(x*x + y * y)) / 10;
+}
+Eigen::MatrixXd get_sinus_sample_points(const int nbr, const int skip) {
+	Eigen::MatrixXd ver;
+	ver.resize(nbr - skip, 3);
+	double s = 1;
+	for (int i = 0; i < nbr - 4; i++) {
+		Vector3d para3d = Vector3d::Random();
+		if (i < skip) {
+			continue;
+		}
+		double x = s * para3d[0];
+		double y = s * para3d[1];
+		ver.row(i - skip) << x, y, sinus_function(x, y);
+	}
+	ver.row(nbr - skip - 4) << -s, -s, sinus_function(-s, -s);
+	ver.row(nbr - skip - 3) << -s, s, sinus_function(-s, s);
+	ver.row(nbr - skip - 2) << s, s, sinus_function(s, s);
+	ver.row(nbr - skip - 1) << s, -s, sinus_function(s, -s);
+	return ver;
+}
 Eigen::MatrixXd get_peak_fine_sample_points(const int nbr, const int skip) {
 	Eigen::MatrixXd ver;
 	ver.resize(nbr - skip, 3);
@@ -532,38 +598,64 @@ Eigen::MatrixXd get_peak_fine_sample_points(const int nbr, const int skip) {
 	}
 	return ver;
 }
+void get_mesh_vertices_and_parametrization(Eigen::MatrixXd &V, Eigen::MatrixXi &F,
+	Eigen::MatrixXd  &param) {
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+	const std::string filename = path + "camel_small_open.obj";
+	mesh_parameterization(filename, V, param, F);
+}
 
+// method = 0, peak; 
+// method = 1, contour; 
+// method = 2, hyperbolic; 
+void get_function_vertices_and_parametrization(const int nbr, const int skip, Eigen::MatrixXd &V, Eigen::MatrixXi &F,
+	Eigen::MatrixXd  &param, const int method) {
+	//V = get_peak_sample_points(nbr, skip);
+	switch (method) {
+	case 0:
+		srand(15);
+		V = get_peak_sample_points(nbr, skip);
+	case 1:
+		srand(7);
+		V = get_contour_sample_points(nbr, skip);
+	case 2:
+		srand(19);
+		V = get_hyperbolic_sample_points(nbr, skip);
+	case 3:
+		srand(24);
+		V = get_sinus_sample_points(nbr, skip);
+	}
+
+	
+	direct_project_x_y_and_parametrization(V, param, F);
+}
 
 void make_peak_exmple() {
 	Eigen::MatrixXd ver;
-	int nbr = 150;// nbr of points
+	int nbr = 400;// nbr of points
 	int skip = 0;
-	
-	ver = get_peak_sample_points(nbr, skip);
-
 	Eigen::MatrixXi F;
 	Eigen::MatrixXd param, param_perturbed;
-	//find_boundar_and_parametrization(ver, param, F);
-	direct_project_x_y_and_parametrization(ver, param, F);
-	
-
+	//get_mesh_vertices_and_parametrization(ver, F, param);
+	get_function_vertices_and_parametrization(nbr, skip, ver, F, param, 3);
 	int degree1 = 3;
 	int degree2 = 3;
 	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
 	std::vector<double> Vknot = Uknot;
 	int perturb_itr = 5;
-	double per_ours = 0.3;
+	double per_ours = 0.2;
 	double per = 0.1;
 	int target_steps = 10; 
 	bool enable_max_fix_nbr = true;
 
 	mesh_parameter_perturbation(param, F, param_perturbed, perturb_itr);
 	std::cout << "param_perturbed\n" << param_perturbed << std::endl;
-	generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr,per_ours,per, target_steps, enable_max_fix_nbr);
-	
 	igl::opengl::glfw::Viewer viewer;
 	/*viewer.data().set_mesh(param_perturbed, F);
 	viewer.launch();*/
+	generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr,per_ours,per, target_steps, enable_max_fix_nbr);
+	
+
 	Eigen::MatrixXd paramout(ver.rows(), 3), zeros(ver.rows(),1);
 	zeros = Eigen::MatrixXd::Constant(ver.rows(), 1, 0);
 	paramout << param_perturbed, zeros;
@@ -586,7 +678,7 @@ void make_peak_exmple() {
 	{
 		const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
 		igl::write_triangle_mesh(path + "0517_missing.obj", SPs, SFs);
-		igl::write_triangle_mesh(path + "0517_missing_param.obj", paramout, F);
+		//igl::write_triangle_mesh(path + "0517_missing_param.obj", paramout, F);
 	}
 	output_timing();
 	

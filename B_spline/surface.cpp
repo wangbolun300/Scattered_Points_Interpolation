@@ -1048,7 +1048,9 @@ Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int d
 		}
 	}
 	for (int i = 0; i < para_to_feasible.size(); i++) {
-		
+		if (para_to_feasible[i].empty()) {
+			std::cout << "AN ERROR OCCURED: NO FEASIBLE POINT IS CHOOSEN FOR VERTEX #" << i << "\nPLEASE MAKE per OR per_ours SMALLER" << std::endl;
+		}
 		assert(!para_to_feasible[i].empty());
 	}
 	return result;
