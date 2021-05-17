@@ -1271,7 +1271,7 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 	return selected_fcp;
 }
 std::vector<double> get_iso_line_parameters_from_ACP(const Eigen::MatrixXi&ACP, const int id, const Eigen::MatrixXd& paras, const bool v_direction) {
-	int uv = v_direction ? 0 : 1;// if checking iso-v lines, then we are dealing with V parameters
+	int uv = v_direction ? 1 : 0;// if checking iso-v lines, then we are dealing with V parameters
 	std::vector<double> result;
 	Eigen::VectorXi indices = ACP.col(id);
 	for (int i = 0; i < indices.size(); i++) {
@@ -1355,7 +1355,7 @@ bool progressively_generate_interpolation_knot_vectors(const bool v_direction, i
 	return finished;
 }
 
-// if v_direction is true, then checking iso-v lines
+// if v_direction is true, then checking iso-v lines to fix U knot vector
 std::vector<double> get_iso_line_parameters(const int degree1, const int degree2, const bool v_direction, const int line_id,
 	const std::vector<double>& Ugrid, const std::vector<double>& Vgrid, const Eigen::MatrixXi& grid_map) {
 	std::vector<double> result;

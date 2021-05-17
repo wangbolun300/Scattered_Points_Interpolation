@@ -503,7 +503,7 @@ void direct_project_x_y_and_parametrization(const Eigen::MatrixXd& ver, Eigen::M
 Eigen::MatrixXd get_peak_sample_points(const int nbr, const int skip) {
 	Eigen::MatrixXd ver;
 	ver.resize(nbr - skip, 3);
-	for (int i = 0; i < nbr; i++) {
+	for (int i = 0; i < nbr - 4; i++) {
 		Vector3d para3d = Vector3d::Random();
 		if (i < skip) {
 			continue;
@@ -512,6 +512,10 @@ Eigen::MatrixXd get_peak_sample_points(const int nbr, const int skip) {
 		double y = 6 * para3d[1];
 		ver.row(i - skip) << x, y, peak_function(x, y);
 	}
+	ver.row(nbr - skip - 4) << -6, -6, peak_function(-6, -6);
+	ver.row(nbr - skip - 3) << -6, 6, peak_function(-6, 6);
+	ver.row(nbr - skip - 2) << 6, 6, peak_function(6, 6);
+	ver.row(nbr - skip - 1) << 6, -6, peak_function(6, -6);
 	return ver;
 }
 Eigen::MatrixXd get_peak_fine_sample_points(const int nbr, const int skip) {
@@ -532,7 +536,7 @@ Eigen::MatrixXd get_peak_fine_sample_points(const int nbr, const int skip) {
 
 void make_peak_exmple() {
 	Eigen::MatrixXd ver;
-	int nbr = 100;// nbr of points
+	int nbr = 150;// nbr of points
 	int skip = 0;
 	
 	ver = get_peak_sample_points(nbr, skip);
