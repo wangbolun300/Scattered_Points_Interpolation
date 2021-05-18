@@ -1467,5 +1467,6 @@ void generate_interpolation_knot_vectors(const bool start_from_v_direction, int 
 	std::cout << "Uknot Vknot size "<<Uknot.size()<<" "<<Vknot.size() << std::endl;
 
 	param_perturbed = param;
+	std::cout << "knot fixing finished" << std::endl;
 	return;
 }
