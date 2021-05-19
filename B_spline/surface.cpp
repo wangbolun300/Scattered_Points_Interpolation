@@ -1373,7 +1373,7 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 		
 	}
 	//exit(0);
-	selected_fcp = remove_redundant_FCP(selected_fcp, para_to_feasible);
+	//selected_fcp = remove_redundant_FCP(selected_fcp, para_to_feasible);
 	
 	return selected_fcp;
 }

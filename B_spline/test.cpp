@@ -708,7 +708,7 @@ void make_peak_exmple() {
 	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;; pcolor << 0, 0.9, 0.5;
 
 	Eigen::MatrixXd ver;
-	int nbr = 100;// nbr of points
+	int nbr = 400;// nbr of points
 	int skip = 0;
 	Eigen::MatrixXi F;
 	Eigen::MatrixXd param, param_perturbed;
@@ -752,8 +752,11 @@ void make_peak_exmple() {
 		surface.degree2 = 3;
 		surface.U = Uknot;
 		surface.V = Vknot;
+		std::cout << "before initialize the basis " << std::endl;
+		PolynomialBasis basis(surface);
+		std::cout << "initialize the basis done" << std::endl;
 		std::cout<<"before solving control points"<<std::endl;
-		solve_control_points_for_fairing_surface(surface, param_perturbed, ver);
+		solve_control_points_for_fairing_surface(surface, param_perturbed, ver,basis);
 		
 		surface_visulization(surface, 100, SPs, SFs);
 	}

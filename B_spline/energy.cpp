@@ -166,6 +166,138 @@ const std::vector<double> polynomial_differential(const std::vector<double>& fun
 	return result;
 }
 
+void PolynomialBasis::init(Bsurface& surface) {
+	Uknot = surface.U;
+	Vknot = surface.V;
+	degree1 = surface.degree1;
+	degree2 = surface.degree2;
+	nu = surface.nu();
+	nv = surface.nv();
+	Ubasis = calculate(0);
+	Vbasis = calculate(1);
+	inited = true;
+	return;
+}
+PolynomialBasis::PolynomialBasis(Bsurface& surface) {
+	init(surface);
+}
+PolynomialBasis::PolynomialBasis() {
+}
+std::vector<double> PolynomialBasis::poly(const int id, const double value, const bool UVknot) {
+	if (!inited) {
+		std::cout << "WRONG USAGE OF CLASS PolynomialBasis, YOU SHOULD INITIALIZE IT BY CALLING init()" << std::endl;
+	}
+	
+	std::vector<double> kv;
+	int degree;
+	
+	if (UVknot) {
+		kv = Vknot;
+		degree = degree2;
+	}
+	else {
+		kv = Uknot;
+		degree = degree1;
+
+	}
+
+	int which = -1;
+	for (int i = 0; i < kv.size() - 1; i++) {
+		if (value >= kv[i] && value < kv[i + 1]) {
+			which = i;
+			break;
+		}
+	}
+	if (which == -1) {
+		std::cout << "ERROR: DON'T USE POLYNOMIAL WHEN VALUE = " << value << std::endl;
+		exit(0);
+	}
+	// the value is in [U[i], U[i+1]), the Nip are from N(i-p) to N(i)
+	std::vector<double> result;
+	int index = id - (which - degree);
+	if (UVknot) {// check v
+		result = Vbasis[which][index];
+	}
+	else {
+		result = Ubasis[which][index];
+	}
+	return result;
+}
+
+std::vector<std::vector<std::vector<double>>> PolynomialBasis::calculate(const bool uorv) {
+	std::vector<double> kv;
+	int degree;
+	int n;
+	if (uorv) {
+		kv = Vknot;
+		degree = degree2;
+		n = nv;
+	}
+	else {
+		kv = Uknot;
+		degree = degree1;
+		n = nu;
+	}
+	std::vector<std::vector<std::vector<double>>> pl;
+	pl.resize(n + 1);// n+1 intervals;
+	for (int i = 0; i < n+1; i++) {// in interval [U[i], U[i+1])
+		pl[i].resize(degree + 1);
+		for (int j = 0; j < degree + 1; j++) {
+			pl[i][j] = Nip_func(i - degree + j, degree, kv[i], kv);
+		}
+	}
+	return pl;
+
+}
+
+// construct an integration of multiplication of two B-spline basis (intergration of partial(Ni1)*partial(Ni2))
+// the integration domain is [u1, u2]
+double construct_an_integration(const int degree, const std::vector<double>& U,
+	const int partial1, const int partial2, const int i1, const int i2, const double u1, const double u2, 
+	PolynomialBasis &basis, const bool uv) {
+	timer.start();
+	std::vector<double> func1 = basis.poly(i1, u1, uv);
+	//Nip_func(i1, degree, u1, U);
+	std::vector<double> func2 = basis.poly(i2, u1, uv);
+	//Nip_func(i2, degree, u1, U);
+	/*if (basis.poly(i1, u1, uv) != func1) {
+		std::cout << "NOT EQUAL" << std::endl;
+		exit(0);
+	}
+	if (basis.poly(i2, u1, uv) != func2) {
+		std::cout << "NOT EQUAL" << std::endl;
+		exit(0);
+	}
+	assert(basis.poly(i1, u1, uv) == func1);
+	assert(basis.poly(i2, u1, uv) == func2);*/
+	timer.stop();
+	time0 += timer.getElapsedTimeInMilliSec();
+	//std::cout << "degree, "<<degree << std::endl;
+	//std::cout << "func1 and func2" << std::endl;
+	//print_vector(func1);
+	//print_vector(func2);
+	timer.start();
+	func1 = polynomial_differential(func1, partial1);
+	func2 = polynomial_differential(func2, partial2);
+	timer.stop();
+	time1 += timer.getElapsedTimeInMilliSec();
+	//std::cout << "differencial" << std::endl;
+	//print_vector(func1);
+	//print_vector(func2);
+	timer.start();
+	std::vector<double> func = polynomial_times(func1, func2);
+	//std::cout << "times" << std::endl;
+	//print_vector(func);
+	double upper = u2;
+	if (u2 == U.back()) {
+		upper = U.back() - SCALAR_ZERO;
+	}
+	double result = polynomial_integration(func, u1, upper);
+	timer.stop();
+	time2 += timer.getElapsedTimeInMilliSec();
+
+	return result;
+}
 // construct an integration of multiplication of two B-spline basis (intergration of partial(Ni1)*partial(Ni2))
 // the integration domain is [u1, u2]
 double construct_an_integration(const int degree, const std::vector<double>& U,
@@ -201,9 +333,8 @@ double construct_an_integration(const int degree, const std::vector<double>& U,
 
 	return result;
 }
-
 // do partial difference to Pi, the cofficient of jth element Pj.
-double surface_energy_least_square( Bsurface& surface, const int i, const int j) {
+double surface_energy_least_square( Bsurface& surface, const int i, const int j, PolynomialBasis& basis) {
 	// figure out which Pij corresponding to the ith control point
 	int partial_i = i / (surface.nv()+1);
 	int partial_j = i - partial_i * (surface.nv()+1);
@@ -231,19 +362,19 @@ double surface_energy_least_square( Bsurface& surface, const int i, const int j)
 			}
 			// Suu part
 			double value1 = construct_an_integration(degree1, surface.U, 2, 2, 
-				partial_i, coff_i, surface.U[k1], surface.U[k1 + 1]);
+				partial_i, coff_i, surface.U[k1], surface.U[k1 + 1],basis,false);
 			double value2 = construct_an_integration(degree2, surface.V, 0, 0, 
-				partial_j, coff_j, surface.V[k2], surface.V[k2 + 1]);
+				partial_j, coff_j, surface.V[k2], surface.V[k2 + 1], basis, true);
 			// Suv part
 			double value3 = construct_an_integration(degree1, surface.U, 1, 1,
-				partial_i, coff_i, surface.U[k1], surface.U[k1 + 1]);
+				partial_i, coff_i, surface.U[k1], surface.U[k1 + 1], basis, false);
 			double value4 = construct_an_integration(degree2, surface.V, 1, 1,
-				partial_j, coff_j, surface.V[k2], surface.V[k2 + 1]);
+				partial_j, coff_j, surface.V[k2], surface.V[k2 + 1], basis, true);
 			// Svv part
 			double value5 = construct_an_integration(degree1, surface.U, 0, 0,
-				partial_i, coff_i, surface.U[k1], surface.U[k1 + 1]);
+				partial_i, coff_i, surface.U[k1], surface.U[k1 + 1], basis, false);
 			double value6 = construct_an_integration(degree2, surface.V, 2, 2,
-				partial_j, coff_j, surface.V[k2], surface.V[k2 + 1]);
+				partial_j, coff_j, surface.V[k2], surface.V[k2 + 1], basis, true);
 			result += 2 * value1*value2 + 4 * value3*value4 + 2 * value5*value6;
 		}
 	}
@@ -253,13 +384,13 @@ double surface_energy_least_square( Bsurface& surface, const int i, const int j)
 
 
 // which_part = 0: Suu; which_part = 1, Suv; which_part = 2, Svv.
-Eigen::MatrixXd energy_part_of_surface_least_square(Bsurface& surface) {
+Eigen::MatrixXd energy_part_of_surface_least_square(Bsurface& surface, PolynomialBasis& basis) {
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
 	Eigen::MatrixXd result(psize, psize);
 	for (int i = 0; i < psize; i++) {
 		//std::cout << "the ith row of matrix" << std::endl;
 		for (int j = 0; j < psize; j++) {
-			result(i, j) = surface_energy_least_square(surface, i, j);
+			result(i, j) = surface_energy_least_square(surface, i, j,basis);
 		}
 	}
 	std::cout << "energy matrix finish calculation" << std::endl;
@@ -295,13 +426,13 @@ Eigen::MatrixXd lambda_part_of_surface_least_square(Bsurface& surface, const Eig
 	return result;
 }
 
-Eigen::MatrixXd surface_least_square_lambda_multiplier_left_part(Bsurface& surface, const Eigen::MatrixXd& paras) {
+Eigen::MatrixXd surface_least_square_lambda_multiplier_left_part(Bsurface& surface, const Eigen::MatrixXd& paras,PolynomialBasis& basis) {
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
 	int target_size = paras.rows();// nbr of target data points
 	int size = psize + target_size;
 	Eigen::MatrixXd result(size, size);
 	Eigen::MatrixXd rd = Eigen::MatrixXd::Zero(target_size, target_size);// right down corner part
-	Eigen::MatrixXd lu = energy_part_of_surface_least_square(surface);
+	Eigen::MatrixXd lu = energy_part_of_surface_least_square(surface,basis);
 	Eigen::MatrixXd ru = lambda_part_of_surface_least_square(surface, paras);
 	Eigen::MatrixXd ld = eqality_part_of_surface_least_square(surface, paras);
 	std::cout << "sizes" << std::endl;
@@ -348,7 +479,7 @@ void push_control_point_list_into_surface(Bsurface& surface, const std::vector<V
 	return;
 }
 void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::MatrixXd& paras,
-	const Eigen::MatrixXd & points) {
+	const Eigen::MatrixXd & points, PolynomialBasis& basis) {
 	bool sparse_solve = false;
 	using namespace Eigen;
 	typedef SparseMatrix<double> SparseMatrixXd;
@@ -357,7 +488,7 @@ void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::Ma
 	std::vector<Vector3d> cps(psize);// control points
 	Eigen::MatrixXd A;
 	Eigen::FullPivLU<DenseBase<MatrixXd>::PlainMatrix> decomp;
-	A = surface_least_square_lambda_multiplier_left_part(surface, paras);
+	A = surface_least_square_lambda_multiplier_left_part(surface, paras,basis);
 	SparseMatrixXd matB;
 	Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
 	if (sparse_solve) {
