@@ -652,7 +652,7 @@ void get_function_vertices_and_parametrization(const int nbr, const int skip, Ei
 		V = get_contour_sample_points(nbr, skip);
 		break;
 	case 2:
-		srand(19);
+		srand(33);
 		V = get_hyperbolic_sample_points(nbr, skip);
 		break;
 	case 3:
@@ -708,7 +708,7 @@ void make_peak_exmple() {
 	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;; pcolor << 0, 0.9, 0.5;
 
 	Eigen::MatrixXd ver;
-	int nbr = 200;// nbr of points
+	int nbr = 100;// nbr of points
 	int skip = 0;
 	Eigen::MatrixXi F;
 	Eigen::MatrixXd param, param_perturbed;
@@ -721,7 +721,7 @@ void make_peak_exmple() {
 	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
 	std::vector<double> Vknot = Uknot;
 	int perturb_itr = 5;
-	double per_ours = 0.7;
+	double per_ours = 0.2;
 	double per = 0.1;
 	int target_steps = 10; 
 	bool enable_max_fix_nbr = true;

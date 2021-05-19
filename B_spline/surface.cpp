@@ -1187,23 +1187,23 @@ Eigen::MatrixXi select_FCP_based_on_weight(const Eigen::MatrixXi& fcp, std::vect
 		}
 		
 	}
-	//if (updated == false) {// the weight matrix will not renew, now force to remove some redundant fcps, 
-	//	for (int i = 0; i < para_to_feasible.size(); i++) {
-	//		if (para_to_feasible[i].size() > 1) {// this is a redundant fcp
-	//			selected_nbr += 1;
-	//			updated = true;
-	//			if (selected_nbr > maximal_selection) {
-	//				break;
-	//			}
-	//			for (int j = 1; j < para_to_feasible[i].size(); j++) {
-	//				int id0 = para_to_feasible[i][j][0];
-	//				int id1 = para_to_feasible[i][j][1];
-	//				result(id0, id1) = -1;
-	//			}
-	//			para_to_feasible[i].resize(1);// delete other redundant fcps
-	//		}
-	//	}
-	//}
+	if (updated == false) {// the weight matrix will not renew, now force to remove some redundant fcps, 
+		for (int i = 0; i < para_to_feasible.size(); i++) {
+			if (para_to_feasible[i].size() > 1) {// this is a redundant fcp
+				selected_nbr += 1;
+				updated = true;
+				if (selected_nbr > maximal_selection) {
+					break;
+				}
+				for (int j = 1; j < para_to_feasible[i].size(); j++) {
+					int id0 = para_to_feasible[i][j][0];
+					int id1 = para_to_feasible[i][j][1];
+					result(id0, id1) = -1;
+				}
+				para_to_feasible[i].resize(1);// delete other redundant fcps
+			}
+		}
+	}
 	return result;
 
 }
