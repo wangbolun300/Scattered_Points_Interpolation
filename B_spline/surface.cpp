@@ -1187,6 +1187,23 @@ Eigen::MatrixXi select_FCP_based_on_weight(const Eigen::MatrixXi& fcp, std::vect
 		}
 		
 	}
+	//if (updated == false) {// the weight matrix will not renew, now force to remove some redundant fcps, 
+	//	for (int i = 0; i < para_to_feasible.size(); i++) {
+	//		if (para_to_feasible[i].size() > 1) {// this is a redundant fcp
+	//			selected_nbr += 1;
+	//			updated = true;
+	//			if (selected_nbr > maximal_selection) {
+	//				break;
+	//			}
+	//			for (int j = 1; j < para_to_feasible[i].size(); j++) {
+	//				int id0 = para_to_feasible[i][j][0];
+	//				int id1 = para_to_feasible[i][j][1];
+	//				result(id0, id1) = -1;
+	//			}
+	//			para_to_feasible[i].resize(1);// delete other redundant fcps
+	//		}
+	//	}
+	//}
 	return result;
 
 }
@@ -1194,14 +1211,17 @@ Eigen::MatrixXi select_FCP_based_on_weight(const Eigen::MatrixXi& fcp, std::vect
 // pick one fcp for each parameter. this function is used only when the selecting based on weight is finished but
 // still have redundant fcps
 Eigen::MatrixXi remove_redundant_FCP(const Eigen::MatrixXi& fcp, std::vector<std::vector<std::array<int, 2>>> &para_to_feasible) {
-
+	int nbr_re = 0;
 	Eigen::MatrixXi result = Eigen::MatrixXi::Constant(fcp.rows(), fcp.cols(), -1);
 	for (int i = 0; i < para_to_feasible.size(); i++) {
-		
+		if (para_to_feasible[i].size() > 1) {
+			nbr_re++;
+		}
 		int id0 = para_to_feasible[i].back()[0];
 		int id1 = para_to_feasible[i].back()[1];
 		result(id0, id1) = i;
 	}
+	std::cout << "** redundant fcp nbr " << nbr_re << std::endl;
 	return result;
 
 }
