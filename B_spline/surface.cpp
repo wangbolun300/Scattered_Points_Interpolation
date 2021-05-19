@@ -1055,7 +1055,74 @@ Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int d
 	}
 	return result;
 }
+// bool updated shows if there is difference between the input and output
+// maximal_selection is the maximal number of fcps we select in this step
+Eigen::MatrixXi select_FCP_based_on_weight_naive(const Eigen::MatrixXi& fcp, std::vector<std::vector<std::array<int, 2>>> &para_to_feasible,
+	const Eigen::MatrixXd &weight_matrix//, bool& updated, const int maximal_selection
+) {
+	//updated = false;
 
+	// reorder the weight
+	std::vector<std::vector<std::vector<std::array<int, 2>>>> selected(para_to_feasible.size());
+	int selected_nbr = 0;
+	for (int i = 0; i < para_to_feasible.size(); i++) {
+		double weight = 0;
+		for (int j = 0; j < para_to_feasible[i].size(); j++) {
+			int id0 = para_to_feasible[i][j][0];
+			int id1 = para_to_feasible[i][j][1];
+			double w = weight_matrix(id0, id1);
+			if (w > weight) {
+				std::vector<std::array<int, 2>> newlist;
+				newlist.push_back({ {id0,id1} });
+				selected[i].push_back(newlist);
+				weight = w;
+			}
+			else {
+				if (w == weight) {
+					selected[i].back().push_back({ {id0,id1} });
+				}
+			}
+		}
+	}
+
+	// select highest weighted fcp
+	bool total_copy = false;
+	Eigen::MatrixXi result = Eigen::MatrixXi::Constant(fcp.rows(), fcp.cols(), -1);
+	for (int i = 0; i < para_to_feasible.size(); i++) {
+		assert(!selected[i].empty());
+
+		//if (selected[i].size() > 1 && !total_copy) {
+
+		//	selected_nbr += 1;
+		//	if (selected_nbr > maximal_selection) {
+		//		total_copy = true;
+		//	}
+		//	//updated = true;
+		//}
+		if (total_copy) {
+			for (int j = 0; j < para_to_feasible[i].size(); j++) {
+				int id0 = para_to_feasible[i][j][0];
+				int id1 = para_to_feasible[i][j][1];
+				result(id0, id1) = i;
+			}
+		}
+		else {
+			std::vector<std::array<int, 2>> highest = selected[i].back();
+			para_to_feasible[i] = highest;
+			for (int j = 0; j < highest.size(); j++) {
+				int id0 = highest[j][0];
+				int id1 = highest[j][1];
+				result(id0, id1) = i;
+				if (weight_matrix(id0, id1) == 1) {// if no one shares fcp, meaning the parameter is 0 or 1, choose one fcp is enough
+					break;
+				}
+			}
+		}
+
+	}
+	return result;
+
+}
 // bool updated shows if there is difference between the input and output
 // maximal_selection is the maximal number of fcps we select in this step
 Eigen::MatrixXi select_FCP_based_on_weight(const Eigen::MatrixXi& fcp, std::vector<std::vector<std::array<int, 2>>> &para_to_feasible,
@@ -1131,14 +1198,71 @@ Eigen::MatrixXi remove_redundant_FCP(const Eigen::MatrixXi& fcp, std::vector<std
 	Eigen::MatrixXi result = Eigen::MatrixXi::Constant(fcp.rows(), fcp.cols(), -1);
 	for (int i = 0; i < para_to_feasible.size(); i++) {
 		
-		int id0 = para_to_feasible[i][0][0];
-		int id1 = para_to_feasible[i][0][1];
+		int id0 = para_to_feasible[i].back()[0];
+		int id1 = para_to_feasible[i].back()[1];
 		result(id0, id1) = i;
 	}
 	return result;
 
 }
+Eigen::MatrixXd weight_matrix_calculation(const Eigen::MatrixXi& fcp,const Eigen::MatrixXi& interval_matrix,
+	const int degree) {
+	// we define weight here. when more fcp share control points, the weight is smaller;
+	// when there are more points in this row, the weight is smaller
 
+	int rows = fcp.rows();
+	int cols = fcp.cols();
+
+	const auto weight_strategy = [](const std::vector<int>& vec, const int nbr_points) {
+		int sum = 0;
+		// weight is the 
+		for (int i = 1; i < vec.size(); i++) {
+			sum += vec[i] * vec[i] * i;
+		}
+		double result = 1 / double(sum*nbr_points);
+		return result;
+	};
+	// initialize weight matrix
+	Eigen::MatrixXd weight_matrix = Eigen::MatrixXd::Constant(rows, cols, -1);
+	
+	
+
+	for (int j = 0; j < cols; j++) {// for each column
+		for (int i = 0; i < rows; i++) {
+			if (fcp(i, j) < 0) {
+				continue;
+			}
+			int interval = interval_matrix(i, j);
+			std::vector<int> interval_info(degree + 2, 0);// h = interval_info[r] means there are h fcps sharing r control points 
+			if (interval < 0) {// interval value is -2: no other fcp share control points with it 
+				weight_matrix(i, j) = 1;
+			}
+			else {// search this column if there is overlap
+				int col_nbr_pts = 0;// how many points there are in this column (except for whose parameter is 0 or 1)
+				for (int k = 0; k < rows; k++) {
+					if (fcp(k, j) < 0) {// if this point does not exist
+						continue;
+					}
+					int other_interval = interval_matrix(k, j);
+					if (other_interval < 0) {// if -1 or -2, no need to count 
+						continue;
+					}
+					col_nbr_pts += 1;
+					int diff = abs(other_interval - interval);
+					if (diff > degree) {
+						continue;
+					}
+					int nbr_share = degree + 1 - diff;// meaning that fcp(i,j) share nbr_share points with fcp(k,j).
+					assert(nbr_share > 0);
+					interval_info[nbr_share] += 1;
+				}
+				double weight = weight_strategy(interval_info, col_nbr_pts);
+				weight_matrix(i, j) = weight;
+			}
+		}
+	}
+	return weight_matrix;
+}
 
 // calculate weights and select ACP according to the weight
 Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(const Eigen::MatrixXi& fcp,const bool v_direction,
@@ -1163,19 +1287,6 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 		}
 		return result;
 	};
-	
-	// we define weight here. when more fcp share control points, the weight is smaller;
-	// when there are more points in this row, the weight is smaller
-	const auto weight_calculation = [](const std::vector<int>& vec, const int nbr_points) {
-		int sum = 0;
-		// weight is the 
-		for (int i = 1; i < vec.size(); i++) {
-			sum += vec[i]*vec[i] * i;
-		}
-		double result = 1 / double(sum*nbr_points);
-		return result;
-	};
-
 	
 
 	int rows = fcp.rows();
@@ -1226,48 +1337,22 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 
 	bool updated = true;
 	Eigen::MatrixXi selected_fcp = fcp;
+	
 	while (updated) {
 		// calculate weight
-		weight_matrix= Eigen::MatrixXd::Constant(rows, cols, -1);
-		for (int j = 0; j < cols; j++) {// for each column
-			for (int i = 0; i < rows; i++) {
-				if (selected_fcp(i, j) < 0) {
-					continue;
-				}
-				int interval = interval_matrix(i, j);
-				std::vector<int> interval_info(degree + 2, 0);// h = interval_info[r] means there are h fcps sharing r control points 
-				if (interval < 0) {// interval value is -2: no other fcp share control points with it 
-					weight_matrix(i, j) = 1;
-				}
-				else {// search this column if there is overlap
-					int col_nbr_pts = 0;// how many points there are in this column (except for whose parameter is 0 or 1)
-					for (int k = 0; k < rows; k++) {
-						if (selected_fcp(k, j) < 0) {// if this point does not exist
-							continue;
-						}
-						int other_interval = interval_matrix(k, j);
-						if (other_interval < 0) {// if -1 or -2, no need to count 
-							continue;
-						}
-						col_nbr_pts += 1;
-						int diff = abs(other_interval - interval);
-						if (diff > degree) {
-							continue;
-						}
-						int nbr_share = degree + 1 - diff;// meaning that fcp(i,j) share nbr_share points with fcp(k,j).
-						assert(nbr_share > 0);
-						interval_info[nbr_share] += 1;
-					}
-					double weight = weight_calculation(interval_info, col_nbr_pts);
-					weight_matrix(i, j) = weight;
-				}
-			}
-		}
+		weight_matrix = weight_matrix_calculation(selected_fcp, interval_matrix, degree);
+		//TODO we are changing here
 		// calculate weight finished
-		selected_fcp = select_FCP_based_on_weight(fcp, para_to_feasible, weight_matrix,updated, maximal_processing);
+		selected_fcp = 
+			select_FCP_based_on_weight(fcp, para_to_feasible, weight_matrix,updated, maximal_processing);
+			//select_FCP_based_on_weight_naive(fcp, para_to_feasible, weight_matrix); updated = false;// totally selected
+		/*std::cout << "interval\n" << interval_matrix << std::endl;
+		std::cout << "\n\nfcp\n" << fcp << std::endl;
+		std::cout << "weight\n" << weight_matrix << std::endl;
+		std::cout << "acp\n" << selected_fcp << std::endl;*/
 		
 	}
-
+	//exit(0);
 	selected_fcp = remove_redundant_FCP(selected_fcp, para_to_feasible);
 	
 	return selected_fcp;
