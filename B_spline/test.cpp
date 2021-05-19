@@ -646,15 +646,19 @@ void get_function_vertices_and_parametrization(const int nbr, const int skip, Ei
 	case 0:
 		srand(15);
 		V = get_peak_sample_points(nbr, skip);
+		break;
 	case 1:
 		srand(7);
 		V = get_contour_sample_points(nbr, skip);
+		break;
 	case 2:
 		srand(19);
 		V = get_hyperbolic_sample_points(nbr, skip);
+		break;
 	case 3:
 		srand(24);
 		V = get_sinus_sample_points(nbr, skip);
+		break;
 	case 4:
 		srand(5);
 		
@@ -664,33 +668,60 @@ void get_function_vertices_and_parametrization(const int nbr, const int skip, Ei
 		find_border_loop(param, loop);
 		
 		constrained_delaunay_triangulation(param, loop, F);
+		need_param = false;
+		break;
 		
-		return;
 	}
 
 
 	if (need_param) {
 		direct_project_x_y_and_parametrization(V, param, F);
 	}
-	
+	return;
 }
-
+double perturbed_distance(const Eigen::MatrixXd&p1, const Eigen::MatrixXd&p2) {
+	double dis = 0;
+	for (int i = 0; i < p1.rows(); i++) {
+		double new_dis = (p1.row(i) - p2.row(i)).norm();
+		if (new_dis > dis) {
+			dis = new_dis;
+		}
+	}
+	return dis;
+}
+double max_interpolation_err(const Eigen::MatrixXd&ver, const Eigen::MatrixXd& param, Bsurface& surface) {
+	double err = 0;
+	for (int i = 0; i < ver.rows(); i++) {
+		Vector3d v = ver.row(i);
+		double parau = param(i, 0);
+		double parav = param(i, 1);
+		Vector3d vs = BSplineSurfacePoint(surface, parau, parav);
+		double newerr = (v - vs).norm();
+		if (newerr > err) {
+			err = newerr;
+		}
+	}
+	return err;
+}
 void make_peak_exmple() {
+	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3), pcolor(1, 3);
+	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;; pcolor << 0, 0.9, 0.5;
+
 	Eigen::MatrixXd ver;
-	int nbr = 200;// nbr of points
+	int nbr = 100;// nbr of points
 	int skip = 0;
 	Eigen::MatrixXi F;
 	Eigen::MatrixXd param, param_perturbed;
 	//get_mesh_vertices_and_parametrization(ver, F, param);
-	
-	get_function_vertices_and_parametrization(nbr, skip, ver, F, param, 4);
+	int method = 1;
+	get_function_vertices_and_parametrization(nbr, skip, ver, F, param, method);
 	
 	int degree1 = 3;
 	int degree2 = 3;
 	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
 	std::vector<double> Vknot = Uknot;
 	int perturb_itr = 5;
-	double per_ours = 0.2;
+	double per_ours = 0.3;
 	double per = 0.1;
 	int target_steps = 10; 
 	bool enable_max_fix_nbr = true;
@@ -698,16 +729,21 @@ void make_peak_exmple() {
 	mesh_parameter_perturbation(param, F, param_perturbed, perturb_itr);
 	std::cout << "param_perturbed\n" << param_perturbed << std::endl;
 	igl::opengl::glfw::Viewer viewer;
-	/*viewer.data().set_mesh(param_perturbed, F);
-	viewer.launch();*/
-	generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr,per_ours,per, target_steps, enable_max_fix_nbr);
+	if (0) {
+		//viewer.data().set_mesh(param_perturbed, F);
+		viewer.data().add_points(ver, ecolor);
+		viewer.launch();
+		exit(0);
+	}
 	
+	generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr,per_ours,per, target_steps, enable_max_fix_nbr);
+	//lofting_method_generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr, per);
 
 	Eigen::MatrixXd paramout(ver.rows(), 3), zeros(ver.rows(),1);
 	zeros = Eigen::MatrixXd::Constant(ver.rows(), 1, 0);
 	
 	paramout << param_perturbed, zeros;
-
+	std::cout << "perturbed max dis " << perturbed_distance(param, param_perturbed) << std::endl;
 	Bsurface surface;
 	Eigen::MatrixXd SPs;
 	Eigen::MatrixXi SFs;
@@ -721,7 +757,7 @@ void make_peak_exmple() {
 		
 		surface_visulization(surface, 100, SPs, SFs);
 	}
-
+	std::cout << "maximal interpolation error " << max_interpolation_err(ver, param_perturbed, surface) << std::endl;
 	bool write_file = true;
 	if (write_file)
 	{
@@ -733,8 +769,7 @@ void make_peak_exmple() {
 	
 
 	
-	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3), pcolor(1, 3);
-	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;; pcolor << 0, 0.9, 0.5;
+
 
 	/*
 	viewer.data().set_edges(bdver, edges, fcolor);*/

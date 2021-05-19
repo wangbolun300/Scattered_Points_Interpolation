@@ -1419,6 +1419,7 @@ void generate_interpolation_knot_vectors(const bool start_from_v_direction, int 
 	std::vector<double> Ugrid, Vgrid;
 	Eigen::MatrixXi grid_map;
 	generate_UV_grid(param, Ugrid, Vgrid, grid_map);
+	std::cout << "** UV grid sizes, " << Ugrid.size() << ", " << Vgrid.size() << std::endl;
 	bool fully_fixed;
 	for (int i = 0; i < Vgrid.size(); i++) {
 		std::vector<double> paras = get_iso_line_parameters(degree1, degree2, true, i, Ugrid, Vgrid, grid_map);
@@ -1469,4 +1470,46 @@ void generate_interpolation_knot_vectors(const bool start_from_v_direction, int 
 	param_perturbed = param;
 	std::cout << "knot fixing finished" << std::endl;
 	return;
+}
+
+void lofting_method_generate_interpolation_knot_vectors(const bool start_from_v_direction, int degree1, int degree2,
+	std::vector<double>& Uknot, std::vector<double>& Vknot,
+	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed, const Eigen::MatrixXi& F, const int mesh_perturbation_level,
+	 const double per) {
+	Eigen::MatrixXd param;
+	mesh_parameter_perturbation(param_original, F, param, mesh_perturbation_level);
+	std::vector<double> Ugrid, Vgrid;
+	Eigen::MatrixXi grid_map;
+	generate_UV_grid(param, Ugrid, Vgrid, grid_map);
+	std::cout << "** UV grid sizes, " << Ugrid.size() << ", " << Vgrid.size() << std::endl;
+	bool fully_fixed;
+	for (int i = 0; i < Vgrid.size(); i++) {
+		std::vector<double> paras = get_iso_line_parameters(degree1, degree2, true, i, Ugrid, Vgrid, grid_map);
+		//std::cout << "\nthe " << i << "th iso line parameters " << std::endl;
+		//print_vector(paras);
+		Uknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Uknot, paras, per, fully_fixed);
+		assert(fully_fixed == true);
+	}
+	std::cout << "finished initialize Uknot" << std::endl;
+	print_vector(Uknot);
+	/*std::cout << "\n** the fixed U knot" << std::endl;
+	*/
+
+	// fix iso-u lines knot vector
+	for (int i = 0; i < Ugrid.size(); i++) {// for each u parameter
+		std::vector<double> paras = get_iso_line_parameters(degree1, degree2, false, i, Ugrid, Vgrid, grid_map);
+		/*std::cout << "\nthe " << i << "th iso line parameters " << std::endl;
+		print_vector(paras);*/
+		Vknot = fix_knot_vector_to_interpolate_curve_WKW(degree2, Vknot, paras, per, fully_fixed);
+		assert(fully_fixed == true);
+
+	}
+	std::cout << "finished initialize Vknot" << std::endl;
+	print_vector(Vknot);
+	if (start_from_v_direction) {
+		Vknot = fix_knot_vector_to_interpolate_curve_WKW(degree2, Vknot, Vgrid, per, fully_fixed);
+	}
+	else {
+		Uknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Uknot, Ugrid, per, fully_fixed);
+	}
 }
