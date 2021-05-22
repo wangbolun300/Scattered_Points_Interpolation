@@ -713,7 +713,7 @@ void make_peak_exmple() {
 	Eigen::MatrixXi F;
 	Eigen::MatrixXd param, param_perturbed;
 	//get_mesh_vertices_and_parametrization(ver, F, param);
-	int method = 2;
+	int method = 3;
 	get_function_vertices_and_parametrization(nbr, skip, ver, F, param, method);
 	
 	int degree1 = 3;

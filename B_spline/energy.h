@@ -7,6 +7,7 @@ public:
 	PolynomialBasis();
 	void init(Bsurface& surface);
 	std::vector<double> poly(const int id, const double value, const bool UVknot);
+	void clear();
 private:
 	std::vector<double> Uknot;
 	std::vector<double> Vknot;

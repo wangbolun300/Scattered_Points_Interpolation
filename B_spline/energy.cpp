@@ -3,6 +3,7 @@
 #include<igl/Timer.h>
 #include <Eigen/Dense>
 #include<Eigen/Sparse>
+#include<Eigen/SparseLU>
 igl::Timer timer;
 double time0 = 0, time1 = 0, time2 = 0, time3 = 0;
 std::vector<double> polynomial_simplify(const std::vector<double>& poly) {
@@ -177,6 +178,13 @@ void PolynomialBasis::init(Bsurface& surface) {
 	Vbasis = calculate(1);
 	inited = true;
 	return;
+}
+void PolynomialBasis::clear() {
+	Uknot.clear();
+	Vknot.clear();
+	Ubasis.clear();
+	Vbasis.clear();
+	inited = false;
 }
 PolynomialBasis::PolynomialBasis(Bsurface& surface) {
 	init(surface);
@@ -480,7 +488,7 @@ void push_control_point_list_into_surface(Bsurface& surface, const std::vector<V
 }
 void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::MatrixXd& paras,
 	const Eigen::MatrixXd & points, PolynomialBasis& basis) {
-	bool sparse_solve = false;
+	bool sparse_solve = true;
 	using namespace Eigen;
 	typedef SparseMatrix<double> SparseMatrixXd;
 	assert(paras.rows() == points.rows());
@@ -490,7 +498,7 @@ void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::Ma
 	Eigen::FullPivLU<DenseBase<MatrixXd>::PlainMatrix> decomp;
 	A = surface_least_square_lambda_multiplier_left_part(surface, paras,basis);
 	SparseMatrixXd matB;
-	Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
+	Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
 	if (sparse_solve) {
 		matB = A.sparseView();
 
