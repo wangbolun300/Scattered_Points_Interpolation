@@ -390,6 +390,17 @@ double surface_energy_least_square( Bsurface& surface, const int i, const int j,
 	
 }
 
+// calculate thin-plate-energy in region [Ui, U(i+1)]x[Vj, V(j+1)]
+//void surface_energy_calculation(Bsurface& surface, const int i, const int j, PolynomialBasis& basis,
+//	double &suu, double& svv, double&suv) {
+//	int degree1 = surface.degree1;
+//	int degree2 = surface.degree2;
+//	int start1 = i - degree1;
+//	int end1 = i;
+//	int start2 = j - degree2;
+//	int end2 = j;
+//	xx
+//}
 
 // which_part = 0: Suu; which_part = 1, Suv; which_part = 2, Svv.
 Eigen::MatrixXd energy_part_of_surface_least_square(Bsurface& surface, PolynomialBasis& basis) {
@@ -397,7 +408,7 @@ Eigen::MatrixXd energy_part_of_surface_least_square(Bsurface& surface, Polynomia
 	Eigen::MatrixXd result(psize, psize);
 	for (int i = 0; i < psize; i++) {
 		//std::cout << "the ith row of matrix" << std::endl;
-		for (int j = 0; j < psize; j++) {
+		for (int j = i; j < psize; j++) {
 			result(i, j) = surface_energy_least_square(surface, i, j,basis);
 		}
 	}
@@ -441,8 +452,10 @@ Eigen::MatrixXd surface_least_square_lambda_multiplier_left_part(Bsurface& surfa
 	Eigen::MatrixXd result(size, size);
 	Eigen::MatrixXd rd = Eigen::MatrixXd::Zero(target_size, target_size);// right down corner part
 	Eigen::MatrixXd lu = energy_part_of_surface_least_square(surface,basis);
-	Eigen::MatrixXd ru = lambda_part_of_surface_least_square(surface, paras);
 	Eigen::MatrixXd ld = eqality_part_of_surface_least_square(surface, paras);
+	Eigen::MatrixXd ru = -ld.transpose();
+		//lambda_part_of_surface_least_square(surface, paras);
+	
 	std::cout << "sizes" << std::endl;
 	std::cout << "lu, " << lu.rows() << " " << lu.cols() << std::endl;
 	std::cout << "ru, " << ru.rows() << " " << ru.cols() << std::endl;

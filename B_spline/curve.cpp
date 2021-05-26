@@ -706,7 +706,7 @@ std::vector<double> merge_two_knot_vectors(const std::vector<double> &U1, const 
 	for (int i = 0; i < degree + 1; i++) {
 		v.push_back(U1.back());
 	}
-	print_vector(v);
+	//print_vector(v);
 	return v;
 }
 
@@ -862,7 +862,7 @@ std::vector<int> feasible_control_point_of_given_parameter(const double para, co
 		result.push_back(which - degree);
 	}
 	else {
-		if (para > U[which + 1]) {
+		/*if (para > U[which + 1]) {
 			compare = ">";
 		}
 		if (para < U[which + 1]) {
@@ -870,8 +870,8 @@ std::vector<int> feasible_control_point_of_given_parameter(const double para, co
 		}
 		if (para == U[which + 1]) {
 			compare = "=";
-		}
-		std::cout << para << compare<<" is too close to " << U[which + 1]<<"i-p is "<<which-degree<<" N(i-p) is "<<Nip(which-degree,degree,para,U) << std::endl;
+		}*/
+		//std::cout << para << compare<<" is too close to " << U[which + 1]<<"i-p is "<<which-degree<<" N(i-p) is "<<Nip(which-degree,degree,para,U) << std::endl;
 	}
 	for (int k = which - degree + 1; k < which; k++) {// from i-p to i-1
 		result.push_back(k);
@@ -880,7 +880,7 @@ std::vector<int> feasible_control_point_of_given_parameter(const double para, co
 		result.push_back(which);
 	}
 	else {
-		if (para > U[which]) {
+		/*if (para > U[which]) {
 			compare = ">";
 		}
 		if (para < U[which]) {
@@ -888,8 +888,8 @@ std::vector<int> feasible_control_point_of_given_parameter(const double para, co
 		}
 		if (para == U[which]) {
 			compare = "=";
-		}
-		std::cout << para <<compare<< " is too close to " << U[which] << "i is " << which  << " N(i) is " << Nip(which, degree, para, U) << std::endl;
+		}*/
+		//std::cout << para <<compare<< " is too close to " << U[which] << "i is " << which  << " N(i) is " << Nip(which, degree, para, U) << std::endl;
 	}
 	assert(result.size() > 0);
 	return result;

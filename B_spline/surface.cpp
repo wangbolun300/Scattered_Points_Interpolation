@@ -1561,10 +1561,10 @@ void generate_interpolation_knot_vectors(const bool start_from_v_direction, int 
 			std::cout << "switched" << std::endl;
 
 		}
-		std::cout << "Uknot" << std::endl;
+		/*std::cout << "Uknot" << std::endl;
 		print_vector(Uknot);
 		std::cout << "Vknot" << std::endl;
-		print_vector(Vknot);
+		print_vector(Vknot);*/
 	}
 	/*Uknot = temp_refine_knot_vector(Uknot, degree1);
 	Vknot = temp_refine_knot_vector(Vknot, degree2);*/
