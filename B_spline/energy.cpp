@@ -224,9 +224,13 @@ std::vector<double> PolynomialBasis::poly(const int id, const double value, cons
 	std::vector<double> result;
 	int index = id - (which - degree);
 	if (UVknot) {// check v
+		assert(which < Vbasis.size());
+		assert(index < Vbasis[which].size());
 		result = Vbasis[which][index];
 	}
 	else {
+		assert(which < Ubasis.size());
+		assert(index < Ubasis[which].size());
 		result = Ubasis[which][index];
 	}
 	return result;
@@ -248,14 +252,90 @@ std::vector<std::vector<std::vector<double>>> PolynomialBasis::calculate(const b
 	}
 	std::vector<std::vector<std::vector<double>>> pl;
 	pl.resize(n + 1);// n+1 intervals;
-	for (int i = 0; i < n+1; i++) {// in interval [U[i], U[i+1])
+	std::cout << "before giving values" << std::endl;
+	for (int i = degree; i < n+1; i++) {// in interval [U[i], U[i+1])
 		pl[i].resize(degree + 1);
 		for (int j = 0; j < degree + 1; j++) {
 			pl[i][j] = Nip_func(i - degree + j, degree, kv[i], kv);
 		}
 	}
+	std::cout << "after giving values" << std::endl;
 	return pl;
 
+}
+std::vector<std::vector<std::vector<double>>> PartialBasis::do_partial(const
+	std::vector<std::vector<std::vector<double>>>&basis) {
+	std::vector<std::vector<std::vector<double>>> result(basis.size());
+	for (int i = 0; i < basis.size(); i++) {
+		result[i].resize(basis[i].size());
+		for (int j = 0; j < basis[i].size(); j++) {
+			result[i][j] = polynomial_differential(basis[i][j]);
+		}
+	}
+	return result;
+}
+PartialBasis::PartialBasis(PolynomialBasis& basis, Bsurface& surface) {
+	Ubasis = basis.Ubasis;
+	Vbasis = basis.Vbasis;
+	Ubasis_1 = do_partial(Ubasis); Vbasis_1 = do_partial(Vbasis);
+	Ubasis_2 = do_partial(Ubasis_1); Vbasis_2 = do_partial(Vbasis_1);
+	Uknot = surface.U;
+	Vknot = surface.V;
+	degree1 = surface.degree1;
+	degree2 = surface.degree2;
+}
+std::vector<double> PartialBasis::poly(const int id, const double value, const bool UVknot, int partial) {
+	std::vector<double> kv;
+	int degree;
+
+	if (UVknot) {
+		kv = Vknot;
+		degree = degree2;
+	}
+	else {
+		kv = Uknot;
+		degree = degree1;
+
+	}
+
+	int which = -1;
+	for (int i = 0; i < kv.size() - 1; i++) {
+		if (value >= kv[i] && value < kv[i + 1]) {
+			which = i;
+			break;
+		}
+	}
+	if (which == -1) {
+		std::cout << "ERROR: DON'T USE POLYNOMIAL WHEN VALUE = " << value << std::endl;
+		exit(0);
+	}
+	// the value is in [U[i], U[i+1]), the Nip are from N(i-p) to N(i)
+	std::vector<double> result;
+	int index = id - (which - degree);
+	if (UVknot) {// check v
+		if (partial == 0) {
+			result = Vbasis[which][index];
+		}
+		if (partial == 1) {
+			result = Vbasis_1[which][index];
+		}
+		if (partial == 2) {
+			result = Vbasis_2[which][index];
+		}
+		
+	}
+	else {
+		if (partial == 0) {
+			result = Ubasis[which][index];
+		}
+		if (partial == 1) {
+			result = Ubasis_1[which][index];
+		}
+		if (partial == 2) {
+			result = Ubasis_2[which][index];
+		}
+	}
+	return result;
 }
 
 // construct an integration of multiplication of two B-spline basis (intergration of partial(Ni1)*partial(Ni2))
@@ -362,9 +442,12 @@ double surface_energy_least_square( Bsurface& surface, const int i, const int j,
 	double result = 0;
 	for (int k1 = partial_i; k1 < partial_i + degree1 + 1; k1++) {
 		for (int k2 = partial_j; k2 < partial_j + degree2 + 1; k2++) {
+			//std::cout << " k1, k2 " << k1 << " " << k2 << std::endl;
 			if (coff_i<k1 - degree1 || coff_i>k1 || coff_j<k2 - degree2 || coff_j>k2) {
 				continue;
 			}
+			assert(k1 + 1 < surface.U.size());
+			assert(k2 + 1 < surface.V.size());
 			if (surface.U[k1] == surface.U[k1 + 1] || surface.V[k2] == surface.V[k2 + 1]) {
 				continue;// if the area is 0, then no need to compute
 			}
@@ -390,17 +473,138 @@ double surface_energy_least_square( Bsurface& surface, const int i, const int j,
 	
 }
 
+// in interval [U[i], U[i+1])
+double discrete_surface_partial_value_squared(const int partial1, const int partial2, 
+	const int i, const int j, Bsurface& surface,
+	PartialBasis& basis, const double u, const double v) {
+	int p = surface.degree1;
+	int q = surface.degree2;
+	Eigen::VectorXd Nl(p + 1);
+	Eigen::VectorXd Nr(q + 1);
+	for (int k = 0; k < p + 1; k++) {
+		Nl[k] = polynomial_value(basis.poly(i - p + k, u, 0, partial1), u);
+	}
+	for (int k = 0; k < q + 1; k++) {
+		Nr[k] = polynomial_value(basis.poly(j - q + k, v, 1, partial2), v);
+	}
+	Eigen::MatrixXd px(p + 1, q + 1), py(p + 1, q + 1), pz(p + 1, q + 1);
+	for (int k1 = 0; k1 < p + 1; k1++) {
+		for (int k2 = 0; k2 < q + 1; k2++) {
+			px(k1, k2) = surface.control_points[i - p + k1][j - q + k2][0];
+			py(k1, k2) = surface.control_points[i - p + k1][j - q + k2][1];
+			pz(k1, k2) = surface.control_points[i - p + k1][j - q + k2][2];
+		}
+	}
+	Vector3d result;
+	double x = (Nl.transpose()*px*Nr);
+	double y = (Nl.transpose()*py*Nr);
+	double z = (Nl.transpose()*pz*Nr);
+	result[0] = x * x;
+	result[1] = y * y;
+	result[2] = z * z;
+	return result.norm();
+}
+
 // calculate thin-plate-energy in region [Ui, U(i+1)]x[Vj, V(j+1)]
-//void surface_energy_calculation(Bsurface& surface, const int i, const int j, PolynomialBasis& basis,
-//	double &suu, double& svv, double&suv) {
-//	int degree1 = surface.degree1;
-//	int degree2 = surface.degree2;
-//	int start1 = i - degree1;
-//	int end1 = i;
-//	int start2 = j - degree2;
-//	int end2 = j;
-//	xx
-//}
+Eigen::MatrixXd surface_energy_calculation(Bsurface& surface, PartialBasis& basis,
+	 const int discrete, Eigen::MatrixXd &energy_uu, Eigen::MatrixXd &energy_vv, Eigen::MatrixXd& energy_uv) {
+	int p = surface.degree1;
+	int q = surface.degree2;
+	std::vector<double> U = surface.U;
+	std::vector<double> V = surface.V;
+	int nu = surface.nu(); // U[p]=0, U[nu+1]=1
+	int nv = surface.nv();
+	int uint = nu + 1 - p; //nbr of u intervals
+	int vint = nv + 1 - q;
+	int n_sample = discrete + 2;// in each interval, there are discrete+2 sample points
+	energy_uu.resize(uint, vint);
+	energy_vv.resize(uint, vint);
+	energy_uv.resize(uint, vint);
+	for (int i = 0; i < uint; i++) {
+		for (int j = 0; j < vint; j++) {
+			double u0 = U[i + p];
+			double u1 = U[i + p + 1];
+			double v0 = V[j + q];
+			double v1 = V[j + q + 1];
+			double delta_u = (u1 - u0) / (n_sample - 1);
+			double delta_v = (v1 - v0) / (n_sample - 1);
+			int Ni = i + p;// interval is [U[Ni], U[Ni+1])
+			int Nj = j + q;
+			Eigen::MatrixXd values_uu(n_sample, n_sample);
+			Eigen::MatrixXd values_uv(n_sample, n_sample);
+			Eigen::MatrixXd values_vv(n_sample, n_sample);
+			for (int k1 = 0; k1 < n_sample; k1++) {
+				for (int k2 = 0; k2 < n_sample; k2++) {
+					//int Ni = k1 == n_sample - 1 ? i + p + 1 : i + p;// if select the last point, 
+					double uratio = k1 < n_sample - 1 ? 1 : 1 - SCALAR_ZERO;
+					double vratio = k2 < n_sample - 1 ? 1 : 1 - SCALAR_ZERO;
+					double uvalue = u0 + delta_u * k1*uratio;
+					double vvalue = v0 + delta_v * k2*vratio;
+
+					// Suu
+					values_uu(k1, k2) = discrete_surface_partial_value_squared(2, 0, Ni, Nj, surface, basis, uvalue, vvalue);
+					//Svv
+					values_vv(k1, k2) = discrete_surface_partial_value_squared(0, 2, Ni, Nj, surface, basis, uvalue, vvalue);
+					//Suv
+					values_uv(k1, k2) = discrete_surface_partial_value_squared(1, 1, Ni, Nj, surface, basis, uvalue, vvalue);
+
+				}
+			}
+			double uusum = 0;
+			double vvsum = 0;
+			double uvsum = 0;
+			double single_area = delta_u * delta_v;
+			for (int k1 = 0; k1 < n_sample-1; k1++) {
+				for (int k2 = 0; k2 < n_sample-1; k2++) {
+					uusum += (values_uu(k1, k2) + values_uu(k1, k2 + 1) + values_uu(k1 + 1, k2) + values_uu(k1 + 1, k2 + 1)) / 4;
+					vvsum += (values_vv(k1, k2) + values_vv(k1, k2 + 1) + values_vv(k1 + 1, k2) + values_vv(k1 + 1, k2 + 1)) / 4;
+					uvsum += (values_uv(k1, k2) + values_uv(k1, k2 + 1) + values_uv(k1 + 1, k2) + values_uv(k1 + 1, k2 + 1)) / 4;
+
+				}
+			}
+			energy_uu(i, j) = uusum * single_area;
+			energy_vv(i, j) = vvsum * single_area;
+			energy_uv(i, j) = uvsum * single_area;
+		}
+	}
+	Eigen::MatrixXd energy(uint, vint);
+	energy = energy_uu + 2 * energy_uv + energy_vv;
+	return energy;
+	std::cout << "energy\n" << energy << std::endl;
+	
+}
+
+// [U[which],U[which+1]) is the problematic one
+void detect_max_energy_interval(Bsurface& surface, const Eigen::MatrixXd& energy, const Eigen::MatrixXd &energy_uu,
+	const Eigen::MatrixXd & energy_vv, bool& uorv, int &which) {
+	int k1, k2;
+	double em = 0;
+	for (int i = 0; i < energy.rows(); i++) {
+		for (int j = 0; j < energy.cols(); j++) {
+			double evalue = energy(i, j);
+			if (evalue > em) {
+				em = evalue;
+				k1 = i;
+				k2 = j;
+			}
+		}
+	}
+	std::cout << "max energy " << em << std::endl;
+	int p = surface.degree1;
+	int q = surface.degree2;
+	int u_interval = k1 + p;
+	int v_interval = k2 + q;
+	if (energy_uu(k1, k2) > energy_vv(k1, k2)) {
+		uorv = 0;
+		which = u_interval;
+	}
+	else {
+		which = v_interval;
+		uorv = 1;
+	}
+	return;
+}
+
 
 // which_part = 0: Suu; which_part = 1, Suv; which_part = 2, Svv.
 Eigen::MatrixXd energy_part_of_surface_least_square(Bsurface& surface, PolynomialBasis& basis) {
@@ -408,7 +612,7 @@ Eigen::MatrixXd energy_part_of_surface_least_square(Bsurface& surface, Polynomia
 	Eigen::MatrixXd result(psize, psize);
 	for (int i = 0; i < psize; i++) {
 		//std::cout << "the ith row of matrix" << std::endl;
-		for (int j = i; j < psize; j++) {
+		for (int j = 0; j < psize; j++) {
 			result(i, j) = surface_energy_least_square(surface, i, j,basis);
 		}
 	}
@@ -446,14 +650,19 @@ Eigen::MatrixXd lambda_part_of_surface_least_square(Bsurface& surface, const Eig
 }
 
 Eigen::MatrixXd surface_least_square_lambda_multiplier_left_part(Bsurface& surface, const Eigen::MatrixXd& paras,PolynomialBasis& basis) {
+	std::cout << "inside left part" << std::endl;
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
 	int target_size = paras.rows();// nbr of target data points
 	int size = psize + target_size;
 	Eigen::MatrixXd result(size, size);
 	Eigen::MatrixXd rd = Eigen::MatrixXd::Zero(target_size, target_size);// right down corner part
+	std::cout << "finish rd" << std::endl;
 	Eigen::MatrixXd lu = energy_part_of_surface_least_square(surface,basis);
+	std::cout << "finish lu" << std::endl;
 	Eigen::MatrixXd ld = eqality_part_of_surface_least_square(surface, paras);
+	std::cout << "finish ld" << std::endl;
 	Eigen::MatrixXd ru = -ld.transpose();
+	std::cout << "finish ru" << std::endl;
 		//lambda_part_of_surface_least_square(surface, paras);
 	
 	std::cout << "sizes" << std::endl;

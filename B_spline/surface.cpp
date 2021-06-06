@@ -1239,7 +1239,7 @@ Eigen::MatrixXd weight_matrix_calculation(const Eigen::MatrixXi& fcp,const Eigen
 		for (int i = 1; i < vec.size(); i++) {
 			sum += vec[i] * vec[i] * i;
 		}
-		double result = 1 / double(sum*nbr_points);
+		double result = 1 / double(sum);// *nbr_points);
 		return result;
 	};
 	// initialize weight matrix
@@ -1249,9 +1249,11 @@ Eigen::MatrixXd weight_matrix_calculation(const Eigen::MatrixXi& fcp,const Eigen
 
 	for (int j = 0; j < cols; j++) {// for each column
 		for (int i = 0; i < rows; i++) {
+			
 			if (fcp(i, j) < 0) {
 				continue;
 			}
+			int this_id = fcp(i, j);
 			int interval = interval_matrix(i, j);
 			std::vector<int> interval_info(degree + 2, 0);// h = interval_info[r] means there are h fcps sharing r control points 
 			if (interval < 0) {// interval value is -2: no other fcp share control points with it 
@@ -1259,6 +1261,14 @@ Eigen::MatrixXd weight_matrix_calculation(const Eigen::MatrixXi& fcp,const Eigen
 			}
 			else {// search this column if there is overlap
 				int col_nbr_pts = 0;// how many points there are in this column (except for whose parameter is 0 or 1)
+				int col_before_nbr = 1;// how many points related but before this point
+				int row_nbr_pts = 1;
+				for (int k = 0; k < j; k++) {
+					if (this_id == fcp(k, j)) {
+						row_nbr_pts += 1;
+					}
+				}
+				
 				for (int k = 0; k < rows; k++) {
 					if (fcp(k, j) < 0) {// if this point does not exist
 						continue;
@@ -1273,10 +1283,17 @@ Eigen::MatrixXd weight_matrix_calculation(const Eigen::MatrixXi& fcp,const Eigen
 						continue;
 					}
 					int nbr_share = degree + 1 - diff;// meaning that fcp(i,j) share nbr_share points with fcp(k,j).
+					if (k < i) {
+						col_before_nbr += 1;
+					}
 					assert(nbr_share > 0);
 					interval_info[nbr_share] += 1;
 				}
-				double weight = weight_strategy(interval_info, col_nbr_pts);
+				double weight = double(row_nbr_pts)
+					*
+					1 / double(col_before_nbr)
+					*
+					weight_strategy(interval_info, col_nbr_pts);
 				weight_matrix(i, j) = weight;
 			}
 		}
@@ -1291,7 +1308,8 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 	std::vector<std::vector<std::array<int, 2>>> &para_to_feasible, const int target_steps) {
 	
 	assert(para_to_feasible.size() == paras.rows());
-	int maximal_processing = std::max(1, int(para_to_feasible.size() / target_steps));
+	int maximal_processing = 
+		std::max(1, int(para_to_feasible.size() / target_steps));
 
 	// if return -2, the parameter is 0 or 1, then no one share control points with it
 	const auto para_in_which_interval = [](const double para, const std::vector<double> &knots) {
@@ -1357,10 +1375,12 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 
 	bool updated = true;
 	Eigen::MatrixXi selected_fcp = fcp;
-	
+	int nbr_rounds = 0;
 	while (updated) {
 		// calculate weight
 		weight_matrix = weight_matrix_calculation(selected_fcp, interval_matrix, degree);
+		//std::cout << "weight\n" << weight_matrix << std::endl;
+		//std::cout << "fcp\n" << selected_fcp << std::endl;
 		//TODO we are changing here
 		// calculate weight finished
 		selected_fcp = 
@@ -1370,8 +1390,10 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 		std::cout << "\n\nfcp\n" << fcp << std::endl;
 		std::cout << "weight\n" << weight_matrix << std::endl;
 		std::cout << "acp\n" << selected_fcp << std::endl;*/
+		nbr_rounds += 1;
 		
 	}
+	std::cout << "select fcp nbr of rounds " << nbr_rounds << std::endl;
 	//exit(0);
 	//selected_fcp = remove_redundant_FCP(selected_fcp, para_to_feasible);
 	
@@ -1432,7 +1454,8 @@ bool progressively_generate_interpolation_knot_vectors(const bool v_direction, i
 	int nbr_fixed_in_each_itr;
 	if (enable_max_fix_nbr) {
 		int estimate_nbr_cp = param.rows()*param.rows() / 2;
-		nbr_fixed_in_each_itr = std::max((int)sqrt(estimate_nbr_cp) / target_steps, 2);
+		nbr_fixed_in_each_itr = std::max(1,std::abs(int(kv.size()-kv_other.size())));// std::max((int)sqrt(estimate_nbr_cp) / target_steps, 2);
+		std::cout << "max fix nbr, " << nbr_fixed_in_each_itr << std::endl;
 	}
 	else {
 		nbr_fixed_in_each_itr = -1;

@@ -8,6 +8,8 @@ public:
 	void init(Bsurface& surface);
 	std::vector<double> poly(const int id, const double value, const bool UVknot);
 	void clear();
+	std::vector<std::vector<std::vector<double>>> Ubasis;
+	std::vector<std::vector<std::vector<double>>> Vbasis;
 private:
 	std::vector<double> Uknot;
 	std::vector<double> Vknot;
@@ -16,11 +18,26 @@ private:
 	int nu;
 	int nv;
 	int inited = false;
-	// for each value, for each i, there is a polynomial basis
+	std::vector<std::vector<std::vector<double>>> calculate(const bool uorv);// 0 checking u; 1 checking v
+};
+class PartialBasis {
+public:
+	PartialBasis(PolynomialBasis& basis, Bsurface& surface);
+	std::vector<double> poly(const int id, const double value, const bool UVknot, int partial);
+	std::vector<double> Uknot;
+	std::vector<double> Vknot;
+	int degree1;
+	int degree2;
+	void clear();
+private:
 	std::vector<std::vector<std::vector<double>>> Ubasis;
 	std::vector<std::vector<std::vector<double>>> Vbasis;
-
-	std::vector<std::vector<std::vector<double>>> calculate(const bool uorv);// 0 checking u; 1 checking v
+	std::vector<std::vector<std::vector<double>>> Ubasis_1;
+	std::vector<std::vector<std::vector<double>>> Vbasis_1;
+	std::vector<std::vector<std::vector<double>>> Ubasis_2;
+	std::vector<std::vector<std::vector<double>>> Vbasis_2;
+	std::vector<std::vector<std::vector<double>>> do_partial(const
+		std::vector<std::vector<std::vector<double>>>&basis);
 };
 std::vector<double> polynomial_simplify(const std::vector<double>& poly);
 std::vector<double> polynomial_add(const std::vector<double>& poly1, const std::vector<double>& poly2);
@@ -42,3 +59,9 @@ double construct_an_integration(const int degree, const std::vector<double>& U,
 void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::MatrixXd& paras,
 	const Eigen::MatrixXd & points, PolynomialBasis& basis);
 
+Eigen::MatrixXd surface_energy_calculation(Bsurface& surface, PartialBasis& basis,
+	const int discrete, Eigen::MatrixXd &energy_uu, Eigen::MatrixXd &energy_vv, Eigen::MatrixXd& energy_uv);
+
+// [U[which],U[which+1]) is the problematic one
+void detect_max_energy_interval(Bsurface& surface, const Eigen::MatrixXd& energy, const Eigen::MatrixXd &energy_uu,
+	const Eigen::MatrixXd & energy_vv, bool& uorv, int &which);
