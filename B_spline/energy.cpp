@@ -4,6 +4,7 @@
 #include <Eigen/Dense>
 #include<Eigen/Sparse>
 #include<Eigen/SparseLU>
+#include<Types.hpp>
 igl::Timer timer;
 double time0 = 0, time1 = 0, time2 = 0, time3 = 0;
 std::vector<double> polynomial_simplify(const std::vector<double>& poly) {
@@ -711,13 +712,13 @@ void push_control_point_list_into_surface(Bsurface& surface, const std::vector<V
 void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::MatrixXd& paras,
 	const Eigen::MatrixXd & points, PolynomialBasis& basis) {
 	bool sparse_solve = true;
-	using namespace Eigen;
-	typedef SparseMatrix<double> SparseMatrixXd;
+	//using namespace Eigen;
+	typedef Eigen::SparseMatrix<double> SparseMatrixXd;
 	assert(paras.rows() == points.rows());
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
 	std::vector<Vector3d> cps(psize);// control points
 	Eigen::MatrixXd A;
-	Eigen::FullPivLU<DenseBase<MatrixXd>::PlainMatrix> decomp;
+	Eigen::FullPivLU<Eigen::DenseBase<Eigen::MatrixXd>::PlainMatrix> decomp;
 	A = surface_least_square_lambda_multiplier_left_part(surface, paras,basis);
 	SparseMatrixXd matB;
 	Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
@@ -725,7 +726,7 @@ void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::Ma
 		matB = A.sparseView();
 
 		solver.compute(matB);
-		if (solver.info() != Success) {
+		if (solver.info() != Eigen::Success) {
 			// decomposition failed
 			std::cout << "solving failed" << std::endl;
 			return;
@@ -745,7 +746,7 @@ void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::Ma
 		Eigen::MatrixXd p_lambda;
 		if (sparse_solve) {
 			p_lambda = solver.solve(b);
-			if (solver.info() != Success) {
+			if (solver.info() != Eigen::Success) {
 				std::cout << "solving failed" << std::endl;
 				return;
 			}

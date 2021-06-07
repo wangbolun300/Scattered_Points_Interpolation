@@ -266,25 +266,25 @@ void visual_surface_knot_fixing() {
 	global_viewer.launch();
 }
 
-void test_rational() {
-	std::vector<double> U = { {0,0,0,0,0.5,1,1,1,1} };
-	Rational re = Nip_Rational(1, 3, 0.3, U);
-	std::cout << "rational number is, " << re.to_double() << std::endl;
-	Rational a = 5;
-	Rational b = -a;
-	std::cout << "-a= " << (-a).to_double()<<" "<<
-		b.to_double() << std::endl;
-	b = 1;
-	b /= a;
-	std::cout << "b " << b <<" a "<<a<< std::endl<<std::endl;
-
-	MatrixXs mt;
-	mt.resize(3, 2);
-	mt << 1, 1.5,
-		2, 2,
-		3, 1;
-	rank(mt);
-}
+//void test_rational() {
+//	std::vector<double> U = { {0,0,0,0,0.5,1,1,1,1} };
+//	Rational re = Nip_Rational(1, 3, 0.3, U);
+//	std::cout << "rational number is, " << re.to_double() << std::endl;
+//	Rational a = 5;
+//	Rational b = -a;
+//	std::cout << "-a= " << (-a).to_double()<<" "<<
+//		b.to_double() << std::endl;
+//	b = 1;
+//	b /= a;
+//	std::cout << "b " << b <<" a "<<a<< std::endl<<std::endl;
+//
+//	MatrixXs mt;
+//	mt.resize(3, 2);
+//	mt << 1, 1.5,
+//		2, 2,
+//		3, 1;
+//	rank(mt);
+//}
 
 void test_poly() {
 	std::vector<double> poly1 = { {0,1,2,0} };

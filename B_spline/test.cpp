@@ -325,7 +325,7 @@ void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::Ma
 		list.push_back(i);
 	}
 	for (int i = 0; i < 3; i++) {
-		bool solvable = selected_rows_have_solution_rational(degree1, degree2, Uout, Vout, param, Ver, list, i);
+		bool solvable = selected_rows_have_solution(degree1, degree2, Uout, Vout, param, Ver, list, i);
 		std::cout << "solvable test, i=" << i << ", solvable= " << solvable << std::endl;
 	}
 	knot_intervals_to_mesh(degree1, degree2, Uout, Vout, knotP, knotE);
@@ -762,8 +762,7 @@ void make_peak_exmple() {
 		if (enable_local_energy) {
 			
 			for (int i = 0; i < 10; i++) {
-				basis.clear();
-				basis.init(surface);
+				
 				PartialBasis pbasis(basis, surface);
 				Eigen::MatrixXd energy, euu, evv, euv;
 				energy = surface_energy_calculation(surface, pbasis, 0, euu, evv, euv);
@@ -781,6 +780,8 @@ void make_peak_exmple() {
 					surface.V = knot_vector_insert_one_value(Vnew, value);
 				}
 				std::cout << "knot vector get inserted" << std::endl;
+				basis.clear();
+				basis.init(surface);
 				solve_control_points_for_fairing_surface(surface, param_perturbed, ver, basis);
 				std::cout << " control points solved" << std::endl;
 				surface_visulization(surface, 100, SPs, SFs);
