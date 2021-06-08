@@ -722,7 +722,7 @@ void make_peak_exmple() {
 	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
 	std::vector<double> Vknot = Uknot;
 	int perturb_itr = 5;
-	double per_ours = 0.2;
+	double per_ours = 0.9;
 	double per = 0.1;
 	int target_steps = 10; 
 	bool enable_max_fix_nbr = true;
@@ -738,7 +738,7 @@ void make_peak_exmple() {
 		exit(0);
 	}
 	
-	generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr,per_ours,per, target_steps, enable_max_fix_nbr);
+	generate_interpolation_knot_vectors(degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr,per_ours,per, target_steps, enable_max_fix_nbr);
 	//lofting_method_generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr, per);
 
 	Eigen::MatrixXd paramout(ver.rows(), 3), zeros(ver.rows(),1);
@@ -759,11 +759,11 @@ void make_peak_exmple() {
 		std::cout << "initialize the basis done" << std::endl;
 		std::cout<<"before solving control points"<<std::endl;
 		solve_control_points_for_fairing_surface(surface, param_perturbed, ver,basis);
+		surface_visulization(surface, 100, SPs, SFs);
 		if (enable_local_energy) {
 			
-			for (int i = 0; i < 10; i++) {
-				basis.clear();
-				basis.init(surface);
+			for (int i = 0; i < 20; i++) {
+				
 				PartialBasis pbasis(basis, surface);
 				Eigen::MatrixXd energy, euu, evv, euv;
 				energy = surface_energy_calculation(surface, pbasis, 0, euu, evv, euv);
@@ -781,27 +781,29 @@ void make_peak_exmple() {
 					surface.V = knot_vector_insert_one_value(Vnew, value);
 				}
 				std::cout << "knot vector get inserted" << std::endl;
+				basis.clear();
+				basis.init(surface);
 				solve_control_points_for_fairing_surface(surface, param_perturbed, ver, basis);
 				std::cout << " control points solved" << std::endl;
-				surface_visulization(surface, 100, SPs, SFs);
+				
 				const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-				igl::write_triangle_mesh(path + "0606_"+std::to_string(i)+".obj", SPs, SFs);
+				igl::write_triangle_mesh(path + "0606_"+std::to_string(i)+"_m_"+std::to_string(method)+".obj", SPs, SFs);
 			}
+			//exit(1);
 		}
-
-
-		
 		
 	}
 	
-	exit(1);
-
+	
+	std::cout << "final U and V" << std::endl;
+	print_vector(surface.U);
+	print_vector(surface.V);
 	std::cout << "maximal interpolation error " << max_interpolation_err(ver, param_perturbed, surface) << std::endl;
 	bool write_file = true;
 	if (write_file)
 	{
-		const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-		igl::write_triangle_mesh(path + "0517_missing.obj", SPs, SFs);
+		/*const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+		igl::write_triangle_mesh(path + "0517_missing.obj", SPs, SFs);*/
 		//igl::write_triangle_mesh(path + "0517_missing_param.obj", paramout, F);
 	}
 	output_timing();

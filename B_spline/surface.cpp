@@ -1016,7 +1016,7 @@ Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int d
 				now_checking = -1;
 				continue;
 			}
-			if (ij_size == 1) {
+			if (ij_size == 1) {// if no overlape, directly select this one
 				now_checking = feasible[i][j][0];// the current id
 				reduced_feasible[i][j].push_back(now_checking);
 				para_to_feasible[now_checking].push_back({ {i,j} });
@@ -1538,7 +1538,7 @@ std::vector<double> temp_refine_knot_vector(const std::vector<double>&U, const i
 	}
 	return Unew;
 }
-void generate_interpolation_knot_vectors(const bool start_from_v_direction, int degree1, int degree2,
+void generate_interpolation_knot_vectors( int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
 	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed,const Eigen::MatrixXi& F, const int mesh_perturbation_level,
 	const double per_ours,const double per, const int target_steps, const bool enable_max_fix_nbr) {
@@ -1573,8 +1573,13 @@ void generate_interpolation_knot_vectors(const bool start_from_v_direction, int 
 	std::cout << "finished initialize Vknot" << std::endl;
 	print_vector(Vknot);
 	bool finished = false;
-	bool v_direction = start_from_v_direction;
-	
+	bool v_direction;// = start_from_v_direction;
+	if (Uknot.size() > Vknot.size()) {// iso-v line
+		v_direction = true;
+	}
+	else {
+		v_direction = false;
+	}
 
 	while (!finished) {
 		finished = progressively_generate_interpolation_knot_vectors(v_direction, degree1, degree2,

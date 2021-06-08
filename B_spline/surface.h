@@ -65,7 +65,7 @@ std::vector<double> get_iso_line_parameters_from_ACP(const Eigen::MatrixXi&ACP, 
 
 std::vector<double> get_iso_line_parameters(const int degree1, const int degree2, const bool v_direction, const int line_id,
 	const std::vector<double>& Ugrid, const std::vector<double>& Vgrid, const Eigen::MatrixXi& grid_map);
-void generate_interpolation_knot_vectors(const bool start_from_v_direction, int degree1, int degree2,
+void generate_interpolation_knot_vectors( int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
 	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed, const Eigen::MatrixXi& F, const int mesh_perturbation_level,
 	const double per_ours, const double per, const int target_steps, const bool enable_max_fix_nbr);
