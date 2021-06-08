@@ -709,12 +709,12 @@ void make_peak_exmple() {
 	red << 1, 0, 0; green << 0, 1, 0; blue << 0, 0, 1;
 
 	Eigen::MatrixXd ver;
-	int nbr = 100;// nbr of points
+	int nbr = 400;// nbr of points
 	int skip = 0;
 	Eigen::MatrixXi F;
 	Eigen::MatrixXd param, param_perturbed;
 	//get_mesh_vertices_and_parametrization(ver, F, param);
-	int method = 0;
+	int method = 4;
 	get_function_vertices_and_parametrization(nbr, skip, ver, F, param, method);
 	
 	int degree1 = 3;
@@ -723,10 +723,10 @@ void make_peak_exmple() {
 	std::vector<double> Vknot = Uknot;
 	int perturb_itr = 5;
 	double per_ours = 0.9;
-	double per = 0.1;
+	double per = 0.2;
 	int target_steps = 10; 
 	bool enable_max_fix_nbr = true;
-	bool enable_local_energy = true;
+	bool enable_local_energy = false;
 
 	mesh_parameter_perturbation(param, F, param_perturbed, perturb_itr);
 	std::cout << "param_perturbed\n" << param_perturbed << std::endl;
@@ -755,7 +755,7 @@ void make_peak_exmple() {
 		surface.U = Uknot;
 		surface.V = Vknot;
 		std::cout << "before initialize the basis " << std::endl;
-		PolynomialBasis basis(surface);
+		PartialBasis basis(surface);
 		std::cout << "initialize the basis done" << std::endl;
 		std::cout<<"before solving control points"<<std::endl;
 		solve_control_points_for_fairing_surface(surface, param_perturbed, ver,basis);
@@ -764,9 +764,8 @@ void make_peak_exmple() {
 			
 			for (int i = 0; i < 20; i++) {
 				
-				PartialBasis pbasis(basis, surface);
 				Eigen::MatrixXd energy, euu, evv, euv;
-				energy = surface_energy_calculation(surface, pbasis, 0, euu, evv, euv);
+				energy = surface_energy_calculation(surface, basis, 0, euu, evv, euv);
 				bool uorv;
 				int which;
 				detect_max_energy_interval(surface, energy, euu, evv, uorv, which);
@@ -785,7 +784,7 @@ void make_peak_exmple() {
 				basis.init(surface);
 				solve_control_points_for_fairing_surface(surface, param_perturbed, ver, basis);
 				std::cout << " control points solved" << std::endl;
-				
+				surface_visulization(surface, 100, SPs, SFs);
 				const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
 				igl::write_triangle_mesh(path + "0606_"+std::to_string(i)+"_m_"+std::to_string(method)+".obj", SPs, SFs);
 			}
@@ -823,12 +822,12 @@ void make_peak_exmple() {
 	//viewer.data().set_mesh(param_perturbed, F);
 	viewer.data().clear();
 	viewer.data().set_mesh(SPs, SFs);
-	//viewer.data().add_points(ver, ecolor);
+	viewer.data().add_points(ver, ecolor);
 	Eigen::MatrixXd p0(1, 3), p1(1, 3);
 	p0.row(0) = BSplineSurfacePoint(surface, 0, 0);
 	p1.row(0) = BSplineSurfacePoint(surface, 0, 1);
 	//std::cout << "p0\n" << p0 << std::endl;
-	viewer.data().add_points(p0, red);
+	//viewer.data().add_points(p0, red);
 	//viewer.data().add_points(p1, green);
 	viewer.launch();
 }

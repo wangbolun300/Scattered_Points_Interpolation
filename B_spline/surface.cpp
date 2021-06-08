@@ -947,6 +947,7 @@ int find_the_id_after_this_one(const int id, const std::vector<int>& id_list) {
 	return -1;
 }
 
+
 //void print_vector(const std::vector<std::vector<int>> &vec) {
 //
 //}
@@ -955,7 +956,8 @@ int find_the_id_after_this_one(const int id, const std::vector<int>& id_list) {
 Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int degree2,
 	const std::vector<double>& Uin, const std::vector<double>& Vin, const bool v_direction,
 	 const std::vector<double>& Ugrid, const std::vector<double>&Vgrid, const Eigen::MatrixXi& UVmap,
-	const int nbr_para, std::vector<std::vector<std::array<int, 2>>>&para_to_feasible, const double per) {
+	const int nbr_para, std::vector<std::vector<std::array<int, 2>>>&para_to_feasible, const double per, 
+	per_too_large& per_flag) {
 	// if checking v_direction, the control points distribution depends on Uin
 	para_to_feasible.resize(nbr_para);
 	
@@ -1047,9 +1049,12 @@ Eigen::MatrixXi get_feasible_control_point_matrix(const int degree1, const int d
 			result(i,j) = reduced_feasible[i][j][0];
 		}
 	}
+	per_flag.flag = true;
 	for (int i = 0; i < para_to_feasible.size(); i++) {
 		if (para_to_feasible[i].empty()) {
+			per_flag.flag = false;
 			std::cout << "AN ERROR OCCURED: NO FEASIBLE POINT IS CHOOSEN FOR VERTEX #" << i << "\nPLEASE MAKE per OR per_ours SMALLER" << std::endl;
+			return result;
 		}
 		assert(!para_to_feasible[i].empty());
 	}
@@ -1433,11 +1438,16 @@ bool check_ACP_calidation(const Eigen::MatrixXi& ACP, const int nbr_para) {
 // return true, then the surface knot fixing for both u and v is finished
 bool progressively_generate_interpolation_knot_vectors(const bool v_direction, int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot, const std::vector<double> Ugrid, const std::vector<double>& Vgrid,
-	const Eigen::MatrixXi& grid_map, const Eigen::MatrixXd& param, const double per_ours,const double per, const int target_steps, const bool enable_max_fix_nbr) {
+	const Eigen::MatrixXi& grid_map, const Eigen::MatrixXd& param, const double per_ours,const double per, 
+	const int target_steps, const bool enable_max_fix_nbr, per_too_large& per_flag) {
 	const int nbr_para = param.rows();
 	std::vector<std::vector<std::array<int, 2>>> para_to_feasible;
 	Eigen::MatrixXi FCP = get_feasible_control_point_matrix(3, 3, Uknot, Vknot, v_direction, Ugrid, Vgrid, grid_map, nbr_para,
-		para_to_feasible,per_ours);
+		para_to_feasible,per_ours,per_flag);
+	if (per_flag.flag == false) {
+		// this means the per_ours should be smaller
+		return false;
+	}
 	Eigen::MatrixXi ACP = calculate_active_control_points_from_feasible_control_points(FCP, v_direction, Uknot, Vknot, param,
 		degree1, degree2, para_to_feasible, target_steps);
 	assert(check_ACP_calidation(ACP, nbr_para));
@@ -1465,11 +1475,19 @@ bool progressively_generate_interpolation_knot_vectors(const bool v_direction, i
 		bool fully_fixed = false;
 		std::vector<double> parameters = get_iso_line_parameters_from_ACP(ACP, i, param, v_direction);
 		std::vector<double> kv_new = fix_knot_vector_to_interpolate_curve_WKW(3, kv, parameters,per, fully_fixed, nbr_fixed_in_each_itr);
+		int real_inserted = kv_new.size() - kv.size();
 		kv = kv_new;
-		if (i == ACP.cols() - 1) {
+		if (i == ACP.cols() - 1 && fully_fixed) {
 			finished = true;
+			break;
 		}
 		if (kv.size() > kv_other.size()) {// the size difference between Uknot and Vknot decides which knot vector to refine
+			break;
+		}
+		if (nbr_fixed_in_each_itr - real_inserted >= 0) {
+			nbr_fixed_in_each_itr = nbr_fixed_in_each_itr - real_inserted;
+		}
+		else {
 			break;
 		}
 		
@@ -1481,7 +1499,7 @@ bool progressively_generate_interpolation_knot_vectors(const bool v_direction, i
 	else {
 		Uknot = kv;
 	}
-
+	std::cout << "** sizes " << Uknot.size() << " " << Vknot.size() << std::endl;
 	return finished;
 }
 
@@ -1541,7 +1559,7 @@ std::vector<double> temp_refine_knot_vector(const std::vector<double>&U, const i
 void generate_interpolation_knot_vectors( int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
 	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed,const Eigen::MatrixXi& F, const int mesh_perturbation_level,
-	const double per_ours,const double per, const int target_steps, const bool enable_max_fix_nbr) {
+	const double per_ours,const double per, const int target_steps, const bool enable_max_fix_nbr, per_too_large &per_flag) {
 	Eigen::MatrixXd param;
 	mesh_parameter_perturbation(param_original, F, param, mesh_perturbation_level);
 	std::vector<double> Ugrid, Vgrid;
@@ -1549,15 +1567,16 @@ void generate_interpolation_knot_vectors( int degree1, int degree2,
 	generate_UV_grid(param, Ugrid, Vgrid, grid_map);
 	std::cout << "** UV grid sizes, " << Ugrid.size() << ", " << Vgrid.size() << std::endl;
 	bool fully_fixed;
+	std::vector<double> Utemp = Uknot, Vtemp = Vknot;
 	for (int i = 0; i < Vgrid.size(); i++) {
 		std::vector<double> paras = get_iso_line_parameters(degree1, degree2, true, i, Ugrid, Vgrid, grid_map);
 		//std::cout << "\nthe " << i << "th iso line parameters " << std::endl;
 		//print_vector(paras);
-		Uknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Uknot, paras,per, fully_fixed);
+		Utemp = fix_knot_vector_to_interpolate_curve_WKW(degree1, Utemp, paras,per, fully_fixed);
 		assert(fully_fixed == true);
 	}
 	std::cout << "finished initialize Uknot" << std::endl;
-	print_vector(Uknot);
+	print_vector(Utemp);
 	/*std::cout << "\n** the fixed U knot" << std::endl;
 	*/
 
@@ -1566,40 +1585,42 @@ void generate_interpolation_knot_vectors( int degree1, int degree2,
 		std::vector<double> paras = get_iso_line_parameters(degree1, degree2, false, i, Ugrid, Vgrid, grid_map);
 		/*std::cout << "\nthe " << i << "th iso line parameters " << std::endl;
 		print_vector(paras);*/
-		Vknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Vknot, paras,per,fully_fixed);
+		Vtemp = fix_knot_vector_to_interpolate_curve_WKW(degree1, Vtemp, paras,per,fully_fixed);
 		assert(fully_fixed == true);
 		
 	}
 	std::cout << "finished initialize Vknot" << std::endl;
-	print_vector(Vknot);
+	print_vector(Vtemp);
 	bool finished = false;
 	bool v_direction;// = start_from_v_direction;
-	if (Uknot.size() > Vknot.size()) {// iso-v line
+	if (Utemp.size() > Vtemp.size()) {// iso-v line
 		v_direction = true;
 	}
 	else {
 		v_direction = false;
 	}
-
+	
 	while (!finished) {
 		finished = progressively_generate_interpolation_knot_vectors(v_direction, degree1, degree2,
-			Uknot, Vknot, Ugrid, Vgrid, grid_map, param, per_ours, per, target_steps, enable_max_fix_nbr);
+			Utemp, Vtemp, Ugrid, Vgrid, grid_map, param, per_ours, per, target_steps, enable_max_fix_nbr,
+			per_flag);
+		if (per_flag.flag == false) {
+			// per_ours need to be reduced
+			return;
+		}
 		v_direction = !v_direction;
 		if (!finished) {
-			std::cout << "switched" << std::endl;
+			std::cout << "switched, UV size "<<Utemp.size()<<" "<<Vtemp.size() << std::endl;
 
 		}
-		/*std::cout << "Uknot" << std::endl;
-		print_vector(Uknot);
-		std::cout << "Vknot" << std::endl;
-		print_vector(Vknot);*/
 	}
-	/*Uknot = temp_refine_knot_vector(Uknot, degree1);
-	Vknot = temp_refine_knot_vector(Vknot, degree2);*/
-	print_vector(Uknot);
-	print_vector(Vknot);
-	std::cout << "Uknot Vknot size "<<Uknot.size()<<" "<<Vknot.size() << std::endl;
+	print_vector(Utemp);
+	print_vector(Vtemp);
 
+	std::cout << "Uknot Vknot size "<< Utemp.size()<<" "<<Vtemp.size() << std::endl;
+
+	Uknot = Utemp;
+	Vknot = Vtemp;
 	param_perturbed = param;
 	std::cout << "knot fixing finished" << std::endl;
 	return;
@@ -1645,4 +1666,27 @@ void lofting_method_generate_interpolation_knot_vectors(const bool start_from_v_
 	else {
 		Uknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Uknot, Ugrid, per, fully_fixed);
 	}
+}
+
+void generate_interpolation_knot_vectors(int degree1, int degree2,
+	std::vector<double>& Uknot, std::vector<double>& Vknot,
+	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed, const Eigen::MatrixXi& F, const int mesh_perturbation_level,
+	double &per_ours, const double per, const int target_steps, const bool enable_max_fix_nbr) {
+	per_too_large per_flag;
+	per_flag.flag = false;
+	double per_ours_tmp = per_ours;
+	while (1) {
+		generate_interpolation_knot_vectors(degree1, degree2, Uknot, Vknot, param_original, param_perturbed, 
+			F, mesh_perturbation_level, per_ours_tmp,
+			per, target_steps, enable_max_fix_nbr, per_flag);
+		if (per_flag.flag) {
+			break;
+		}
+		else {
+			per_ours_tmp *= 0.9;
+		}
+	}
+	per_ours = per_ours_tmp;
+	return;
+	
 }

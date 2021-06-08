@@ -275,15 +275,42 @@ std::vector<std::vector<std::vector<double>>> PartialBasis::do_partial(const
 	}
 	return result;
 }
-PartialBasis::PartialBasis(PolynomialBasis& basis, Bsurface& surface) {
-	Ubasis = basis.Ubasis;
-	Vbasis = basis.Vbasis;
+//PartialBasis::PartialBasis(PolynomialBasis& basis, Bsurface& surface) {
+//	Ubasis = basis.Ubasis;
+//	Vbasis = basis.Vbasis;
+//	Ubasis_1 = do_partial(Ubasis); Vbasis_1 = do_partial(Vbasis);
+//	Ubasis_2 = do_partial(Ubasis_1); Vbasis_2 = do_partial(Vbasis_1);
+//	Uknot = surface.U;
+//	Vknot = surface.V;
+//	degree1 = surface.degree1;
+//	degree2 = surface.degree2;
+//}
+PartialBasis::PartialBasis() {
+
+}
+PartialBasis::PartialBasis( Bsurface& surface) {
+	init(surface);
+}
+void PartialBasis::init(Bsurface& surface) {
+	PolynomialBasis pb(surface);
+	Ubasis = pb.Ubasis;
+	Vbasis = pb.Vbasis;
 	Ubasis_1 = do_partial(Ubasis); Vbasis_1 = do_partial(Vbasis);
 	Ubasis_2 = do_partial(Ubasis_1); Vbasis_2 = do_partial(Vbasis_1);
 	Uknot = surface.U;
 	Vknot = surface.V;
 	degree1 = surface.degree1;
 	degree2 = surface.degree2;
+}
+void PartialBasis::clear() {
+	Uknot.clear();
+	Vknot.clear();
+	Ubasis.clear();
+	Vbasis.clear();
+	Ubasis_1.clear();
+	Vbasis_1.clear();
+	Ubasis_2.clear();
+	Vbasis_2.clear();
 }
 std::vector<double> PartialBasis::poly(const int id, const double value, const bool UVknot, int partial) {
 	std::vector<double> kv;
@@ -387,6 +414,34 @@ double construct_an_integration(const int degree, const std::vector<double>& U,
 
 	return result;
 }
+double construct_an_integration(const int degree, const std::vector<double>& U,
+	const int partial1, const int partial2, const int i1, const int i2, const double u1, const double u2,
+	PartialBasis &basis, const bool uv) {
+	timer.start();
+	//std::vector<double> func1 = basis.poly(i1, u1, uv);
+	//std::vector<double> func2 = basis.poly(i2, u1, uv);	
+	timer.stop();
+	time0 += timer.getElapsedTimeInMilliSec();
+
+	timer.start();
+	std::vector<double> func1 = basis.poly(i1, u1, uv, partial1);
+	std::vector<double> func2 = basis.poly(i2, u1, uv, partial2);
+	timer.stop();
+	time1 += timer.getElapsedTimeInMilliSec();
+
+	timer.start();
+	std::vector<double> func = polynomial_times(func1, func2);
+
+	double upper = u2;
+	if (u2 == U.back()) {
+		upper = U.back() - SCALAR_ZERO;
+	}
+	double result = polynomial_integration(func, u1, upper);
+	timer.stop();
+	time2 += timer.getElapsedTimeInMilliSec();
+
+	return result;
+}
 // construct an integration of multiplication of two B-spline basis (intergration of partial(Ni1)*partial(Ni2))
 // the integration domain is [u1, u2]
 double construct_an_integration(const int degree, const std::vector<double>& U,
@@ -423,7 +478,7 @@ double construct_an_integration(const int degree, const std::vector<double>& U,
 	return result;
 }
 // do partial difference to Pi, the cofficient of jth element Pj.
-double surface_energy_least_square( Bsurface& surface, const int i, const int j, PolynomialBasis& basis) {
+double surface_energy_least_square( Bsurface& surface, const int i, const int j, PartialBasis& basis) {
 	// figure out which Pij corresponding to the ith control point
 	int partial_i = i / (surface.nv()+1);
 	int partial_j = i - partial_i * (surface.nv()+1);
@@ -608,7 +663,7 @@ void detect_max_energy_interval(Bsurface& surface, const Eigen::MatrixXd& energy
 
 
 // which_part = 0: Suu; which_part = 1, Suv; which_part = 2, Svv.
-Eigen::MatrixXd energy_part_of_surface_least_square(Bsurface& surface, PolynomialBasis& basis) {
+Eigen::MatrixXd energy_part_of_surface_least_square(Bsurface& surface, PartialBasis& basis) {
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
 	Eigen::MatrixXd result(psize, psize);
 	for (int i = 0; i < psize; i++) {
@@ -650,7 +705,8 @@ Eigen::MatrixXd lambda_part_of_surface_least_square(Bsurface& surface, const Eig
 	return result;
 }
 
-Eigen::MatrixXd surface_least_square_lambda_multiplier_left_part(Bsurface& surface, const Eigen::MatrixXd& paras,PolynomialBasis& basis) {
+Eigen::MatrixXd surface_least_square_lambda_multiplier_left_part(Bsurface& surface, 
+	const Eigen::MatrixXd& paras,PartialBasis& basis) {
 	std::cout << "inside left part" << std::endl;
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
 	int target_size = paras.rows();// nbr of target data points
@@ -710,7 +766,7 @@ void push_control_point_list_into_surface(Bsurface& surface, const std::vector<V
 	return;
 }
 void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::MatrixXd& paras,
-	const Eigen::MatrixXd & points, PolynomialBasis& basis) {
+	const Eigen::MatrixXd & points, PartialBasis& basis) {
 	bool sparse_solve = true;
 	//using namespace Eigen;
 	typedef Eigen::SparseMatrix<double> SparseMatrixXd;

@@ -22,7 +22,10 @@ private:
 };
 class PartialBasis {
 public:
-	PartialBasis(PolynomialBasis& basis, Bsurface& surface);
+	//PartialBasis(PolynomialBasis& basis, Bsurface& surface);
+	PartialBasis(Bsurface& surface);
+	PartialBasis();
+	void init(Bsurface& surface);
 	std::vector<double> poly(const int id, const double value, const bool UVknot, int partial);
 	std::vector<double> Uknot;
 	std::vector<double> Vknot;
@@ -57,7 +60,7 @@ double construct_an_integration(const int degree, const std::vector<double>& U,
 	const int partial1, const int partial2, const int i1, const int i2, const double u1, const double u2);
 
 void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::MatrixXd& paras,
-	const Eigen::MatrixXd & points, PolynomialBasis& basis);
+	const Eigen::MatrixXd & points, PartialBasis& basis);
 
 Eigen::MatrixXd surface_energy_calculation(Bsurface& surface, PartialBasis& basis,
 	const int discrete, Eigen::MatrixXd &energy_uu, Eigen::MatrixXd &energy_vv, Eigen::MatrixXd& energy_uv);
