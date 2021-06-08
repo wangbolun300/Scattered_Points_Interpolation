@@ -325,7 +325,7 @@ void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::Ma
 		list.push_back(i);
 	}
 	for (int i = 0; i < 3; i++) {
-		bool solvable = selected_rows_have_solution_rational(degree1, degree2, Uout, Vout, param, Ver, list, i);
+		bool solvable = selected_rows_have_solution(degree1, degree2, Uout, Vout, param, Ver, list, i);
 		std::cout << "solvable test, i=" << i << ", solvable= " << solvable << std::endl;
 	}
 	knot_intervals_to_mesh(degree1, degree2, Uout, Vout, knotP, knotE);
