@@ -4,6 +4,10 @@
 #include<iostream>
 #include<vector>
 
+//#define NO_SELECTING_ACP
+
+
+
 typedef Eigen::Vector3d Vector3d;
 typedef Eigen::Vector3i Vector3i;
 typedef Eigen::Vector2d Vector2d;

@@ -709,12 +709,12 @@ void make_peak_exmple() {
 	red << 1, 0, 0; green << 0, 1, 0; blue << 0, 0, 1;
 
 	Eigen::MatrixXd ver;
-	int nbr = 400;// nbr of points
+	int nbr = 50;// nbr of points
 	int skip = 0;
 	Eigen::MatrixXi F;
 	Eigen::MatrixXd param, param_perturbed;
 	//get_mesh_vertices_and_parametrization(ver, F, param);
-	int method = 4;
+	int method = 0;
 	get_function_vertices_and_parametrization(nbr, skip, ver, F, param, method);
 	
 	int degree1 = 3;

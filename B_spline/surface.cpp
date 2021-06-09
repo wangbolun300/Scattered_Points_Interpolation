@@ -1448,8 +1448,13 @@ bool progressively_generate_interpolation_knot_vectors(const bool v_direction, i
 		// this means the per_ours should be smaller
 		return false;
 	}
-	Eigen::MatrixXi ACP = calculate_active_control_points_from_feasible_control_points(FCP, v_direction, Uknot, Vknot, param,
+	Eigen::MatrixXi ACP =
+#ifdef NO_SELECTING_ACP
+		FCP;
+#else
+		calculate_active_control_points_from_feasible_control_points(FCP, v_direction, Uknot, Vknot, param,
 		degree1, degree2, para_to_feasible, target_steps);
+#endif
 	assert(check_ACP_calidation(ACP, nbr_para));
 	std::vector<double> kv, kv_other;
 	if (v_direction) {// if checking iso-v lines, then we are fixing V knot vector
