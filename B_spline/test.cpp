@@ -709,7 +709,7 @@ void make_peak_exmple() {
 	red << 1, 0, 0; green << 0, 1, 0; blue << 0, 0, 1;
 
 	Eigen::MatrixXd ver;
-	int nbr = 50;// nbr of points
+	int nbr = 100;// nbr of points
 	int skip = 0;
 	Eigen::MatrixXi F;
 	Eigen::MatrixXd param, param_perturbed;
@@ -721,10 +721,10 @@ void make_peak_exmple() {
 	int degree2 = 3;
 	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
 	std::vector<double> Vknot = Uknot;
-	int perturb_itr = 5;
+	int perturb_itr = 0;
 	double per_ours = 0.9;
 	double per = 0.2;
-	int target_steps = 10; 
+	int target_steps = 20; 
 	bool enable_max_fix_nbr = true;
 	bool enable_local_energy = false;
 

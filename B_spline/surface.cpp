@@ -1296,7 +1296,7 @@ Eigen::MatrixXd weight_matrix_calculation(const Eigen::MatrixXi& fcp,const Eigen
 				}
 				double weight = double(row_nbr_pts)
 					*
-					1 / double(col_before_nbr)
+					double(col_before_nbr*col_before_nbr)
 					*
 					weight_strategy(interval_info, col_nbr_pts);
 				weight_matrix(i, j) = weight;
