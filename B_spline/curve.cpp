@@ -808,6 +808,7 @@ std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, c
 		fully_fixed = false;
 	}
 	if (fix_nbr < 0) {
+		//fully_fixed = true;
 		assert(result.size() == hU.size());// by default, the two sizes should be the same. but if not fully fixed, this is not true
 	}
 	

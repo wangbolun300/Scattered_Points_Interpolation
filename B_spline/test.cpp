@@ -709,7 +709,7 @@ void make_peak_exmple() {
 	red << 1, 0, 0; green << 0, 1, 0; blue << 0, 0, 1;
 
 	Eigen::MatrixXd ver;
-	int nbr = 100;// nbr of points
+	int nbr = 50;// nbr of points
 	int skip = 0;
 	Eigen::MatrixXi F;
 	Eigen::MatrixXd param, param_perturbed;
@@ -724,7 +724,7 @@ void make_peak_exmple() {
 	int perturb_itr = 0;
 	double per_ours = 0.9;
 	double per = 0.2;
-	int target_steps = 20; 
+	int target_steps = 10; 
 	bool enable_max_fix_nbr = true;
 	bool enable_local_energy = false;
 
@@ -765,7 +765,7 @@ void make_peak_exmple() {
 			for (int i = 0; i < 20; i++) {
 				
 				Eigen::MatrixXd energy, euu, evv, euv;
-				energy = surface_energy_calculation(surface, basis, 0, euu, evv, euv);
+				energy = surface_energy_calculation(surface, basis, 1, euu, evv, euv);
 				bool uorv;
 				int which;
 				detect_max_energy_interval(surface, energy, euu, evv, uorv, which);
@@ -794,7 +794,7 @@ void make_peak_exmple() {
 	}
 	
 	
-	std::cout << "final U and V" << std::endl;
+	std::cout << "final U and V, "<<surface.U.size()<<" "<<surface.V.size() << std::endl;
 	print_vector(surface.U);
 	print_vector(surface.V);
 	std::cout << "maximal interpolation error " << max_interpolation_err(ver, param_perturbed, surface) << std::endl;
@@ -822,12 +822,12 @@ void make_peak_exmple() {
 	//viewer.data().set_mesh(param_perturbed, F);
 	viewer.data().clear();
 	viewer.data().set_mesh(SPs, SFs);
-	viewer.data().add_points(ver, ecolor);
+	//viewer.data().add_points(ver, ecolor);
 	Eigen::MatrixXd p0(1, 3), p1(1, 3);
 	p0.row(0) = BSplineSurfacePoint(surface, 0, 0);
 	p1.row(0) = BSplineSurfacePoint(surface, 0, 1);
 	//std::cout << "p0\n" << p0 << std::endl;
-	//viewer.data().add_points(p0, red);
-	//viewer.data().add_points(p1, green);
+	viewer.data().add_points(p0, red);
+	viewer.data().add_points(p1, green);
 	viewer.launch();
 }

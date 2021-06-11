@@ -529,7 +529,7 @@ double surface_energy_least_square( Bsurface& surface, const int i, const int j,
 	
 }
 
-// in interval [U[i], U[i+1])
+// in interval [U[i], U[i+1])x[V[j], V[j+1])
 double discrete_surface_partial_value_squared(const int partial1, const int partial2, 
 	const int i, const int j, Bsurface& surface,
 	PartialBasis& basis, const double u, const double v) {
@@ -551,14 +551,10 @@ double discrete_surface_partial_value_squared(const int partial1, const int part
 			pz(k1, k2) = surface.control_points[i - p + k1][j - q + k2][2];
 		}
 	}
-	Vector3d result;
 	double x = (Nl.transpose()*px*Nr);
 	double y = (Nl.transpose()*py*Nr);
 	double z = (Nl.transpose()*pz*Nr);
-	result[0] = x * x;
-	result[1] = y * y;
-	result[2] = z * z;
-	return result.norm();
+	return x * x + y * y + z * z;
 }
 
 // calculate thin-plate-energy in region [Ui, U(i+1)]x[Vj, V(j+1)]
@@ -589,14 +585,16 @@ Eigen::MatrixXd surface_energy_calculation(Bsurface& surface, PartialBasis& basi
 			Eigen::MatrixXd values_uu(n_sample, n_sample);
 			Eigen::MatrixXd values_uv(n_sample, n_sample);
 			Eigen::MatrixXd values_vv(n_sample, n_sample);
+			//std::cout << "u0, u1, v0, v1 " << u0 << " " << u1 << " " << v0 << " " << v1 << std::endl;
 			for (int k1 = 0; k1 < n_sample; k1++) {
+				//std::cout << "XXXXXXXXXXXXXXXXXXXXXXXXXX" << std::endl;
 				for (int k2 = 0; k2 < n_sample; k2++) {
 					//int Ni = k1 == n_sample - 1 ? i + p + 1 : i + p;// if select the last point, 
 					double uratio = k1 < n_sample - 1 ? 1 : 1 - SCALAR_ZERO;
 					double vratio = k2 < n_sample - 1 ? 1 : 1 - SCALAR_ZERO;
 					double uvalue = u0 + delta_u * k1*uratio;
 					double vvalue = v0 + delta_v * k2*vratio;
-
+					//std::cout << "uv values " << uvalue << " " << vvalue << std::endl;
 					// Suu
 					values_uu(k1, k2) = discrete_surface_partial_value_squared(2, 0, Ni, Nj, surface, basis, uvalue, vvalue);
 					//Svv
@@ -651,12 +649,12 @@ void detect_max_energy_interval(Bsurface& surface, const Eigen::MatrixXd& energy
 	int u_interval = k1 + p;
 	int v_interval = k2 + q;
 	if (energy_uu(k1, k2) > energy_vv(k1, k2)) {
-		uorv = 0;
-		which = u_interval;
+		uorv = 1;
+		which = v_interval;
 	}
 	else {
-		which = v_interval;
-		uorv = 1;
+		which = u_interval;
+		uorv = 0;
 	}
 	return;
 }
