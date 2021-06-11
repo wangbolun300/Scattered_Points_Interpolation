@@ -5,7 +5,7 @@
 #include<vector>
 
 //#define NO_SELECTING_ACP
-
+//#define NAIVE_SELECTING_ACP
 
 
 typedef Eigen::Vector3d Vector3d;

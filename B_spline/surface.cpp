@@ -1252,7 +1252,7 @@ Eigen::MatrixXi remove_redundant_FCP(const Eigen::MatrixXi& fcp, std::vector<std
 		int id1 = para_to_feasible[i].back()[1];
 		result(id0, id1) = i;
 	}
-	std::cout << "** redundant fcp nbr " << nbr_re << std::endl;
+	//std::cout << "** redundant fcp nbr " << nbr_re << std::endl;
 	return result;
 
 }
@@ -1481,8 +1481,12 @@ bool progressively_generate_interpolation_knot_vectors(const bool v_direction, i
 #ifdef NO_SELECTING_ACP
 		FCP;
 #else
+#ifdef NAIVE_SELECTING_ACP
+		remove_redundant_FCP(FCP, para_to_feasible);
+#else
 		calculate_active_control_points_from_feasible_control_points(FCP, v_direction, Uknot, Vknot, param,
 		degree1, degree2, para_to_feasible, target_steps, feasible_order);
+#endif
 #endif
 	assert(check_ACP_calidation(ACP, nbr_para));
 	std::vector<double> kv, kv_other;
