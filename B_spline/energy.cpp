@@ -674,6 +674,78 @@ Eigen::MatrixXd energy_part_of_surface_least_square(Bsurface& surface, PartialBa
 	return result;
 }
 
+double surface_error_least_square(Bsurface& surface, const int i, const int j, 
+	const Eigen::MatrixXd& paras) {
+	// figure out which Pij corresponding to the ith control point
+	int partial_i = i / (surface.nv() + 1);
+	int partial_j = i - partial_i * (surface.nv() + 1);
+
+	// figure out which Pij corresponding to the jth control point
+	int coff_i = j / (surface.nv() + 1);
+	int coff_j = j - coff_i * (surface.nv() + 1);
+
+	// if do partial Pij, the related other Pi1j1 will be: i1 = i-p~i+p, j1= j-q~j+q
+	int degree1 = surface.degree1, degree2 = surface.degree2;
+	/*if (coff_i<partial_i - degree1 || coff_i>partial_i + degree1) return 0;
+	if (coff_j<partial_j - degree2 || coff_j>partial_j + degree2) return 0;*/
+
+
+	// do partial Pij
+	// for each block, (U_k1, U_(k1+1)), (V_k2, V_(k2+1)). the related control points are k1-p,...,k1 and k2-q,..., k2
+	double result = 0;
+	for (int k1 = 0; k1 < paras.rows(); k1++) {
+		double u = paras(k1, 0);
+		double v = paras(k1, 1);
+		double N1 = Nip(partial_i, degree1, u, surface.U);
+		double N2 = Nip(partial_j, degree2, v, surface.V);
+		double N3 = Nip(coff_i, degree1, u, surface.U);
+		double N4 = Nip(coff_j, degree2, v, surface.V);
+		if (N1 == 0|| N2 == 0|| N3 == 0|| N4 == 0) {
+			continue;
+		} 
+		result += N1 * N2*N3*N4;
+	}
+	return result;
+
+}
+Eigen::MatrixXd error_part_of_surface_least_square(Bsurface& surface, const Eigen::MatrixXd& paras) {
+	// figure out which Pij corr) {
+	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
+	Eigen::MatrixXd result(psize, psize);
+	for (int i = 0; i < psize; i++) {
+		//std::cout << "the ith row of matrix" << std::endl;
+		for (int j = 0; j < psize; j++) {
+			result(i, j) = surface_error_least_square(surface, i, j, paras);
+		}
+	}
+	std::cout << "error matrix finish calculation" << std::endl;
+	return result;
+}
+Eigen::VectorXd right_part_of_least_square_approximation(Bsurface& surface, const Eigen::MatrixXd& paras,
+	const Eigen::MatrixXd& ver, const int dimension) {
+
+	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
+	Eigen::VectorXd result(psize);
+	for (int i = 0; i < psize; i++) {
+		double res = 0;
+		for (int j = 0; j < paras.rows(); j++) {
+			int partial_i = i / (surface.nv() + 1);
+			int partial_j = i - partial_i * (surface.nv() + 1);
+			int degree1 = surface.degree1, degree2 = surface.degree2;
+
+			double u = paras(j, 0);
+			double v = paras(j, 1);
+			double N1 = Nip(partial_i, degree1, u, surface.U);
+			double N2 = Nip(partial_j, degree2, v, surface.V);
+			if (N1 == 0 || N2 == 0) {
+				continue;
+			}
+			res += N1 * N2*ver(j, dimension);
+		}
+		result(i) = res;
+	}
+	return result;
+}
 Eigen::MatrixXd eqality_part_of_surface_least_square(Bsurface& surface, const Eigen::MatrixXd& paras) {
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
 	Eigen::MatrixXd result(paras.rows(), psize);
@@ -820,4 +892,91 @@ void output_timing() {
 	std::cout << "get basis time " << time0 << std::endl;
 	std::cout << "get differential time " << time1 << std::endl;
 	std::cout << "get integration time " << time2 << std::endl;
+}
+
+std::vector<double> knot_vector_level(const int degree, const int level) {
+	std::vector<double> result;
+	for (int i = 0; i < degree + 1; i++) {
+		result.push_back(0);
+	}
+	double current = 0;
+	int nbr_intervals = 1;
+	for (int i = 0; i < level; i++) {
+		nbr_intervals *= 2;
+	}
+	if (level > 0) {
+		double length = 1.0 / nbr_intervals;
+		for (int i = 0; i < nbr_intervals - 1; i++) {
+			current += length;
+			result.push_back(current);
+		}
+	}
+	for (int j = 0; j < degree + 1; j++) {
+		result.push_back(1);
+	}
+	return result;
+}
+void iteratively_approximate_method(int degree1, int degree2,
+	std::vector<double>& Uknot, std::vector<double>& Vknot,
+	const Eigen::MatrixXd& param, const Eigen::MatrixXd& ver,
+	const double tolerance,
+	std::vector<Bsurface> surfaces, const double per) {
+	typedef Eigen::SparseMatrix<double> SparseMatrixXd;
+	int level = 0;
+	Eigen::MatrixXd err = ver;
+	while (1) {
+		Bsurface slevel;
+		slevel.degree1 = degree1;
+		slevel.degree2 = degree2;
+		slevel.U = knot_vector_level(degree1, level);
+		slevel.V = knot_vector_level(degree2, level);
+		PartialBasis basis(slevel);
+		Eigen::MatrixXd fair = energy_part_of_surface_least_square(slevel, basis);
+		Eigen::MatrixXd error = error_part_of_surface_least_square(slevel, param);
+		Eigen::MatrixXd left = fair * per + error;
+		/////////////////
+		
+		SparseMatrixXd matB;
+		Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
+
+		matB = left.sparseView();
+
+		solver.compute(matB);
+		if (solver.info() != Eigen::Success) {
+			// decomposition failed
+			std::cout << "solving failed" << std::endl;
+			return;
+		}
+		
+		
+		/////////////////
+		std::vector<Vector3d> cps(left.rows());
+		for (int i = 0; i < 3; i++) {
+			Eigen::VectorXd right = right_part_of_least_square_approximation(slevel, param, err, i);
+			Eigen::MatrixXd p_lambda;
+
+			p_lambda = solver.solve(right);
+			if (solver.info() != Eigen::Success) {
+				std::cout << "solving failed" << std::endl;
+				return;
+			}
+			for (int j = 0; j < cps.size(); j++) {
+				cps[j][i] = p_lambda(j, 0);
+			}
+			
+		}
+		push_control_point_list_into_surface(slevel, cps);
+		surfaces.push_back(slevel);
+		double max_error;
+		err = interpolation_err_for_apprximation(err, param, slevel, max_error);
+		std::cout << "the ith iteration " << level << std::endl;
+		std::cout << "sizes " << slevel.U.size() << " " << slevel.V.size() << std::endl;
+		std::cout << "max error is " << max_error << std::endl;
+		std::cout << "error matrix\n" << err << std::endl;
+		if (max_error <= tolerance) {
+			break;
+		}
+		level++;
+	}
+	return;
 }

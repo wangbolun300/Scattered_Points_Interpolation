@@ -354,8 +354,7 @@ int main() {
 	//test_rational();
 	//test_poly();
 	//go_through_temperature_interpolation();
-make_peak_exmple();
-	//test_interpolation();
-	//test_orientation();
+//make_peak_exmple();
+	run_Seungyong();
 	return 0;
 }

@@ -677,6 +677,13 @@ void get_function_vertices_and_parametrization(const int nbr, const int skip, Ei
 	if (need_param) {
 		direct_project_x_y_and_parametrization(V, param, F);
 	}
+	/*for (int i = 0; i < V.rows(); i++) {
+		for (int j = 0; j < 3; j++) {
+			if (fabs(V(i, j)) < SCALAR_ZERO) {
+				(V(i, j) = 0;
+			}
+		}
+	}*/
 	return;
 }
 double perturbed_distance(const Eigen::MatrixXd&p1, const Eigen::MatrixXd&p2) {
@@ -689,19 +696,17 @@ double perturbed_distance(const Eigen::MatrixXd&p1, const Eigen::MatrixXd&p2) {
 	}
 	return dis;
 }
-double max_interpolation_err(const Eigen::MatrixXd&ver, const Eigen::MatrixXd& param, Bsurface& surface) {
-	double err = 0;
+
+
+void write_points(const std::string& file, const Eigen::MatrixXd& ver) {
+	std::ofstream fout;
+	fout.open(file);
 	for (int i = 0; i < ver.rows(); i++) {
-		Vector3d v = ver.row(i);
-		double parau = param(i, 0);
-		double parav = param(i, 1);
-		Vector3d vs = BSplineSurfacePoint(surface, parau, parav);
-		double newerr = (v - vs).norm();
-		if (newerr > err) {
-			err = newerr;
-		}
+		fout 
+			//<< std::setprecision(17) 
+			<< "v " << ver(i, 0) << " " << ver(i, 1) << " " << ver(i, 2) << std::endl;
 	}
-	return err;
+	fout.close();
 }
 void make_peak_exmple() {
 	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3), pcolor(1, 3), red(1, 3), green(1, 3), blue(1, 3);
@@ -801,8 +806,10 @@ void make_peak_exmple() {
 	bool write_file = true;
 	if (write_file)
 	{
-		/*const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-		igl::write_triangle_mesh(path + "0517_missing.obj", SPs, SFs);*/
+		Eigen::MatrixXi Pf;
+
+		const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+		write_points(path + "pts_m_" +std::to_string(method)+".obj", ver);
 		//igl::write_triangle_mesh(path + "0517_missing_param.obj", paramout, F);
 	}
 	output_timing();
@@ -830,4 +837,34 @@ void make_peak_exmple() {
 	viewer.data().add_points(p0, red);
 	viewer.data().add_points(p1, green);
 	viewer.launch();
+}
+
+void run_Seungyong() {
+	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3), pcolor(1, 3), red(1, 3), green(1, 3), blue(1, 3);
+	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;; pcolor << 0, 0.9, 0.5;
+	red << 1, 0, 0; green << 0, 1, 0; blue << 0, 0, 1;
+
+	Eigen::MatrixXd ver;
+	int nbr = 50;// nbr of points
+	int skip = 0;
+	Eigen::MatrixXi F;
+	Eigen::MatrixXd param, param_perturbed;
+	//get_mesh_vertices_and_parametrization(ver, F, param);
+	int method = 0;
+	get_function_vertices_and_parametrization(nbr, skip, ver, F, param, method);
+
+	int degree1 = 3;
+	int degree2 = 3;
+	double tolerance = 1e-8;
+	double fair_parameter = 1e-7;
+	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
+	std::vector<double> Vknot = Uknot;
+	igl::opengl::glfw::Viewer viewer;
+
+	std::vector<Bsurface> surfaces;
+	iteratively_approximate_method(degree1, degree2, Uknot, Vknot, param, ver, tolerance, surfaces, fair_parameter);
+
+	std::cout << "run_Seungyong finished, surface levels " << surfaces.size() << std::endl;
+	std::cout << "final surface size " << surfaces.back().nu() << " " << surfaces.back().nv()
+		<< " total control points " << surfaces.back().nu()*surfaces.back().nv() << std::endl;
 }

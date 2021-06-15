@@ -1769,6 +1769,38 @@ void generate_interpolation_knot_vectors(int degree1, int degree2,
 		}
 	}
 	per_ours = per_ours_tmp;
-	return;
-	
+	return;	
+}
+double max_interpolation_err(const Eigen::MatrixXd&ver, const Eigen::MatrixXd& param, Bsurface& surface) {
+	double err = 0;
+	for (int i = 0; i < ver.rows(); i++) {
+		Vector3d v = ver.row(i);
+		double parau = param(i, 0);
+		double parav = param(i, 1);
+		Vector3d vs = BSplineSurfacePoint(surface, parau, parav);
+		double newerr = (v - vs).norm();
+		if (newerr > err) {
+			err = newerr;
+		}
+	}
+	return err;
+}
+Eigen::MatrixXd interpolation_err_for_apprximation(const Eigen::MatrixXd&ver, 
+	const Eigen::MatrixXd& param, Bsurface& surface,double &max_err) {
+	Eigen::MatrixXd result(ver.rows(), ver.cols());
+	double err = 0;
+	for (int i = 0; i < ver.rows(); i++) {
+		Vector3d v = ver.row(i);
+		double parau = param(i, 0);
+		double parav = param(i, 1);
+		Vector3d vs = BSplineSurfacePoint(surface, parau, parav);
+		Vector3d diff = v - vs;
+		result.row(i) << diff[0], diff[1], diff[2];
+		double newerr = diff.norm();
+		if (newerr > err) {
+			err = newerr;
+		}
+	}
+	max_err = err;
+	return result;
 }
