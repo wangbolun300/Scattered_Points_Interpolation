@@ -72,4 +72,4 @@ void iteratively_approximate_method(int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
 	const Eigen::MatrixXd& param, const Eigen::MatrixXd& ver,
 	const double tolerance,
-	std::vector<Bsurface> surfaces, const double per);
+	std::vector<Bsurface> &surfaces, const double per);

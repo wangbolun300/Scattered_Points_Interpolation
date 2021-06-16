@@ -403,6 +403,35 @@ void surface_visulization(Bsurface& surface, const int nbr, Eigen::MatrixXd & v,
 	B_spline_surface_to_mesh(surface, nbr, v, f);
 	return;
 }
+void surface_visulization(std::vector<Bsurface>& surfaces, const int pnbr, Eigen::MatrixXd & ver, 
+	Eigen::MatrixXi &faces, const int without) {
+	std::vector<std::vector<Vector3d>> pts;
+	ver.resize(pnbr*pnbr, 3);
+	int verline = 0;
+	for (int i = 0; i < pnbr; i++) {
+		for (int j = 0; j < pnbr; j++) {
+			double upara = double(i) / (pnbr - 1);
+			double vpara = double(j) / (pnbr - 1);
+			ver.row(verline) = Vector3d(0, 0, 0);
+			for (int si = 0; si < surfaces.size()- without; si++) {
+				ver.row(verline) += BSplineSurfacePoint(surfaces[si], upara, vpara);
+			}
+			
+			verline++;
+		}
+	}
+	faces.resize(2 * (pnbr - 1)*(pnbr - 1), 3);
+	int fline = 0;
+	for (int i = 0; i < pnbr - 1; i++) {
+		for (int j = 0; j < pnbr - 1; j++) {
+			faces.row(fline) = Vector3i(i + pnbr * (j + 1), i + pnbr * j, i + pnbr * (1 + j) + 1);
+			faces.row(fline + 1) = Vector3i(i + pnbr * (1 + j) + 1, i + pnbr * j, i + pnbr * j + 1);
+			fline += 2;
+		}
+	}
+	return;
+}
+
 
 // if no boundary is specified, this code will project vertices on x-y plane, and find the convex hull of the 2d vertices,
 // then use the boundary of convex hull as boundary of u-v domain, then do parametrization in [0,1]x[0,1]
@@ -867,4 +896,17 @@ void run_Seungyong() {
 	std::cout << "run_Seungyong finished, surface levels " << surfaces.size() << std::endl;
 	std::cout << "final surface size " << surfaces.back().nu() << " " << surfaces.back().nv()
 		<< " total control points " << surfaces.back().nu()*surfaces.back().nv() << std::endl;
+	Eigen::MatrixXd SPs;
+	Eigen::MatrixXi SFs;
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+	write_points(path + "pts_m_" + std::to_string(method) + ".obj", ver);
+	for (int i = 0; i < surfaces.size() - 1; i++) {
+		surface_visulization(surfaces, 100, SPs, SFs, i);
+		igl::write_triangle_mesh(path + "Seungyong" + "_m_" + std::to_string(method)+"_first_"+ 
+			std::to_string(surfaces.size()-i) + ".obj", SPs, SFs);
+	}
+
+	
+	
+	
 }

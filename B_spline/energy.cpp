@@ -5,6 +5,7 @@
 #include<Eigen/Sparse>
 #include<Eigen/SparseLU>
 #include<Types.hpp>
+#include<cmath>
 igl::Timer timer;
 double time0 = 0, time1 = 0, time2 = 0, time3 = 0;
 std::vector<double> polynomial_simplify(const std::vector<double>& poly) {
@@ -253,14 +254,14 @@ std::vector<std::vector<std::vector<double>>> PolynomialBasis::calculate(const b
 	}
 	std::vector<std::vector<std::vector<double>>> pl;
 	pl.resize(n + 1);// n+1 intervals;
-	std::cout << "before giving values" << std::endl;
+	
 	for (int i = degree; i < n+1; i++) {// in interval [U[i], U[i+1])
 		pl[i].resize(degree + 1);
 		for (int j = 0; j < degree + 1; j++) {
 			pl[i][j] = Nip_func(i - degree + j, degree, kv[i], kv);
 		}
 	}
-	std::cout << "after giving values" << std::endl;
+	
 	return pl;
 
 }
@@ -916,11 +917,247 @@ std::vector<double> knot_vector_level(const int degree, const int level) {
 	}
 	return result;
 }
+Eigen::MatrixXd equality_part_of_Seungyong(Bsurface& surface, 
+	const std::vector<std::vector<std::vector<int>>>& overlaps, const int nbr_related) {
+
+	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
+	
+	Eigen::MatrixXd result = Eigen::MatrixXd::Zero(nbr_related, psize);
+	int degree1 = surface.degree1;
+	int degree2 = surface.degree2;
+	std::vector<double> U = surface.U;
+	std::vector<double> V = surface.V;
+	
+	for (int i = 0; i < result.rows(); i++) {
+		int counter = 0;
+		for (int j = 0; j < result.cols(); j++) {
+			// figure out the jth control point corresponding to which Pij
+			int coff_i = j / (surface.nv() + 1);
+			int coff_j = j - coff_i * (surface.nv() + 1);
+			if (overlaps[coff_i][coff_j].size() > 0) {
+				if (counter >= i) {
+					result(i, j) = 1;
+					break;
+				}
+				counter++;
+			}
+			
+		}
+	}
+	return result;
+}
+
+Eigen::MatrixXd left_part_of_Seungyong(Bsurface&surface, PartialBasis& basis, 
+	const Eigen::MatrixXd&param, std::vector<std::vector<std::vector<int>>> &overlaps,
+	std::vector<int> &uinterval, std::vector<int>&vinterval, int &nbr_related) {
+	std::vector<double> U = surface.U; 
+	std::vector<double> V = surface.V;
+	uinterval.resize(param.rows());
+	vinterval.resize(param.rows());
+	int degree1 = surface.degree1;
+	int degree2 = surface.degree2;
+	std::cout << "before 01" << std::endl;
+	for (int i = 0; i < param.rows(); i++) {
+		double u = param(i, 0);
+		double v = param(i, 1);
+		int which = -1;
+		for (int j = 0; j < U.size() - 1; j++) {
+			if (u >= U[j] && u < U[j + 1]) {
+				which = j;
+				break;
+			}
+		}
+		uinterval[i] = which;
+
+		which = -1;
+		for (int j = 0; j < V.size() - 1; j++) {
+			if (v >= V[j] && v < V[j + 1]) {
+				which = j;
+				break;
+			}
+		}
+		vinterval[i] = which;
+	}
+	std::cout << "before 02" << std::endl;
+	int nu = surface.nu();
+	int nv = surface.nv();
+	// (nu+1)x(nv+1) control points
+	overlaps.resize(nu + 1);
+	nbr_related = 0;
+	for (int i = 0; i < overlaps.size(); i++) {
+		overlaps[i].resize(nv + 1);
+	}
+	std::cout << "before 03" << std::endl;
+	for (int i = 0; i < param.rows(); i++) {
+		double u = param(i, 0);
+		double v = param(i, 1);
+		int k1 = uinterval[i];
+		int k2 = vinterval[i];
+		int id0, id1, id2, id3;// id0=i-p, id1=i.
+		if (k1 >= 0) {
+			id0 = k1 - degree1;
+			id1 = k1;
+			if (u == U[k1]) {todo
+				id1 = k1 - degree1;
+			}
+		}
+		else {
+			id0 = nu;
+			id1 = nu;
+		}
+		if (k2 >= 0) {
+			id2 = k2 - degree2;
+			id3 = k2;
+		}
+		else {
+			id2 = nv ;
+			id3 = nv;
+		}
+		assert(id0 >= 0 && id0 <= nu + 1); assert(id1 >= 0 && id1 <= nu + 1);
+		assert(id2 >= 0 && id2 <= nv + 1); assert(id3 >= 0 && id3 <= nv + 1);
+		for (int j = id0; j < id1 + 1; j++) {
+			for (int k = id2; k < id3 + 1; k++) {
+				assert(j < overlaps.size());
+				assert(k < overlaps[j].size());
+				overlaps[j][k].push_back(i);
+			}
+		}
+	}
+	std::cout << "before 04" << std::endl;
+	for (int i = 0; i < nu + 1; i++) {
+		for (int j = 0; j < nv + 1; j++) {
+			if (overlaps[i][j].size() > 0) {
+				nbr_related++;
+			}
+		}
+	}
+	int cnbr = (nu + 1)*(nv + 1);// nbr of the control points
+	int sz = nbr_related + cnbr; // matrix size
+	Eigen::MatrixXd result(sz, sz);
+	std::cout << "before 1" << std::endl;
+	Eigen::MatrixXd lu = energy_part_of_surface_least_square(surface, basis);
+	std::cout << "before 2" << std::endl;
+	Eigen::MatrixXd rd = Eigen::MatrixXd::Zero(nbr_related, nbr_related);// right down corner part
+	std::cout << "before 3" << std::endl;
+	Eigen::MatrixXd ld = equality_part_of_Seungyong(surface, overlaps,nbr_related);
+	std::cout << "before 4" << std::endl;
+	Eigen::MatrixXd ru = -ld.transpose();
+	result << lu, ru, ld, rd;
+	return result;
+}
+double right_part_element_for_Seungyong(const int rid,const int cid,
+	const std::vector<std::vector<std::vector<int>>>&overlaps, const std::vector<int> &uinterval,
+	const std::vector<int>& vinterval, const std::vector<double>& U,
+	const std::vector<double>& V, const int degree1, const int degree2, int nu, int nv,
+	const Eigen::MatrixXd& ver, const Eigen::MatrixXd& param, const int dimension) {
+	std::vector<double> bottoms(ver.rows());
+	for (int i = 0; i < param.rows(); i++) {
+		int k1 = uinterval[i];
+		int k2 = vinterval[i];
+		double u = param(i, 0);
+		double v = param(i, 1);
+		double btm = 0;
+		int id0, id1, id2, id3;// id0=i-p, id1=i.
+		if (k1 >= 0) {
+			id0 = k1 - degree1;
+			id1 = k1;
+		}
+		else {
+			id0 = nu;
+			id1 = nu;
+		}
+		if (k2 >= 0) {
+			id2 = k2 - degree2;
+			id3 = k2;
+		}
+		else {
+			id2 = nv;
+			id3 = nv;
+		}
+
+		for (int j = id0; j < id1 + 1; j++) {
+			for (int k = id2; k < id3 + 1; k++) {
+				double value = Nip(j, degree1, u, U)*Nip(k, degree2, v, V);
+				btm += value * value;
+			}
+		}
+		assert(btm > 0);
+		bottoms[i] = btm;
+	}
+
+	std::vector<int> list = overlaps[rid][cid];
+	std::vector<double> tops(list.size());
+	std::vector < double > elements(list.size());
+	for (int i = 0; i < list.size(); i++) {
+		int idtmp = list[i];
+		double u = param(idtmp, 0);
+		double v = param(idtmp, 1);
+		double top = Nip(rid, degree1, u, U)*Nip(cid, degree2, v, V);
+		tops[i] = top;
+		if (top <= 0) {
+			std::cout << "reason, N " << Nip(rid, degree1, u, U) << " u " << u << std::endl;
+			std::cout << "reason, N " << Nip(cid, degree2, v, V) << " v " << v << std::endl;
+		}
+		elements[i] = top * ver(idtmp, dimension) / bottoms[idtmp];
+	}
+
+	double sum = 0;
+	for (int i = 0; i < list.size(); i++) {
+		sum += tops[i] * tops[i];
+	}
+	double result = 0;
+	for (int i = 0; i < list.size(); i++) {
+		result += tops[i] * tops[i] * elements[i];
+	}
+	assert(sum > 0);
+	result = result / sum;
+	return result;
+}
+
+Eigen::VectorXd right_part_of_Seungyong(Bsurface& surface, const Eigen::MatrixXd& paras,
+	const Eigen::MatrixXd& ver, const int dimension, 
+	const std::vector<std::vector<std::vector<int>>>&overlaps,
+	const std::vector<int> &uinterval, const std::vector<int> &vinterval, const int nbr_related) {
+
+	int nu = surface.nu();
+	int nv = surface.nv();
+	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
+	Eigen::VectorXd result(psize + nbr_related);
+	for (int i = 0; i < psize; i++) {
+		result[i] = 0;
+	}
+	for (int i = psize; i < result.size(); i++) {
+		int checking = i - psize;
+		int counter = 0;
+		bool jump = false;
+		double value = 0;
+		for (int j = 0; j < nu + 1; j++) {
+			for (int k = 0; k < nv + 1; k++) {
+				if (overlaps[j][k].size() > 0) {
+					if (counter >= checking) {
+						value = right_part_element_for_Seungyong(j, k, overlaps, uinterval, vinterval, surface.U, surface.V, surface.degree1,
+							surface.degree2, nu, nv, ver, paras, dimension);
+						assert(value < std::numeric_limits<double>::infinity() && 
+							value > -std::numeric_limits<double>::infinity());
+						jump = true;
+						break;
+					}
+					counter++;
+				}
+			}
+			if (jump) {
+				break;
+			}
+		}
+		result[i] = value;
+	}
+	return result;
+}
 void iteratively_approximate_method(int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
 	const Eigen::MatrixXd& param, const Eigen::MatrixXd& ver,
 	const double tolerance,
-	std::vector<Bsurface> surfaces, const double per) {
+	std::vector<Bsurface> &surfaces, const double per) {
 	typedef Eigen::SparseMatrix<double> SparseMatrixXd;
 	int level = 0;
 	Eigen::MatrixXd err = ver;
@@ -931,9 +1168,12 @@ void iteratively_approximate_method(int degree1, int degree2,
 		slevel.U = knot_vector_level(degree1, level);
 		slevel.V = knot_vector_level(degree2, level);
 		PartialBasis basis(slevel);
-		Eigen::MatrixXd fair = energy_part_of_surface_least_square(slevel, basis);
-		Eigen::MatrixXd error = error_part_of_surface_least_square(slevel, param);
-		Eigen::MatrixXd left = fair * per + error;
+		std::vector<std::vector<std::vector<int>>> overlaps;
+		std::vector<int> uinterval, vinterval;
+		int nbr_related;
+		std::cout << "before get left" << std::endl;
+		Eigen::MatrixXd left = left_part_of_Seungyong(slevel, basis, param,overlaps, uinterval, vinterval, nbr_related);
+		std::cout << "get left" << std::endl;
 		/////////////////
 		
 		SparseMatrixXd matB;
@@ -950,11 +1190,11 @@ void iteratively_approximate_method(int degree1, int degree2,
 		
 		
 		/////////////////
-		std::vector<Vector3d> cps(left.rows());
+		std::vector<Vector3d> cps(left.rows()- nbr_related);
 		for (int i = 0; i < 3; i++) {
-			Eigen::VectorXd right = right_part_of_least_square_approximation(slevel, param, err, i);
+			Eigen::VectorXd right = right_part_of_Seungyong(slevel,param,err,i,overlaps,uinterval,vinterval,nbr_related);
 			Eigen::MatrixXd p_lambda;
-
+			
 			p_lambda = solver.solve(right);
 			if (solver.info() != Eigen::Success) {
 				std::cout << "solving failed" << std::endl;
@@ -963,16 +1203,27 @@ void iteratively_approximate_method(int degree1, int degree2,
 			for (int j = 0; j < cps.size(); j++) {
 				cps[j][i] = p_lambda(j, 0);
 			}
+			std::cout << "right part\n" << right << std::endl;
 			
 		}
 		push_control_point_list_into_surface(slevel, cps);
 		surfaces.push_back(slevel);
 		double max_error;
+		int max_overlap = 0;
 		err = interpolation_err_for_apprximation(err, param, slevel, max_error);
 		std::cout << "the ith iteration " << level << std::endl;
 		std::cout << "sizes " << slevel.U.size() << " " << slevel.V.size() << std::endl;
 		std::cout << "max error is " << max_error << std::endl;
-		std::cout << "error matrix\n" << err << std::endl;
+		for (int i = 0; i < overlaps.size(); i++) {
+			for (int j = 0; j < overlaps[i].size(); j++) {
+				if (overlaps[i][j].size() > max_overlap) {
+					max_overlap = overlaps[i][j].size();
+				}
+			}
+		}
+		std::cout << "max overlap is " << max_overlap << std::endl;
+		
+		//std::cout << "error matrix\n" << err << std::endl;
 		if (max_error <= tolerance) {
 			break;
 		}
