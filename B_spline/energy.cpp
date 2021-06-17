@@ -947,6 +947,32 @@ Eigen::MatrixXd equality_part_of_Seungyong(Bsurface& surface,
 	return result;
 }
 
+void none_zero_basis_ids(const int interval, const std::vector<double>& U, const double u, const int nu,
+	const int degree, int& id0, int &id1) {
+	if (interval < 0) {
+		id0 = nu;
+		id1 = nu;
+		return;
+	}
+	double left = U[interval];
+	if (u > left) {
+		id0 = interval - degree;
+		id1 = interval;
+		return;
+	}
+	// u==left
+	if (left == U[0]) {
+		id0 = 0;
+		id1 = 0;
+		return;
+	}
+	else {
+		id0 = interval - degree;
+		id1 = interval - 1;
+		return;
+	}
+}
+
 Eigen::MatrixXd left_part_of_Seungyong(Bsurface&surface, PartialBasis& basis, 
 	const Eigen::MatrixXd&param, std::vector<std::vector<std::vector<int>>> &overlaps,
 	std::vector<int> &uinterval, std::vector<int>&vinterval, int &nbr_related) {
@@ -994,25 +1020,9 @@ Eigen::MatrixXd left_part_of_Seungyong(Bsurface&surface, PartialBasis& basis,
 		int k1 = uinterval[i];
 		int k2 = vinterval[i];
 		int id0, id1, id2, id3;// id0=i-p, id1=i.
-		if (k1 >= 0) {
-			id0 = k1 - degree1;
-			id1 = k1;
-			if (u == U[k1]) {todo
-				id1 = k1 - degree1;
-			}
-		}
-		else {
-			id0 = nu;
-			id1 = nu;
-		}
-		if (k2 >= 0) {
-			id2 = k2 - degree2;
-			id3 = k2;
-		}
-		else {
-			id2 = nv ;
-			id3 = nv;
-		}
+		none_zero_basis_ids(k1, U, u, nu, degree1, id0, id1);
+		none_zero_basis_ids(k2, V, v, nv, degree2, id2, id3);
+		
 		assert(id0 >= 0 && id0 <= nu + 1); assert(id1 >= 0 && id1 <= nu + 1);
 		assert(id2 >= 0 && id2 <= nv + 1); assert(id3 >= 0 && id3 <= nv + 1);
 		for (int j = id0; j < id1 + 1; j++) {
@@ -1058,22 +1068,9 @@ double right_part_element_for_Seungyong(const int rid,const int cid,
 		double v = param(i, 1);
 		double btm = 0;
 		int id0, id1, id2, id3;// id0=i-p, id1=i.
-		if (k1 >= 0) {
-			id0 = k1 - degree1;
-			id1 = k1;
-		}
-		else {
-			id0 = nu;
-			id1 = nu;
-		}
-		if (k2 >= 0) {
-			id2 = k2 - degree2;
-			id3 = k2;
-		}
-		else {
-			id2 = nv;
-			id3 = nv;
-		}
+		none_zero_basis_ids(k1, U, u, nu, degree1, id0, id1);
+		none_zero_basis_ids(k2, V, v, nv, degree2, id2, id3);
+		
 
 		for (int j = id0; j < id1 + 1; j++) {
 			for (int k = id2; k < id3 + 1; k++) {
@@ -1203,7 +1200,7 @@ void iteratively_approximate_method(int degree1, int degree2,
 			for (int j = 0; j < cps.size(); j++) {
 				cps[j][i] = p_lambda(j, 0);
 			}
-			std::cout << "right part\n" << right << std::endl;
+			//std::cout << "right part\n" << right << std::endl;
 			
 		}
 		push_control_point_list_into_surface(slevel, cps);

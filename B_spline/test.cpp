@@ -884,7 +884,7 @@ void run_Seungyong() {
 
 	int degree1 = 3;
 	int degree2 = 3;
-	double tolerance = 1e-8;
+	double tolerance = 1e-3;
 	double fair_parameter = 1e-7;
 	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
 	std::vector<double> Vknot = Uknot;
