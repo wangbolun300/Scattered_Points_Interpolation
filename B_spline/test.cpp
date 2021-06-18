@@ -8,6 +8,7 @@
 #include <igl/harmonic.h>
 #include<energy.h>
 #include <igl/write_triangle_mesh.h>
+#include<igl/Timer.h>
 void test_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control_pts_color,
 	Eigen::MatrixXd& curve_pts, Eigen::MatrixXd& curve_pts_color,
 	Eigen::MatrixXd& target_pts, Eigen::MatrixXd& target_pts_color) {
@@ -667,6 +668,89 @@ void get_mesh_vertices_and_parametrization(Eigen::MatrixXd &V, Eigen::MatrixXi &
 // method = 2, hyperbolic; 
 // method = 3, sinus;
 // method = 4, bilinear
+void get_model_sample_points(const int nbr, Eigen::MatrixXd &V, Eigen::MatrixXi &F,
+	Eigen::MatrixXd  &param, const int method, bool corners) {
+
+	const auto mfunction_value = [](const int method, const double x, const double y) {
+		switch (method) {
+		case 0:
+			return Vector3d(x, y, peak_function(x, y));
+		case 1:
+			return Vector3d(x, y, contour_function(x, y));
+		case 2:
+			return Vector3d(x, y, hyperbolic_function(x, y));
+		case 3:
+			return Vector3d(x, y, sinus_function(x, y));
+		case 4:
+			Vector3d v0s(0, 0, 1);
+			Vector3d v0e(1, 1, 0);
+			Vector3d v1s(0, 1, 1);
+			Vector3d v1e(0, 0, 0);
+			return bilinear_function(v0s, v0e, v1s, v1e, x, y);
+		}
+	};
+	std::array<double,5> scale = { {6,2,1,1,1} };
+	std::array<int, 5> seed = { {15,7,33,24,5} };
+	Eigen::MatrixXd ver;
+	ver.resize(nbr, 3);
+	param.resize(nbr, 2);
+	double s = scale[method];// domain scale is [-s, s]x[-s, s]
+	int end = corners ? nbr - 4 : nbr;
+	srand(seed[method]);
+	bool need_param = true;
+	if (method == 4) {
+		for (int i = 0; i < end; i++) {
+			Vector3d para3d = Vector3d::Random();
+			double u = (1 + para3d[0]) / 2;
+			double v = (1 + para3d[1]) / 2;
+			param.row(i) << u, v;
+			ver.row(i) = mfunction_value(method,u,v);
+		}
+		if (corners) {
+			param.row(nbr - 4) << 0, 0;
+			param.row(nbr - 3) << 0, 1;
+			param.row(nbr - 2) << 1, 1;
+			param.row(nbr - 1) << 1, 0;
+
+			ver.row(nbr - 4) = mfunction_value(method, 0, 0);
+			ver.row(nbr - 3) = mfunction_value(method, 0, 1);
+			ver.row(nbr - 2) = mfunction_value(method, 1, 1);
+			ver.row(nbr - 1) = mfunction_value(method, 1, 0);
+		}
+		Eigen::VectorXi loop;
+
+		find_border_loop(param, loop);
+		constrained_delaunay_triangulation(param, loop, F);
+		need_param = false;
+		
+	}
+	else {
+		for (int i = 0; i < end; i++) {
+			Vector3d para3d = Vector3d::Random();
+			double x = s * para3d[0];
+			double y = s * para3d[1];
+			ver.row(i) = mfunction_value(method, x, y);
+		}
+		if (corners) {
+			ver.row(nbr - 4) << -s, -s, sinus_function(-s, -s);
+			ver.row(nbr - 3) << -s, s, sinus_function(-s, s);
+			ver.row(nbr - 2) << s, s, sinus_function(s, s);
+			ver.row(nbr - 1) << s, -s, sinus_function(s, -s);
+		}
+		
+	}
+	V = ver;
+	if (need_param) {
+		direct_project_x_y_and_parametrization(V, param, F);
+	}
+	
+}
+
+// method = 0, peak; 
+// method = 1, contour; 
+// method = 2, hyperbolic; 
+// method = 3, sinus;
+// method = 4, bilinear
 void get_function_vertices_and_parametrization(const int nbr, const int skip, Eigen::MatrixXd &V, Eigen::MatrixXi &F,
 	Eigen::MatrixXd  &param, const int method) {
 	//V = get_peak_sample_points(nbr, skip);
@@ -737,27 +821,120 @@ void write_points(const std::string& file, const Eigen::MatrixXd& ver) {
 	}
 	fout.close();
 }
-void make_peak_exmple() {
+void write_csv(const std::string& file, const std::vector<std::string> titles,const std::vector<double> data) {
+	std::ofstream fout;
+	fout.open(file);
+	for (int i = 0; i < titles.size()-1; i++) {
+		fout << titles[i] << ",";
+	}
+	fout << titles.back() << std::endl;
+	for (int i = 0; i < data.size() - 1; i++) {
+		fout << data[i] << ",";
+	}
+	fout << data.back() << std::endl;
+	fout.close();
+}
+void write_svg_pts(const std::string& file, const Eigen::MatrixXd &param) {
+	std::ofstream fout;
+	fout.open(file);
+	double scale = 1000;
+	double dot = 10;
+	double displace = 30;
+	std::string color = "#ED6E46";
+	std::string black = "#000000";
+	fout << "<svg>" << std::endl;
+	for (int i = 0; i < param.rows(); i++) {
+		double x = displace + param(i, 0)*scale;
+		double y = displace + param(i, 1)*scale;
+		fout << " <circle cx=\"" << x << "\" cy = \"" << y << "\" r = \"" << dot << "\" fill = \"" << color << "\" />" << std::endl;
+	}
+	fout << "<polyline points=\"";
+	
+	std::vector<double> xlist = { {0,0,1,1} };
+	std::vector<double> ylist = { {0,1,1,0} };
+
+	for (int i = 0; i < 4; i++) {
+		fout << displace + xlist[i] * scale << "," << displace + ylist[i] * scale << " ";
+	}
+	fout << displace + xlist[0] * scale << "," << displace + ylist[0] * scale;
+	fout << "\" fill = \"white\" stroke = \"" + black + "\" stroke-width = \"" + std::to_string(5) + "\" /> " << std::endl;
+	/*<svg>
+		<rect width = "200" height = "100" fill = "#BBC42A" / >
+		< / svg>*/
+	fout << "</svg>" << std::endl;
+	fout.close();
+}
+void write_svg_knot_vectors(const std::string& file, const std::vector<double> &U, 
+	const std::vector<double>&V) {
+	std::ofstream fout;
+	fout.open(file);
+	double scale = 1000;
+	double width1 = 5;
+	double width2 = 3;
+	double displace = 30;
+	std::string color = "#000000";
+	std::string color1 = "#7AA20D";
+	fout << "<svg>" << std::endl;
+	std::vector<double> xlist = { {0,0,1,1} };
+	std::vector<double> ylist = { {0,1,1,0} };
+	fout << "<polyline points=\"";
+	for (int i = 0; i < 4; i++) {
+		fout << displace+xlist[i]*scale << "," << displace+ylist[i]*scale << " ";
+	}
+	fout << displace + xlist[0] * scale << "," << displace + ylist[0] * scale;
+	fout << "\" fill = \"white\" stroke = \"" + color + "\" stroke-width = \"" + std::to_string(5) + "\" /> " << std::endl;
+
+	for (int i = 0; i < U.size(); i++) {
+		double x1 = displace + U[i]*scale;
+		double y1 = displace + 0*scale;
+		double x2 = displace + U[i] * scale;
+		double y2 = displace + 1 * scale;
+		fout << "<line x1=\"" + std::to_string(x1) + "\" y1 = \"" + std::to_string(y1) +
+			"\" x2=\"" + std::to_string(x2) + "\" y2=\"" + std::to_string(y2) +
+			"\" stroke = \"" + color1 + "\" stroke-width = \"" 
+			+std::to_string(width2)+"\" /> "<< std::endl;
+	}
+	for (int i = 0; i < V.size(); i++) {
+		double x1 = displace + 0 * scale;
+		double y1 = displace + V[i] * scale;
+		double x2 = displace + 1 * scale;
+		double y2 = displace + V[i] * scale;
+		fout << "<line x1=\"" + std::to_string(x1) + "\" y1 = \"" + std::to_string(y1) +
+			"\" x2=\"" + std::to_string(x2) + "\" y2=\"" + std::to_string(y2) +
+			"\" stroke = \"" + color1 + "\" stroke-width = \""
+			+ std::to_string(width2) + "\" /> " << std::endl;
+	}
+
+	fout << "</svg>" << std::endl;
+	fout.close();
+}
+void run_ours(const int model, const int nbr_pts, double &per_ours, const std::string path, const std::string tail="",
+	const double per=0.2
+	) {
 	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3), pcolor(1, 3), red(1, 3), green(1, 3), blue(1, 3);
 	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;; pcolor << 0, 0.9, 0.5;
 	red << 1, 0, 0; green << 0, 1, 0; blue << 0, 0, 1;
+	igl::Timer timer;
+	double time_knot = 0;
+	double time_solve = 0;
+	double precision = 0;
 
 	Eigen::MatrixXd ver;
-	int nbr = 50;// nbr of points
-	int skip = 0;
+	int nbr = nbr_pts;// nbr of points
 	Eigen::MatrixXi F;
 	Eigen::MatrixXd param, param_perturbed;
 	//get_mesh_vertices_and_parametrization(ver, F, param);
-	int method = 0;
-	get_function_vertices_and_parametrization(nbr, skip, ver, F, param, method);
+	int method = model;
+	bool corners = false;
+	get_model_sample_points(nbr, ver, F, param, method, corners);
 	
 	int degree1 = 3;
 	int degree2 = 3;
 	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
 	std::vector<double> Vknot = Uknot;
 	int perturb_itr = 0;
-	double per_ours = 0.9;
-	double per = 0.2;
+	//double per_ours = 0.9;
+	//double per = 0.2;
 	int target_steps = 10; 
 	bool enable_max_fix_nbr = true;
 	bool enable_local_energy = false;
@@ -771,10 +948,11 @@ void make_peak_exmple() {
 		viewer.launch();
 		exit(0);
 	}
-	
+	timer.start();
 	generate_interpolation_knot_vectors(degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr,per_ours,per, target_steps, enable_max_fix_nbr);
 	//lofting_method_generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr, per);
-
+	timer.stop();
+	time_knot = timer.getElapsedTimeInSec();
 	Eigen::MatrixXd paramout(ver.rows(), 3), zeros(ver.rows(),1);
 	zeros = Eigen::MatrixXd::Constant(ver.rows(), 1, 0);
 	
@@ -792,7 +970,10 @@ void make_peak_exmple() {
 		PartialBasis basis(surface);
 		std::cout << "initialize the basis done" << std::endl;
 		std::cout<<"before solving control points"<<std::endl;
+		timer.start();
 		solve_control_points_for_fairing_surface(surface, param_perturbed, ver,basis);
+		timer.stop();
+		time_solve = timer.getElapsedTimeInSec();
 		surface_visulization(surface, 100, SPs, SFs);
 		if (enable_local_energy) {
 			
@@ -819,8 +1000,8 @@ void make_peak_exmple() {
 				solve_control_points_for_fairing_surface(surface, param_perturbed, ver, basis);
 				std::cout << " control points solved" << std::endl;
 				surface_visulization(surface, 100, SPs, SFs);
-				const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-				igl::write_triangle_mesh(path + "0606_"+std::to_string(i)+"_m_"+std::to_string(method)+".obj", SPs, SFs);
+				
+				igl::write_triangle_mesh(path + "ours_"+"p"+ std::to_string(nbr)+"_refine_"+std::to_string(i)+"_m_"+std::to_string(method)+tail+".obj", SPs, SFs);
 			}
 			//exit(1);
 		}
@@ -831,19 +1012,26 @@ void make_peak_exmple() {
 	std::cout << "final U and V, "<<surface.U.size()<<" "<<surface.V.size() << std::endl;
 	print_vector(surface.U);
 	print_vector(surface.V);
+	precision = max_interpolation_err(ver, param_perturbed, surface);
 	std::cout << "maximal interpolation error " << max_interpolation_err(ver, param_perturbed, surface) << std::endl;
 	bool write_file = true;
 	if (write_file)
 	{
 		Eigen::MatrixXi Pf;
-
-		const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-		write_points(path + "pts_m_" +std::to_string(method)+".obj", ver);
-		//igl::write_triangle_mesh(path + "0517_missing_param.obj", paramout, F);
+		write_points(path + "pts"+std::to_string(nbr)+"_m_" +std::to_string(method)+".obj", ver);
+		igl::write_triangle_mesh(path + "ours_" + "p" + std::to_string(nbr) + "_m_" + std::to_string(method) +tail+ ".obj", SPs, SFs);
+		
+		std::vector<std::string> titles = { {"time_knot","time_solve","precision","nu","nv", "cps"} };
+		int cps = (surface.nu() + 1)*(surface.nv() + 1);
+		std::vector<double> data = { {time_knot, time_solve,precision, double(surface.nu()),double(surface.nv()), double(cps)} };
+		write_csv(path + "ours_" + "p" + std::to_string(nbr)  + "_m_" + std::to_string(method) + tail+".csv",
+			titles, data);
 	}
 	output_timing();
-	
-
+	if (1) {// write svg files
+		write_svg_pts(path + "param.svg", param);
+		write_svg_knot_vectors(path + "knots.svg", surface.U, surface.V);
+	}
 	
 
 
@@ -875,16 +1063,16 @@ void run_Seungyong() {
 
 	Eigen::MatrixXd ver;
 	int nbr = 50;// nbr of points
-	int skip = 0;
 	Eigen::MatrixXi F;
 	Eigen::MatrixXd param, param_perturbed;
 	//get_mesh_vertices_and_parametrization(ver, F, param);
-	int method = 0;
-	get_function_vertices_and_parametrization(nbr, skip, ver, F, param, method);
+	int method = 1;
+	bool corners = false;
+	get_model_sample_points(nbr,  ver, F, param, method, corners);
 
 	int degree1 = 3;
 	int degree2 = 3;
-	double tolerance = 1e-3;
+	double tolerance = 1e-6;
 	double fair_parameter = 1e-7;
 	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
 	std::vector<double> Vknot = Uknot;
@@ -899,14 +1087,106 @@ void run_Seungyong() {
 	Eigen::MatrixXd SPs;
 	Eigen::MatrixXi SFs;
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	write_points(path + "pts_m_" + std::to_string(method) + ".obj", ver);
-	for (int i = 0; i < surfaces.size() - 1; i++) {
-		surface_visulization(surfaces, 100, SPs, SFs, i);
-		igl::write_triangle_mesh(path + "Seungyong" + "_m_" + std::to_string(method)+"_first_"+ 
-			std::to_string(surfaces.size()-i) + ".obj", SPs, SFs);
+	write_points(path + "pts" + std::to_string(nbr) + "_m_" + std::to_string(method) + ".obj", ver);
+	for (int i = 0; i < surfaces.size(); i++) {
+		surface_visulization(surfaces[i], 100, SPs, SFs);
+		igl::write_triangle_mesh(path + "Seungyong_" + "p" + std::to_string(nbr) + "_m_" + std::to_string(method) +"_level_"+
+			std::to_string(i) + ".obj", SPs, SFs);
+	}
+}
+
+void run_piegl(const int model, const int nbr_pts, const double per = 0.2) {
+	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3), pcolor(1, 3), red(1, 3), green(1, 3), blue(1, 3);
+	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;; pcolor << 0, 0.9, 0.5;
+	red << 1, 0, 0; green << 0, 1, 0; blue << 0, 0, 1;
+
+	Eigen::MatrixXd ver;
+	int nbr = nbr_pts;// nbr of points
+	Eigen::MatrixXi F;
+	Eigen::MatrixXd param, param_perturbed;
+	//get_mesh_vertices_and_parametrization(ver, F, param);
+	int method = model;
+	bool corners = false;
+	get_model_sample_points(nbr, ver, F, param, method, corners);
+
+	int degree1 = 3;
+	int degree2 = 3;
+	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
+	std::vector<double> Vknot = Uknot;
+	int perturb_itr = 0;
+
+
+	mesh_parameter_perturbation(param, F, param_perturbed, perturb_itr);
+	std::cout << "param_perturbed\n" << param_perturbed << std::endl;
+	igl::opengl::glfw::Viewer viewer;
+	if (0) {
+		//viewer.data().set_mesh(param_perturbed, F);
+		viewer.data().add_points(ver, ecolor);
+		viewer.launch();
+		exit(0);
 	}
 
-	
-	
-	
+	piegl_method_generate_interpolation_knot_vectors(degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr, per);
+	//lofting_method_generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr, per);
+
+	Eigen::MatrixXd paramout(ver.rows(), 3), zeros(ver.rows(), 1);
+	zeros = Eigen::MatrixXd::Constant(ver.rows(), 1, 0);
+
+	paramout << param_perturbed, zeros;
+	std::cout << "perturbed max dis " << perturbed_distance(param, param_perturbed) << std::endl;
+	Bsurface surface;
+	Eigen::MatrixXd SPs;
+	Eigen::MatrixXi SFs;
+	if (1) {
+		surface.degree1 = 3;
+		surface.degree2 = 3;
+		surface.U = Uknot;
+		surface.V = Vknot;
+		std::cout << "before initialize the basis " << std::endl;
+		PartialBasis basis(surface);
+		std::cout << "initialize the basis done" << std::endl;
+		std::cout << "before solving control points" << std::endl;
+		solve_control_points_for_fairing_surface(surface, param_perturbed, ver, basis);
+		surface_visulization(surface, 100, SPs, SFs);
+
+	}
+
+
+	std::cout << "final U and V, " << surface.U.size() << " " << surface.V.size() << std::endl;
+	print_vector(surface.U);
+	print_vector(surface.V);
+	std::cout << "maximal interpolation error " << max_interpolation_err(ver, param_perturbed, surface) << std::endl;
+	bool write_file = true;
+	if (write_file)
+	{
+		Eigen::MatrixXi Pf;
+		const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+		write_points(path + "pts" + std::to_string(nbr) + "_m_" + std::to_string(method) + ".obj", ver);
+		igl::write_triangle_mesh(path + "ours_" + "p" + std::to_string(nbr) + "_m_" + std::to_string(method) + ".obj", SPs, SFs);
+	}
+	output_timing();
+
+
+
+
+
+	/*
+	viewer.data().set_edges(bdver, edges, fcolor);*/
+	//viewer.data().add_points(vector_to_matrix_3d(inter_pts), ecolor);
+
+	// see the linear interpolated surface
+	//viewer.data().set_mesh(param, F);
+	//viewer.data().add_edges(edge0, edge1, pcolor);
+
+	//viewer.data().set_mesh(param_perturbed, F);
+	viewer.data().clear();
+	viewer.data().set_mesh(SPs, SFs);
+	//viewer.data().add_points(ver, ecolor);
+	Eigen::MatrixXd p0(1, 3), p1(1, 3);
+	p0.row(0) = BSplineSurfacePoint(surface, 0, 0);
+	p1.row(0) = BSplineSurfacePoint(surface, 0, 1);
+	//std::cout << "p0\n" << p0 << std::endl;
+	viewer.data().add_points(p0, red);
+	viewer.data().add_points(p1, green);
+	viewer.launch();
 }

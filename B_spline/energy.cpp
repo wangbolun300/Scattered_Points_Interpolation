@@ -982,7 +982,7 @@ Eigen::MatrixXd left_part_of_Seungyong(Bsurface&surface, PartialBasis& basis,
 	vinterval.resize(param.rows());
 	int degree1 = surface.degree1;
 	int degree2 = surface.degree2;
-	std::cout << "before 01" << std::endl;
+	//std::cout << "before 01" << std::endl;
 	for (int i = 0; i < param.rows(); i++) {
 		double u = param(i, 0);
 		double v = param(i, 1);
@@ -1004,7 +1004,7 @@ Eigen::MatrixXd left_part_of_Seungyong(Bsurface&surface, PartialBasis& basis,
 		}
 		vinterval[i] = which;
 	}
-	std::cout << "before 02" << std::endl;
+	//std::cout << "before 02" << std::endl;
 	int nu = surface.nu();
 	int nv = surface.nv();
 	// (nu+1)x(nv+1) control points
@@ -1013,7 +1013,7 @@ Eigen::MatrixXd left_part_of_Seungyong(Bsurface&surface, PartialBasis& basis,
 	for (int i = 0; i < overlaps.size(); i++) {
 		overlaps[i].resize(nv + 1);
 	}
-	std::cout << "before 03" << std::endl;
+	//std::cout << "before 03" << std::endl;
 	for (int i = 0; i < param.rows(); i++) {
 		double u = param(i, 0);
 		double v = param(i, 1);
@@ -1033,7 +1033,7 @@ Eigen::MatrixXd left_part_of_Seungyong(Bsurface&surface, PartialBasis& basis,
 			}
 		}
 	}
-	std::cout << "before 04" << std::endl;
+	//std::cout << "before 04" << std::endl;
 	for (int i = 0; i < nu + 1; i++) {
 		for (int j = 0; j < nv + 1; j++) {
 			if (overlaps[i][j].size() > 0) {
@@ -1042,17 +1042,16 @@ Eigen::MatrixXd left_part_of_Seungyong(Bsurface&surface, PartialBasis& basis,
 		}
 	}
 	int cnbr = (nu + 1)*(nv + 1);// nbr of the control points
-	int sz = nbr_related + cnbr; // matrix size
-	Eigen::MatrixXd result(sz, sz);
-	std::cout << "before 1" << std::endl;
-	Eigen::MatrixXd lu = energy_part_of_surface_least_square(surface, basis);
-	std::cout << "before 2" << std::endl;
-	Eigen::MatrixXd rd = Eigen::MatrixXd::Zero(nbr_related, nbr_related);// right down corner part
-	std::cout << "before 3" << std::endl;
-	Eigen::MatrixXd ld = equality_part_of_Seungyong(surface, overlaps,nbr_related);
-	std::cout << "before 4" << std::endl;
-	Eigen::MatrixXd ru = -ld.transpose();
-	result << lu, ru, ld, rd;
+	
+	//int sz = nbr_related + cnbr; // matrix size
+	//Eigen::MatrixXd result(sz, sz);
+	int sz = cnbr; // matrix size
+	Eigen::MatrixXd result = Eigen::MatrixXd::Identity(1, 1);
+	//Eigen::MatrixXd lu = energy_part_of_surface_least_square(surface, basis);
+	//Eigen::MatrixXd rd = Eigen::MatrixXd::Zero(nbr_related, nbr_related);// right down corner part
+	//Eigen::MatrixXd ld = equality_part_of_Seungyong(surface, overlaps,nbr_related);
+	//Eigen::MatrixXd ru = -ld.transpose();
+	//result << lu, ru, ld, rd;
 	return result;
 }
 double right_part_element_for_Seungyong(const int rid,const int cid,
@@ -1119,7 +1118,26 @@ Eigen::VectorXd right_part_of_Seungyong(Bsurface& surface, const Eigen::MatrixXd
 	int nu = surface.nu();
 	int nv = surface.nv();
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
-	Eigen::VectorXd result(psize + nbr_related);
+	Eigen::VectorXd result(psize);
+	int dealing = 0;
+	for (int i = 0; i < nu + 1; i++) {
+		for (int j = 0; j < nv + 1; j++) {
+			if (overlaps[i][j].size() > 0) {
+				double value = right_part_element_for_Seungyong(i, j, overlaps, uinterval, vinterval, surface.U, surface.V, surface.degree1,
+					surface.degree2, nu, nv, ver, paras, dimension);
+				assert(value < std::numeric_limits<double>::infinity() &&
+					value > -std::numeric_limits<double>::infinity());
+				result[dealing] = value;
+			}
+			else {
+				result[dealing] = 0;
+			}
+			dealing++;
+		}
+	}
+	return result;
+	
+	
 	for (int i = 0; i < psize; i++) {
 		result[i] = 0;
 	}
@@ -1173,30 +1191,31 @@ void iteratively_approximate_method(int degree1, int degree2,
 		std::cout << "get left" << std::endl;
 		/////////////////
 		
-		SparseMatrixXd matB;
-		Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
+		//SparseMatrixXd matB;
+		//Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
 
-		matB = left.sparseView();
+		//matB = left.sparseView();
 
-		solver.compute(matB);
-		if (solver.info() != Eigen::Success) {
-			// decomposition failed
-			std::cout << "solving failed" << std::endl;
-			return;
-		}
+		//solver.compute(matB);
+		//if (solver.info() != Eigen::Success) {
+		//	// decomposition failed
+		//	std::cout << "solving failed" << std::endl;
+		//	return;
+		//}
 		
 		
 		/////////////////
-		std::vector<Vector3d> cps(left.rows()- nbr_related);
+		int sz = (slevel.nu() + 1)*(slevel.nv() + 1);
+		std::vector<Vector3d> cps(sz);
 		for (int i = 0; i < 3; i++) {
 			Eigen::VectorXd right = right_part_of_Seungyong(slevel,param,err,i,overlaps,uinterval,vinterval,nbr_related);
 			Eigen::MatrixXd p_lambda;
 			
-			p_lambda = solver.solve(right);
-			if (solver.info() != Eigen::Success) {
+			p_lambda = right;
+		/*	if (solver.info() != Eigen::Success) {
 				std::cout << "solving failed" << std::endl;
 				return;
-			}
+			}*/
 			for (int j = 0; j < cps.size(); j++) {
 				cps[j][i] = p_lambda(j, 0);
 			}

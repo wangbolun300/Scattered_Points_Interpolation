@@ -334,8 +334,21 @@ void test1() {
 	//std::vector<double> paras = { {0,0.1, 0.2, 0.3, 0.4 ,0.5 , 0.6, 0.7, 0.8} };
 	//fix_knot_vector_to_interpolate_curve_WKW(degree, init_vec, paras);
 }
+
+// method = 0, peak; 
+// method = 1, contour; 
+// method = 2, hyperbolic; 
+// method = 3, sinus;
+// method = 4, bilinear
+
 int main() {
-	srand(7);
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+	int model = 1;
+	int nbr = 50;
+	double par = 0.9;// ours
+	double per = 0.9;
+	std::string tail = "";
+	run_ours(model, nbr, par, path, tail, per);
 	//test_opengl();
 	//int p = 3;
 	//std::vector<double>U = { {0,0,0,0,0.1,0.4,0.7,0.9,1,1,1,1} };
@@ -355,6 +368,6 @@ int main() {
 	//test_poly();
 	//go_through_temperature_interpolation();
 //make_peak_exmple();
-	run_Seungyong();
+	//run_Seungyong();
 	return 0;
 }

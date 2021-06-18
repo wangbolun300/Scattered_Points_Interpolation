@@ -1804,3 +1804,18 @@ Eigen::MatrixXd interpolation_err_for_apprximation(const Eigen::MatrixXd&ver,
 	max_err = err;
 	return result;
 }
+
+void piegl_method_generate_interpolation_knot_vectors(int degree1, int degree2,
+	std::vector<double>& Uknot, std::vector<double>& Vknot,
+	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed, const Eigen::MatrixXi& F, const int mesh_perturbation_level,
+	const double per) {
+	Eigen::MatrixXd param;
+	mesh_parameter_perturbation(param_original, F, param, mesh_perturbation_level);
+	std::vector<double> Ugrid, Vgrid;
+	Eigen::MatrixXi grid_map;
+	generate_UV_grid(param, Ugrid, Vgrid, grid_map);
+	param_perturbed = param;
+	bool ff;
+	Uknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Uknot, Ugrid, per, ff);
+	Vknot = fix_knot_vector_to_interpolate_curve_WKW(degree2, Vknot, Vgrid, per, ff);
+}

@@ -82,3 +82,7 @@ void output_timing();
 double max_interpolation_err(const Eigen::MatrixXd&ver, const Eigen::MatrixXd& param, Bsurface& surface);
 Eigen::MatrixXd interpolation_err_for_apprximation(const Eigen::MatrixXd&ver,
 	const Eigen::MatrixXd& param, Bsurface& surface, double &max_err);
+void piegl_method_generate_interpolation_knot_vectors( int degree1, int degree2,
+	std::vector<double>& Uknot, std::vector<double>& Vknot,
+	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed, const Eigen::MatrixXi& F, const int mesh_perturbation_level,
+	const double per);
