@@ -343,9 +343,9 @@ void test1() {
 
 int main() {
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	int model = 1;
+	int model = 4;
 	int nbr = 50;
-	double par = 0.9;// ours
+	double par = 0.5;// ours
 	double per = 0.9;
 	std::string tail = "";
 	run_ours(model, nbr, par, path, tail, per);

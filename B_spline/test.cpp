@@ -690,7 +690,7 @@ void get_model_sample_points(const int nbr, Eigen::MatrixXd &V, Eigen::MatrixXi 
 		}
 	};
 	std::array<double,5> scale = { {6,2,1,1,1} };
-	std::array<int, 5> seed = { {15,7,33,24,5} };
+	std::array<int, 5> seed = { {3,7,33,10,5} };
 	Eigen::MatrixXd ver;
 	ver.resize(nbr, 3);
 	param.resize(nbr, 2);
@@ -751,54 +751,54 @@ void get_model_sample_points(const int nbr, Eigen::MatrixXd &V, Eigen::MatrixXi 
 // method = 2, hyperbolic; 
 // method = 3, sinus;
 // method = 4, bilinear
-void get_function_vertices_and_parametrization(const int nbr, const int skip, Eigen::MatrixXd &V, Eigen::MatrixXi &F,
-	Eigen::MatrixXd  &param, const int method) {
-	//V = get_peak_sample_points(nbr, skip);
-	bool need_param = true;
-	switch (method) {
-	case 0:
-		srand(15);
-		V = get_peak_sample_points(nbr, skip);
-		break;
-	case 1:
-		srand(7);
-		V = get_contour_sample_points(nbr, skip);
-		break;
-	case 2:
-		srand(33);
-		V = get_hyperbolic_sample_points(nbr, skip);
-		break;
-	case 3:
-		srand(24);
-		V = get_sinus_sample_points(nbr, skip);
-		break;
-	case 4:
-		srand(5);
-		
-		V = get_bilinear_sample_points(nbr, skip, param);
-		Eigen::VectorXi loop;
-		
-		find_border_loop(param, loop);
-		
-		constrained_delaunay_triangulation(param, loop, F);
-		need_param = false;
-		break;
-		
-	}
-
-
-	if (need_param) {
-		direct_project_x_y_and_parametrization(V, param, F);
-	}
-	/*for (int i = 0; i < V.rows(); i++) {
-		for (int j = 0; j < 3; j++) {
-			if (fabs(V(i, j)) < SCALAR_ZERO) {
-				(V(i, j) = 0;
-			}
-		}
-	}*/
-	return;
-}
+//void get_function_vertices_and_parametrization(const int nbr, const int skip, Eigen::MatrixXd &V, Eigen::MatrixXi &F,
+//	Eigen::MatrixXd  &param, const int method) {
+//	//V = get_peak_sample_points(nbr, skip);
+//	bool need_param = true;
+//	switch (method) {
+//	case 0:
+//		srand(15);
+//		V = get_peak_sample_points(nbr, skip);
+//		break;
+//	case 1:
+//		srand(7);
+//		V = get_contour_sample_points(nbr, skip);
+//		break;
+//	case 2:
+//		srand(33);
+//		V = get_hyperbolic_sample_points(nbr, skip);
+//		break;
+//	case 3:
+//		srand(24);
+//		V = get_sinus_sample_points(nbr, skip);
+//		break;
+//	case 4:
+//		srand(5);
+//		
+//		V = get_bilinear_sample_points(nbr, skip, param);
+//		Eigen::VectorXi loop;
+//		
+//		find_border_loop(param, loop);
+//		
+//		constrained_delaunay_triangulation(param, loop, F);
+//		need_param = false;
+//		break;
+//		
+//	}
+//
+//
+//	if (need_param) {
+//		direct_project_x_y_and_parametrization(V, param, F);
+//	}
+//	/*for (int i = 0; i < V.rows(); i++) {
+//		for (int j = 0; j < 3; j++) {
+//			if (fabs(V(i, j)) < SCALAR_ZERO) {
+//				(V(i, j) = 0;
+//			}
+//		}
+//	}*/
+//	return;
+//}
 double perturbed_distance(const Eigen::MatrixXd&p1, const Eigen::MatrixXd&p2) {
 	double dis = 0;
 	for (int i = 0; i < p1.rows(); i++) {
@@ -1032,7 +1032,7 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 		write_svg_pts(path + "param.svg", param);
 		write_svg_knot_vectors(path + "knots.svg", surface.U, surface.V);
 	}
-	
+	std::cout << "total time " << time_knot + time_solve << std::endl;
 
 
 	/*
@@ -1060,7 +1060,8 @@ void run_Seungyong() {
 	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3), pcolor(1, 3), red(1, 3), green(1, 3), blue(1, 3);
 	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;; pcolor << 0, 0.9, 0.5;
 	red << 1, 0, 0; green << 0, 1, 0; blue << 0, 0, 1;
-
+	igl::Timer timer;
+	double time_run = 0;
 	Eigen::MatrixXd ver;
 	int nbr = 50;// nbr of points
 	Eigen::MatrixXi F;
@@ -1079,11 +1080,13 @@ void run_Seungyong() {
 	igl::opengl::glfw::Viewer viewer;
 
 	std::vector<Bsurface> surfaces;
+	timer.start();
 	iteratively_approximate_method(degree1, degree2, Uknot, Vknot, param, ver, tolerance, surfaces, fair_parameter);
-
+	timer.stop();
+	time_run = timer.getElapsedTimeInSec();
 	std::cout << "run_Seungyong finished, surface levels " << surfaces.size() << std::endl;
-	std::cout << "final surface size " << surfaces.back().nu() << " " << surfaces.back().nv()
-		<< " total control points " << surfaces.back().nu()*surfaces.back().nv() << std::endl;
+	std::cout << "final surface size " << surfaces.back().nu()+1 << " " << surfaces.back().nv()+1
+		<< " total control points " << (surfaces.back().nu()+1)*(surfaces.back().nv()+1) << std::endl;
 	Eigen::MatrixXd SPs;
 	Eigen::MatrixXi SFs;
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
@@ -1093,6 +1096,7 @@ void run_Seungyong() {
 		igl::write_triangle_mesh(path + "Seungyong_" + "p" + std::to_string(nbr) + "_m_" + std::to_string(method) +"_level_"+
 			std::to_string(i) + ".obj", SPs, SFs);
 	}
+	std::cout << "Seungyong time " << time_run << std::endl;
 }
 
 void run_piegl(const int model, const int nbr_pts, const double per = 0.2) {
@@ -1162,11 +1166,12 @@ void run_piegl(const int model, const int nbr_pts, const double per = 0.2) {
 		Eigen::MatrixXi Pf;
 		const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
 		write_points(path + "pts" + std::to_string(nbr) + "_m_" + std::to_string(method) + ".obj", ver);
-		igl::write_triangle_mesh(path + "ours_" + "p" + std::to_string(nbr) + "_m_" + std::to_string(method) + ".obj", SPs, SFs);
+		igl::write_triangle_mesh(path + "piegl_" + "p" + std::to_string(nbr) + "_m_" + std::to_string(method) + ".obj", SPs, SFs);
 	}
 	output_timing();
 
-
+	std::cout << "final surface size " << surface.nu()+1 << " " << surface.nv()+1
+		<< " total control points " << (surface.nu() + 1)*(surface.nv() + 1) << std::endl;
 
 
 
