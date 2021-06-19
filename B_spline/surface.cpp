@@ -1620,13 +1620,13 @@ std::vector<double> update_knot_vector_based_on_grid(const int degree1, const in
 }
 void generate_interpolation_knot_vectors( int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
-	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed,const Eigen::MatrixXi& F, const int mesh_perturbation_level,
+	const Eigen::MatrixXd& param_original, 
 	const double per_ours,const double per, const int target_steps, const bool enable_max_fix_nbr, per_too_large &per_flag) {
-	Eigen::MatrixXd param;
-	mesh_parameter_perturbation(param_original, F, param, mesh_perturbation_level);
+	
+	
 	std::vector<double> Ugrid, Vgrid;
 	Eigen::MatrixXi grid_map;
-	generate_UV_grid(param, Ugrid, Vgrid, grid_map);
+	generate_UV_grid(param_original, Ugrid, Vgrid, grid_map);
 	std::cout << "** UV grid sizes, " << Ugrid.size() << ", " << Vgrid.size() << std::endl;
 	bool fully_fixed;
 	std::vector<double> Utemp = Uknot, Vtemp = Vknot;
@@ -1651,7 +1651,7 @@ void generate_interpolation_knot_vectors( int degree1, int degree2,
 	
 	while (!finished) {
 		finished = progressively_generate_interpolation_knot_vectors(v_direction, degree1, degree2,
-			Utemp, Vtemp, Ugrid, Vgrid, grid_map, param, per_ours, per, target_steps, enable_max_fix_nbr,
+			Utemp, Vtemp, Ugrid, Vgrid, grid_map, param_original, per_ours, per, target_steps, enable_max_fix_nbr,
 			per_flag);
 		if (per_flag.flag == false) {
 			// per_ours need to be reduced
@@ -1669,7 +1669,7 @@ void generate_interpolation_knot_vectors( int degree1, int degree2,
 	std::cout << "Uknot Vknot size "<< Utemp.size()<<" "<<Vtemp.size() << std::endl;
 
 	
-	param_perturbed = param;
+	
 	std::cout << "knot fixing finished" << std::endl;
 	// post processing
 	bool post_processing = false;
@@ -1678,7 +1678,7 @@ void generate_interpolation_knot_vectors( int degree1, int degree2,
 		// V direction, fix V
 		Utemp = Uknot;
 		finished = progressively_generate_interpolation_knot_vectors(true, degree1, degree2,
-			Utemp, Vtemp, Ugrid, Vgrid, grid_map, param, per_ours, per, target_steps, false,// not enable_max_fix_nbr
+			Utemp, Vtemp, Ugrid, Vgrid, grid_map, param_original, per_ours, per, target_steps, false,// not enable_max_fix_nbr
 			per_flag);
 		if (per_flag.flag == false) {
 			// per_ours need to be reduced
@@ -1689,7 +1689,7 @@ void generate_interpolation_knot_vectors( int degree1, int degree2,
 		// U direction, fix U
 		Vtemp = Vknot;
 		finished = progressively_generate_interpolation_knot_vectors(false, degree1, degree2,
-			Utemp, Vtemp, Ugrid, Vgrid, grid_map, param, per_ours, per, target_steps, false,// not enable_max_fix_nbr
+			Utemp, Vtemp, Ugrid, Vgrid, grid_map, param_original, per_ours, per, target_steps, false,// not enable_max_fix_nbr
 			per_flag);
 		if (per_flag.flag == false) {
 			// per_ours need to be reduced
@@ -1710,13 +1710,12 @@ void generate_interpolation_knot_vectors( int degree1, int degree2,
 
 void lofting_method_generate_interpolation_knot_vectors(const bool start_from_v_direction, int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
-	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed, const Eigen::MatrixXi& F, const int mesh_perturbation_level,
+	const Eigen::MatrixXd& param_original, 
 	 const double per) {
-	Eigen::MatrixXd param;
-	mesh_parameter_perturbation(param_original, F, param, mesh_perturbation_level);
+	
 	std::vector<double> Ugrid, Vgrid;
 	Eigen::MatrixXi grid_map;
-	generate_UV_grid(param, Ugrid, Vgrid, grid_map);
+	generate_UV_grid(param_original, Ugrid, Vgrid, grid_map);
 	std::cout << "** UV grid sizes, " << Ugrid.size() << ", " << Vgrid.size() << std::endl;
 	bool fully_fixed;
 	for (int i = 0; i < Vgrid.size(); i++) {
@@ -1752,14 +1751,13 @@ void lofting_method_generate_interpolation_knot_vectors(const bool start_from_v_
 
 void generate_interpolation_knot_vectors(int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
-	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed, const Eigen::MatrixXi& F, const int mesh_perturbation_level,
+	const Eigen::MatrixXd& param_original, 
 	double &per_ours, const double per, const int target_steps, const bool enable_max_fix_nbr) {
 	per_too_large per_flag;
 	per_flag.flag = false;
 	double per_ours_tmp = per_ours;
 	while (1) {
-		generate_interpolation_knot_vectors(degree1, degree2, Uknot, Vknot, param_original, param_perturbed, 
-			F, mesh_perturbation_level, per_ours_tmp,
+		generate_interpolation_knot_vectors(degree1, degree2, Uknot, Vknot, param_original, per_ours_tmp,
 			per, target_steps, enable_max_fix_nbr, per_flag);
 		if (per_flag.flag) {
 			break;
@@ -1807,14 +1805,11 @@ Eigen::MatrixXd interpolation_err_for_apprximation(const Eigen::MatrixXd&ver,
 
 void piegl_method_generate_interpolation_knot_vectors(int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
-	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed, const Eigen::MatrixXi& F, const int mesh_perturbation_level,
+	const Eigen::MatrixXd& param_original, 
 	const double per) {
-	Eigen::MatrixXd param;
-	mesh_parameter_perturbation(param_original, F, param, mesh_perturbation_level);
 	std::vector<double> Ugrid, Vgrid;
 	Eigen::MatrixXi grid_map;
-	generate_UV_grid(param, Ugrid, Vgrid, grid_map);
-	param_perturbed = param;
+	generate_UV_grid(param_original, Ugrid, Vgrid, grid_map);
 	bool ff;
 	Uknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Uknot, Ugrid, per, ff);
 	Vknot = fix_knot_vector_to_interpolate_curve_WKW(degree2, Vknot, Vgrid, per, ff);

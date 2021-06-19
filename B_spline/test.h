@@ -14,4 +14,5 @@ void test_surface_knot_preprocessing(Eigen::MatrixXd &points, Eigen::MatrixXd& k
 void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::MatrixXi& knotE);
 void run_ours(const int model, const int nbr_pts, double &per_ours, const std::string path, const std::string tail,
 	const double per);
-void run_Seungyong();
+void run_Seungyong(const int model, const int nbr_pts, const double tolerance, const std::string path);
+void run_piegl(const int model, const int nbr_pts, const double per);

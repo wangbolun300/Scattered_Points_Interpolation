@@ -69,20 +69,20 @@ std::vector<double> get_iso_line_parameters_from_ACP(const Eigen::MatrixXi&ACP, 
 
 std::vector<double> get_iso_line_parameters(const int degree1, const int degree2, const bool v_direction, const int line_id,
 	const std::vector<double>& Ugrid, const std::vector<double>& Vgrid, const Eigen::MatrixXi& grid_map);
-void generate_interpolation_knot_vectors( int degree1, int degree2,
+void generate_interpolation_knot_vectors(int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
-	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed, const Eigen::MatrixXi& F, const int mesh_perturbation_level,
-	double& per_ours, const double per, const int target_steps, const bool enable_max_fix_nbr);
+	const Eigen::MatrixXd& param_original,
+	double &per_ours, const double per, const int target_steps, const bool enable_max_fix_nbr);
 void lofting_method_generate_interpolation_knot_vectors(const bool start_from_v_direction, int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
-	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed, const Eigen::MatrixXi& F, const int mesh_perturbation_level,
+	const Eigen::MatrixXd& param_original, 
 	const double per);
 void output_timing();
 
 double max_interpolation_err(const Eigen::MatrixXd&ver, const Eigen::MatrixXd& param, Bsurface& surface);
 Eigen::MatrixXd interpolation_err_for_apprximation(const Eigen::MatrixXd&ver,
 	const Eigen::MatrixXd& param, Bsurface& surface, double &max_err);
-void piegl_method_generate_interpolation_knot_vectors( int degree1, int degree2,
+void piegl_method_generate_interpolation_knot_vectors(int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
-	const Eigen::MatrixXd& param_original, Eigen::MatrixXd& param_perturbed, const Eigen::MatrixXi& F, const int mesh_perturbation_level,
+	const Eigen::MatrixXd& param_original,
 	const double per);

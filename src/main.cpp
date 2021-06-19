@@ -340,15 +340,33 @@ void test1() {
 // method = 2, hyperbolic; 
 // method = 3, sinus;
 // method = 4, bilinear
-
-int main() {
+// method = 5, snail
+void ours_results() {
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	int model = 4;
+	int model = 5;
 	int nbr = 50;
-	double par = 0.5;// ours
+	double par = 0.9;// ours
 	double per = 0.9;
 	std::string tail = "";
 	run_ours(model, nbr, par, path, tail, per);
+}
+void piegl_results() {
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+	int model = 5;
+	int nbr = 50;
+	double per = 0.9;
+	run_piegl(model, nbr, per);
+}
+
+void seung_results() {
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+	int model = 5;
+	int nbr = 50;
+	double tolerance = 1e-8;
+	run_Seungyong(model, nbr, tolerance, path);
+}
+int main() {
+	seung_results();
 	//test_opengl();
 	//int p = 3;
 	//std::vector<double>U = { {0,0,0,0,0.1,0.4,0.7,0.9,1,1,1,1} };

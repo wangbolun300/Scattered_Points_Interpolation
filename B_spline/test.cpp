@@ -662,7 +662,17 @@ void get_mesh_vertices_and_parametrization(Eigen::MatrixXd &V, Eigen::MatrixXi &
 	const std::string filename = path + "camel_small_open.obj";
 	mesh_parameterization(filename, V, param, F);
 }
-
+// u0 v0 are in [0,1].
+// the function u in [1,2], v in [-pi/2, pi/2]
+Vector3d snail_function(double u0, double v0) {
+	const double pi = 3.1415926;
+	double u = 1+ u0;
+	double v = -pi/2 + pi * v0;
+	double x = u * cos(v)*sin(u);
+	double y = u * cos(u)*cos(v);
+	double z = -u * sin(v);
+	return Vector3d(x, y, z);
+}
 // method = 0, peak; 
 // method = 1, contour; 
 // method = 2, hyperbolic; 
@@ -670,8 +680,13 @@ void get_mesh_vertices_and_parametrization(Eigen::MatrixXd &V, Eigen::MatrixXi &
 // method = 4, bilinear
 void get_model_sample_points(const int nbr, Eigen::MatrixXd &V, Eigen::MatrixXi &F,
 	Eigen::MatrixXd  &param, const int method, bool corners) {
+	const int nbr_models = 6;
 
 	const auto mfunction_value = [](const int method, const double x, const double y) {
+		Vector3d v0s(0, 0, 1);
+		Vector3d v0e(1, 1, 0);
+		Vector3d v1s(0, 1, 1);
+		Vector3d v1e(0, 0, 0);
 		switch (method) {
 		case 0:
 			return Vector3d(x, y, peak_function(x, y));
@@ -682,15 +697,13 @@ void get_model_sample_points(const int nbr, Eigen::MatrixXd &V, Eigen::MatrixXi 
 		case 3:
 			return Vector3d(x, y, sinus_function(x, y));
 		case 4:
-			Vector3d v0s(0, 0, 1);
-			Vector3d v0e(1, 1, 0);
-			Vector3d v1s(0, 1, 1);
-			Vector3d v1e(0, 0, 0);
 			return bilinear_function(v0s, v0e, v1s, v1e, x, y);
+		case 5:
+			return snail_function(x, y);
 		}
 	};
-	std::array<double,5> scale = { {6,2,1,1,1} };
-	std::array<int, 5> seed = { {3,7,33,10,5} };
+	std::vector<double> scale= { {6,2,1,1,1} };
+	std::vector<int> seed = { {3,7,33,10,5,0} };
 	Eigen::MatrixXd ver;
 	ver.resize(nbr, 3);
 	param.resize(nbr, 2);
@@ -698,13 +711,13 @@ void get_model_sample_points(const int nbr, Eigen::MatrixXd &V, Eigen::MatrixXi 
 	int end = corners ? nbr - 4 : nbr;
 	srand(seed[method]);
 	bool need_param = true;
-	if (method == 4) {
+	if (method == 4 || method == 5) {
 		for (int i = 0; i < end; i++) {
 			Vector3d para3d = Vector3d::Random();
 			double u = (1 + para3d[0]) / 2;
 			double v = (1 + para3d[1]) / 2;
 			param.row(i) << u, v;
-			ver.row(i) = mfunction_value(method,u,v);
+			ver.row(i) = mfunction_value(method, u, v);
 		}
 		if (corners) {
 			param.row(nbr - 4) << 0, 0;
@@ -732,10 +745,10 @@ void get_model_sample_points(const int nbr, Eigen::MatrixXd &V, Eigen::MatrixXi 
 			ver.row(i) = mfunction_value(method, x, y);
 		}
 		if (corners) {
-			ver.row(nbr - 4) << -s, -s, sinus_function(-s, -s);
-			ver.row(nbr - 3) << -s, s, sinus_function(-s, s);
-			ver.row(nbr - 2) << s, s, sinus_function(s, s);
-			ver.row(nbr - 1) << s, -s, sinus_function(s, -s);
+			ver.row(nbr - 4) << -s, -s, mfunction_value(method ,-s, -s);
+			ver.row(nbr - 3) << -s, s, mfunction_value(method ,-s, s);
+			ver.row(nbr - 2) << s, s, mfunction_value(method,s, s);
+			ver.row(nbr - 1) << s, -s, mfunction_value(method,s, -s);
 		}
 		
 	}
@@ -743,6 +756,42 @@ void get_model_sample_points(const int nbr, Eigen::MatrixXd &V, Eigen::MatrixXi 
 	if (need_param) {
 		direct_project_x_y_and_parametrization(V, param, F);
 	}
+	if (1) {
+		int pnbr = 100;
+		Eigen::MatrixXi faces;
+		std::vector<std::vector<Vector3d>> pts;
+		ver.resize(pnbr*pnbr, 3);
+		int verline = 0;
+		for (int i = 0; i < pnbr; i++) {
+			for (int j = 0; j < pnbr; j++) {
+				double upara = double(i) / (pnbr - 1);
+				double vpara = double(j) / (pnbr - 1);
+				double u, v;
+				if (method == 4 || method == 5) {
+					u = upara;
+					v = vpara;
+				}
+				else {
+					u= 2 * s * upara - s;
+					v= 2 * s * upara - s;
+				}
+				ver.row(verline) = mfunction_value(method,u,v);
+				verline++;
+			}
+		}
+		faces.resize(2 * (pnbr - 1)*(pnbr - 1), 3);
+		int fline = 0;
+		for (int i = 0; i < pnbr - 1; i++) {
+			for (int j = 0; j < pnbr - 1; j++) {
+				faces.row(fline) = Vector3i(i + pnbr * (j + 1), i + pnbr * j, i + pnbr * (1 + j) + 1);
+				faces.row(fline + 1) = Vector3i(i + pnbr * (1 + j) + 1, i + pnbr * j, i + pnbr * j + 1);
+				fline += 2;
+			}
+		}
+		const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+		igl::write_triangle_mesh(path + "model_" + std::to_string(method) + ".obj", ver, faces);
+	}
+	
 	
 }
 
@@ -927,7 +976,7 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 	int method = model;
 	bool corners = false;
 	get_model_sample_points(nbr, ver, F, param, method, corners);
-	
+	std::cout << "ver\n" << ver << std::endl;
 	int degree1 = 3;
 	int degree2 = 3;
 	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
@@ -938,9 +987,6 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 	int target_steps = 10; 
 	bool enable_max_fix_nbr = true;
 	bool enable_local_energy = false;
-
-	mesh_parameter_perturbation(param, F, param_perturbed, perturb_itr);
-	std::cout << "param_perturbed\n" << param_perturbed << std::endl;
 	igl::opengl::glfw::Viewer viewer;
 	if (0) {
 		//viewer.data().set_mesh(param_perturbed, F);
@@ -949,7 +995,7 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 		exit(0);
 	}
 	timer.start();
-	generate_interpolation_knot_vectors(degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr,per_ours,per, target_steps, enable_max_fix_nbr);
+	generate_interpolation_knot_vectors(degree1, degree2, Uknot, Vknot, param,per_ours,per, target_steps, enable_max_fix_nbr);
 	//lofting_method_generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr, per);
 	timer.stop();
 	time_knot = timer.getElapsedTimeInSec();
@@ -957,7 +1003,7 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 	zeros = Eigen::MatrixXd::Constant(ver.rows(), 1, 0);
 	
 	paramout << param_perturbed, zeros;
-	std::cout << "perturbed max dis " << perturbed_distance(param, param_perturbed) << std::endl;
+	//std::cout << "perturbed max dis " << perturbed_distance(param, param_perturbed) << std::endl;
 	Bsurface surface;
 	Eigen::MatrixXd SPs;
 	Eigen::MatrixXi SFs;
@@ -971,7 +1017,7 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 		std::cout << "initialize the basis done" << std::endl;
 		std::cout<<"before solving control points"<<std::endl;
 		timer.start();
-		solve_control_points_for_fairing_surface(surface, param_perturbed, ver,basis);
+		solve_control_points_for_fairing_surface(surface, param, ver,basis);
 		timer.stop();
 		time_solve = timer.getElapsedTimeInSec();
 		surface_visulization(surface, 100, SPs, SFs);
@@ -997,7 +1043,7 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 				std::cout << "knot vector get inserted" << std::endl;
 				basis.clear();
 				basis.init(surface);
-				solve_control_points_for_fairing_surface(surface, param_perturbed, ver, basis);
+				solve_control_points_for_fairing_surface(surface, param, ver, basis);
 				std::cout << " control points solved" << std::endl;
 				surface_visulization(surface, 100, SPs, SFs);
 				
@@ -1012,8 +1058,8 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 	std::cout << "final U and V, "<<surface.U.size()<<" "<<surface.V.size() << std::endl;
 	print_vector(surface.U);
 	print_vector(surface.V);
-	precision = max_interpolation_err(ver, param_perturbed, surface);
-	std::cout << "maximal interpolation error " << max_interpolation_err(ver, param_perturbed, surface) << std::endl;
+	precision = max_interpolation_err(ver, param, surface);
+	std::cout << "maximal interpolation error " << max_interpolation_err(ver, param, surface) << std::endl;
 	bool write_file = true;
 	if (write_file)
 	{
@@ -1046,34 +1092,33 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 	//viewer.data().set_mesh(param_perturbed, F);
 	viewer.data().clear();
 	viewer.data().set_mesh(SPs, SFs);
-	//viewer.data().add_points(ver, ecolor);
+	viewer.data().add_points(ver, ecolor);
 	Eigen::MatrixXd p0(1, 3), p1(1, 3);
-	p0.row(0) = BSplineSurfacePoint(surface, 0, 0);
-	p1.row(0) = BSplineSurfacePoint(surface, 0, 1);
-	//std::cout << "p0\n" << p0 << std::endl;
-	viewer.data().add_points(p0, red);
-	viewer.data().add_points(p1, green);
+	//p0.row(0) = BSplineSurfacePoint(surface, 0, 0);
+	//p1.row(0) = BSplineSurfacePoint(surface, 0, 1);
+	////std::cout << "p0\n" << p0 << std::endl;
+	//viewer.data().add_points(p0, red);
+	//viewer.data().add_points(p1, green);
 	viewer.launch();
 }
 
-void run_Seungyong() {
+void run_Seungyong(const int model, const int nbr_pts, const double tolerance, const std::string path) {
 	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3), pcolor(1, 3), red(1, 3), green(1, 3), blue(1, 3);
 	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;; pcolor << 0, 0.9, 0.5;
 	red << 1, 0, 0; green << 0, 1, 0; blue << 0, 0, 1;
 	igl::Timer timer;
 	double time_run = 0;
 	Eigen::MatrixXd ver;
-	int nbr = 50;// nbr of points
+	int nbr = nbr_pts;// nbr of points
 	Eigen::MatrixXi F;
-	Eigen::MatrixXd param, param_perturbed;
+	Eigen::MatrixXd param;
 	//get_mesh_vertices_and_parametrization(ver, F, param);
-	int method = 1;
+	int method = model;
 	bool corners = false;
 	get_model_sample_points(nbr,  ver, F, param, method, corners);
 
 	int degree1 = 3;
 	int degree2 = 3;
-	double tolerance = 1e-6;
 	double fair_parameter = 1e-7;
 	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
 	std::vector<double> Vknot = Uknot;
@@ -1087,16 +1132,17 @@ void run_Seungyong() {
 	std::cout << "run_Seungyong finished, surface levels " << surfaces.size() << std::endl;
 	std::cout << "final surface size " << surfaces.back().nu()+1 << " " << surfaces.back().nv()+1
 		<< " total control points " << (surfaces.back().nu()+1)*(surfaces.back().nv()+1) << std::endl;
+	std::cout << "Seungyong time " << time_run << std::endl;
 	Eigen::MatrixXd SPs;
 	Eigen::MatrixXi SFs;
-	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+	
 	write_points(path + "pts" + std::to_string(nbr) + "_m_" + std::to_string(method) + ".obj", ver);
 	for (int i = 0; i < surfaces.size(); i++) {
 		surface_visulization(surfaces[i], 100, SPs, SFs);
 		igl::write_triangle_mesh(path + "Seungyong_" + "p" + std::to_string(nbr) + "_m_" + std::to_string(method) +"_level_"+
 			std::to_string(i) + ".obj", SPs, SFs);
 	}
-	std::cout << "Seungyong time " << time_run << std::endl;
+	
 }
 
 void run_piegl(const int model, const int nbr_pts, const double per = 0.2) {
@@ -1104,10 +1150,12 @@ void run_piegl(const int model, const int nbr_pts, const double per = 0.2) {
 	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;; pcolor << 0, 0.9, 0.5;
 	red << 1, 0, 0; green << 0, 1, 0; blue << 0, 0, 1;
 
+	igl::Timer timer;
+	double time_total = 0;
 	Eigen::MatrixXd ver;
 	int nbr = nbr_pts;// nbr of points
 	Eigen::MatrixXi F;
-	Eigen::MatrixXd param, param_perturbed;
+	Eigen::MatrixXd param;
 	//get_mesh_vertices_and_parametrization(ver, F, param);
 	int method = model;
 	bool corners = false;
@@ -1120,8 +1168,8 @@ void run_piegl(const int model, const int nbr_pts, const double per = 0.2) {
 	int perturb_itr = 0;
 
 
-	mesh_parameter_perturbation(param, F, param_perturbed, perturb_itr);
-	std::cout << "param_perturbed\n" << param_perturbed << std::endl;
+	//mesh_parameter_perturbation(param, F, param_perturbed, perturb_itr);
+	//std::cout << "param_perturbed\n" << param_perturbed << std::endl;
 	igl::opengl::glfw::Viewer viewer;
 	if (0) {
 		//viewer.data().set_mesh(param_perturbed, F);
@@ -1129,15 +1177,15 @@ void run_piegl(const int model, const int nbr_pts, const double per = 0.2) {
 		viewer.launch();
 		exit(0);
 	}
-
-	piegl_method_generate_interpolation_knot_vectors(degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr, per);
+	timer.start();
+	piegl_method_generate_interpolation_knot_vectors(degree1, degree2, Uknot, Vknot, param,  per);
 	//lofting_method_generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr, per);
 
 	Eigen::MatrixXd paramout(ver.rows(), 3), zeros(ver.rows(), 1);
 	zeros = Eigen::MatrixXd::Constant(ver.rows(), 1, 0);
 
-	paramout << param_perturbed, zeros;
-	std::cout << "perturbed max dis " << perturbed_distance(param, param_perturbed) << std::endl;
+	//paramout << param_perturbed, zeros;
+	//std::cout << "perturbed max dis " << perturbed_distance(param, param_perturbed) << std::endl;
 	Bsurface surface;
 	Eigen::MatrixXd SPs;
 	Eigen::MatrixXi SFs;
@@ -1150,16 +1198,18 @@ void run_piegl(const int model, const int nbr_pts, const double per = 0.2) {
 		PartialBasis basis(surface);
 		std::cout << "initialize the basis done" << std::endl;
 		std::cout << "before solving control points" << std::endl;
-		solve_control_points_for_fairing_surface(surface, param_perturbed, ver, basis);
+		solve_control_points_for_fairing_surface(surface, param, ver, basis);
 		surface_visulization(surface, 100, SPs, SFs);
 
 	}
-
+	timer.stop();
+	time_total = timer.getElapsedTimeInSec();
 
 	std::cout << "final U and V, " << surface.U.size() << " " << surface.V.size() << std::endl;
 	print_vector(surface.U);
 	print_vector(surface.V);
-	std::cout << "maximal interpolation error " << max_interpolation_err(ver, param_perturbed, surface) << std::endl;
+	std::cout << "maximal interpolation error " << max_interpolation_err(ver, param, surface) << std::endl;
+	std::cout << "total time " << time_total << std::endl;
 	bool write_file = true;
 	if (write_file)
 	{
