@@ -341,18 +341,17 @@ void test1() {
 // method = 3, sinus;
 // method = 4, bilinear
 // method = 5, snail
-void ours_results() {
+void ours_results(std::string tail = "") {
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
 	int model = 5;
 	int nbr = 50;
 	double par = 0.9;// ours
 	double per = 0.9;
-	std::string tail = "";
 	run_ours(model, nbr, par, path, tail, per);
 }
 void piegl_results() {
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	int model = 5;
+	int model = 2;
 	int nbr = 50;
 	double per = 0.9;
 	run_piegl(model, nbr, per);
@@ -365,8 +364,62 @@ void seung_results() {
 	double tolerance = 1e-8;
 	run_Seungyong(model, nbr, tolerance, path);
 }
+
+void write_seung_mesh_series() {
+	std::string path = "D:\\vs\\sparse_data_interpolation\\figures\\seuyoung\\";
+	std::string namebase = "Seungyong_p50_m_1_level_";
+	int end = 8;
+	read_mesh_series(path, namebase, end);
+}
+
+void run_diff_per() {
+	int pnbr = 50;
+	double per_ours = 0.9;
+	std::array<int, 6>models = { {0,1,2,3,4,5} };
+	std::array<double, 9> pers = { {0.1,0.2,0.3, 0.4,0.5,0.6,0.7, 0.8,0.9} };
+	for (int i = 0; i < models.size(); i++) {
+		const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\diff_per\\"+
+			std::string("m")+std::to_string(i)+"\\";
+		for (int j = 0; j < pers.size(); j++) {
+			std::string tail = "per_"+std::to_string(j);
+			run_ours(models[i], pnbr, per_ours, path, tail, pers[j]);
+		}
+	}
+}
+void run_diff_delta() {
+	int pnbr = 50;
+	double per = 0.9;
+	std::array<int, 6>models = { {0,1,2,3,4,5} };
+	std::array<double, 9> pars = { {0.1,0.2,0.3, 0.4,0.5,0.6,0.7, 0.8,0.9} };
+	for (int i = 0; i < models.size(); i++) {
+		const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\diff_delta\\" +
+			std::string("m") + std::to_string(i) + "\\";
+		for (int j = 0; j < pars.size(); j++) {
+			std::string tail = "par_" + std::to_string(j);
+			run_ours(models[i], pnbr, pars[j], path, tail, per);
+		}
+	}
+}
+void run_diff_data_nbr() {
+	int pnbr = 50;
+	double per = 0.5;
+	double delta = 0.9;
+	int model = 3;
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\diff_data_nbr_middle_per\\";
+	std::array<double, 10> pnbrs = { {50,100,150,200,250,300,350,400,450,500} };
+
+	for (int i = 3; i < pnbrs.size(); i++) {
+		std::string tail = "";
+		run_ours(model, pnbrs[i], delta, path, tail, per);
+	}
+}
 int main() {
-	seung_results();
+	run_diff_data_nbr();
+	/*std::string tail = "naive";
+	ours_results(tail);*/
+	//run_diff_per();
+	//run_diff_per();
+	//seung_results();
 	//test_opengl();
 	//int p = 3;
 	//std::vector<double>U = { {0,0,0,0,0.1,0.4,0.7,0.9,1,1,1,1} };

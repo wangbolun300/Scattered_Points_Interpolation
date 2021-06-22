@@ -1148,14 +1148,68 @@ Eigen::MatrixXi select_FCP_based_on_weight_naive(const Eigen::MatrixXi& fcp, std
 	return result;
 
 }
+bool para_to_feasible_validation(std::vector<std::vector<std::array<int, 2>>> &para_to_feasible) {
+	for (int i = 0; i < para_to_feasible.size(); i++) {
+		if (para_to_feasible[i].size() == 0) {
+			return false;
+		}
+	}
+	return true;
+}
+
+bool fcp_weight_validation(const Eigen::MatrixXi& fcp,
+	const Eigen::MatrixXd &weight_matrix) {
+	int row = fcp.rows();
+	int col = weight_matrix.cols();
+	for (int i = 0; i < row; i++) {
+		for (int j = 0; j < col; j++) {
+			int v1 = fcp(i, j);
+			double v2 = weight_matrix(i, j);
+			if (v1 >= 0) {
+				if (v2 < 0) {
+					std::cout << "<,<, fcp "<<v1 << std::endl;
+					std::cout << "value " << v2 << std::endl;
+					return false;
+				}
+				if (v2 == 0) {
+					std::cout << "==" << std::endl;
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+}
+
+bool paras_to_feasible_and_fcp_validation(std::vector<std::vector<std::array<int, 2>>> &ptf,
+	const Eigen::MatrixXi& fcp) {
+
+	for (int i = 0; i < ptf.size(); i++) {
+		bool found = false;
+		for (int j = 0; j < ptf[i].size(); j++) {
+			int id0 = ptf[i][j][0];
+			int id1 = ptf[i][j][1];
+			if (fcp(id0, id1) >= 0) {
+				found = true;
+			}
+		}
+		if (!found) {
+			std::cout << "the i= " << i << "th element not find corresponding in fcp" << std::endl;
+			return false;
+		}
+	}
+	return true;
+}
 // bool updated shows if there is difference between the input and output
 // maximal_selection is the maximal number of fcps we select in this step
 Eigen::MatrixXi select_FCP_based_on_weight(const Eigen::MatrixXi& fcp, 
 	std::vector<std::vector<std::array<int, 2>>> &para_to_feasible,
 	const Eigen::MatrixXd &weight_matrix, bool& updated, const int maximal_selection,
 	const std::vector<int> &feasible_order) {
+	assert(fcp_weight_validation(fcp, weight_matrix));
 	updated = false;
-
+	assert(para_to_feasible_validation(para_to_feasible));
+	assert(paras_to_feasible_and_fcp_validation(para_to_feasible, fcp));
 	// reorder the weight
 	std::vector<std::vector<std::vector<std::array<int, 2>>>> selected(para_to_feasible.size());
 	int selected_nbr = 0;
@@ -1165,6 +1219,7 @@ Eigen::MatrixXi select_FCP_based_on_weight(const Eigen::MatrixXi& fcp,
 			int id0 = para_to_feasible[i][j][0];
 			int id1 = para_to_feasible[i][j][1];
 			double w = weight_matrix(id0, id1);
+			
 			if (w > weight) {
 				std::vector<std::array<int,2>> newlist;
 				newlist.push_back({ {id0,id1} });
@@ -1173,16 +1228,31 @@ Eigen::MatrixXi select_FCP_based_on_weight(const Eigen::MatrixXi& fcp,
 			}
 			else {
 				if (w == weight) {
+					assert(selected[i].size() > 0);
 					selected[i].back().push_back({ {id0,id1} });
 				}
 			}
 		}
+		if (selected[i].empty()) {
+			std::cout << "problematic i " << i << std::endl;
+			for (int j = 0; j < para_to_feasible[i].size(); j++) {
+				int id0 = para_to_feasible[i][j][0];
+				int id1 = para_to_feasible[i][j][1];
+				std::cout << para_to_feasible[i][j][0] << " "<<para_to_feasible[i][j][1] << std::endl;
+				double w = weight_matrix(id0, id1);
+				std::cout << "w " << w << std::endl;
+			}
+		}
+		assert(selected[i].size() > 0);
 	}
 
 	// select highest weighted fcp
 	bool total_copy = false;
 	Eigen::MatrixXi result = Eigen::MatrixXi::Constant(fcp.rows(), fcp.cols(), -1);
 	for (int i = 0; i < para_to_feasible.size(); i++) {
+		if (selected[i].empty()) {
+			std::cout << "problematic i " << i << std::endl;
+		}
 		assert(!selected[i].empty());
 		
 		if (selected[i].size() > 1&&!total_copy) {
@@ -1202,15 +1272,17 @@ Eigen::MatrixXi select_FCP_based_on_weight(const Eigen::MatrixXi& fcp,
 		}
 		else {
 			std::vector<std::array<int, 2>> highest = selected[i].back();
-			para_to_feasible[i] = highest;
+			std::vector<std::array<int, 2>> sout;
 			for (int j = 0; j < highest.size(); j++) {
 				int id0 = highest[j][0];
 				int id1 = highest[j][1];
 				result(id0, id1) = i;
+				sout.push_back({ {id0,id1} });
 				if (weight_matrix(id0, id1) == 1) {// if no one shares fcp, meaning the parameter is 0 or 1, choose one fcp is enough
 					break;
 				}
 			}
+			para_to_feasible[i] = sout;
 		}
 		
 	} 
@@ -1219,7 +1291,7 @@ Eigen::MatrixXi select_FCP_based_on_weight(const Eigen::MatrixXi& fcp,
 			int which = feasible_order[i];
 			if (para_to_feasible[which].size() > 1) {// this is a redundant fcp
 				selected_nbr += 1;
-				updated = true;
+				
 				if (selected_nbr > maximal_selection) {
 					break;
 				}
@@ -1227,11 +1299,12 @@ Eigen::MatrixXi select_FCP_based_on_weight(const Eigen::MatrixXi& fcp,
 					int id0 = para_to_feasible[which][j][0];
 					int id1 = para_to_feasible[which][j][1];
 					result(id0, id1) = -1;
-					std::cout << "\nForcing deleting " << id0 << " " << id1 << std::endl;
+					//std::cout << "\nForcing deleting " << id0 << " " << id1 << std::endl;
 				}
 				std::array<int, 2> last_element = para_to_feasible[which].back();
 				para_to_feasible[which].resize(1);// delete other redundant fcps
 				para_to_feasible[which][0] = last_element;
+				updated = true;
 			}
 		}
 	}
@@ -1248,8 +1321,8 @@ Eigen::MatrixXi remove_redundant_FCP(const Eigen::MatrixXi& fcp, std::vector<std
 		if (para_to_feasible[i].size() > 1) {
 			nbr_re++;
 		}
-		int id0 = para_to_feasible[i].back()[0];
-		int id1 = para_to_feasible[i].back()[1];
+		int id0 = para_to_feasible[i].front()[0];
+		int id1 = para_to_feasible[i].front()[1];
 		result(id0, id1) = i;
 	}
 	//std::cout << "** redundant fcp nbr " << nbr_re << std::endl;
@@ -1265,12 +1338,13 @@ Eigen::MatrixXd weight_matrix_calculation(const Eigen::MatrixXi& fcp,const Eigen
 	int cols = fcp.cols();
 
 	const auto weight_strategy = [](const std::vector<int>& vec, const int nbr_points) {
-		int sum = 0;
+		int sum = 1;
 		// weight is the 
 		for (int i = 1; i < vec.size(); i++) {
 			sum += vec[i] * vec[i] * i;
 		}
 		double result = 1 / double(sum);// *nbr_points);
+		assert(result > 0);
 		return result;
 	};
 	// initialize weight matrix
@@ -1325,10 +1399,14 @@ Eigen::MatrixXd weight_matrix_calculation(const Eigen::MatrixXi& fcp,const Eigen
 					double(col_before_nbr*col_before_nbr)
 					*
 					weight_strategy(interval_info, col_nbr_pts);
+				
+				assert(weight > 0);
+				
 				weight_matrix(i, j) = weight;
 			}
 		}
 	}
+	assert(fcp_weight_validation(fcp, weight_matrix));
 	return weight_matrix;
 }
 
@@ -1338,7 +1416,7 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 	const Eigen::MatrixXd& paras, const int degree1, const int degree2, 
 	std::vector<std::vector<std::array<int, 2>>> &para_to_feasible, const int target_steps, 
 	const std::vector<int> &feasible_order) {
-	
+	assert(paras_to_feasible_and_fcp_validation(para_to_feasible, fcp));
 	assert(para_to_feasible.size() == paras.rows());
 	int maximal_processing = 
 		std::max(1, int(para_to_feasible.size() / target_steps));
@@ -1362,23 +1440,13 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 	int rows = fcp.rows();
 	int cols = fcp.cols();
 
-	// initialize para_matrix. it will record the u or v parameters of each fcp
-	Eigen::MatrixXd para_matrix = Eigen::MatrixXd::Constant(rows, cols, -1);
+	
 
 	// initialize weight matrix
 	Eigen::MatrixXd weight_matrix = Eigen::MatrixXd::Constant(rows, cols, -1);
 
-	// initialize interval matrix. it will record which interval [u_i, u_(i+1)] does the parameters in
-	Eigen::MatrixXi interval_matrix = Eigen::MatrixXi::Constant(rows, cols, -1);
-	int uv = v_direction ? 1 : 0;
-	for (int i = 0; i < rows; i++) {
-		for (int j = 0; j < cols; j++) {
-			if (fcp(i, j) < 0) {
-				continue;
-			}
-			para_matrix(i, j) = paras(fcp(i, j), uv);
-		}
-	}
+	
+	
 
 	std::vector<double> kv;
 	int degree;
@@ -1390,16 +1458,7 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 		kv = Uknot;
 		degree = degree1;
 	}
-	for (int i = 0; i < rows; i++) {
-		for (int j = 0; j < cols; j++) {
-			if (fcp(i, j) < 0) {
-				continue;
-			}
-			double para = para_matrix(i, j);
-			int which = para_in_which_interval(para, kv);
-			interval_matrix(i, j) = which;
-		}
-	}
+	
 
 	// now in interval_matrix, value = -1 means no fcp here; value = -2 means the parameter is 0 or 1; otherwise, 
 	// the value implies the parameter is in [u_value, u_(value+1)]
@@ -1409,21 +1468,40 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 	Eigen::MatrixXi selected_fcp = fcp;
 	int nbr_rounds = 0;
 	while (updated) {
+		std::cout << "before round " << nbr_rounds << std::endl;
+		// initialize para_matrix. it will record the u or v parameters of each fcp
+		Eigen::MatrixXd para_matrix = Eigen::MatrixXd::Constant(rows, cols, -1);
+		int uv = v_direction ? 1 : 0;
+		for (int i = 0; i < rows; i++) {
+			for (int j = 0; j < cols; j++) {
+				if (selected_fcp(i, j) < 0) {
+					continue;
+				}
+				para_matrix(i, j) = paras(selected_fcp(i, j), uv);
+			}
+		}
+		// initialize interval matrix. it will record which interval [u_i, u_(i+1)] does the parameters in
+		Eigen::MatrixXi interval_matrix = Eigen::MatrixXi::Constant(rows, cols, -1);
 		// calculate weight
 		weight_matrix = weight_matrix_calculation(selected_fcp, interval_matrix, degree);
-		//std::cout << "weight\n" << weight_matrix << std::endl;
-		//std::cout << "fcp\n" << selected_fcp << std::endl;
-		//TODO we are changing here
+		for (int i = 0; i < rows; i++) {
+			for (int j = 0; j < cols; j++) {
+				if (selected_fcp(i, j) < 0) {
+					continue;
+				}
+				double para = para_matrix(i, j);
+				int which = para_in_which_interval(para, kv);
+				interval_matrix(i, j) = which;
+			}
+		}
 		// calculate weight finished
+		assert(fcp_weight_validation(selected_fcp, weight_matrix));
 		selected_fcp = 
-			select_FCP_based_on_weight(fcp, para_to_feasible, weight_matrix,updated, maximal_processing,
+			select_FCP_based_on_weight(selected_fcp, para_to_feasible, weight_matrix,updated, maximal_processing,
 				feasible_order);
-			//select_FCP_based_on_weight_naive(fcp, para_to_feasible, weight_matrix); updated = false;// totally selected
-		/*std::cout << "interval\n" << interval_matrix << std::endl;
-		std::cout << "\n\nfcp\n" << fcp << std::endl;
-		std::cout << "weight\n" << weight_matrix << std::endl;
-		std::cout << "acp\n" << selected_fcp << std::endl;*/
+			
 		nbr_rounds += 1;
+		std::cout << "after round " << nbr_rounds << std::endl;
 		
 	}
 	std::cout << "select fcp nbr of rounds " << nbr_rounds << std::endl;

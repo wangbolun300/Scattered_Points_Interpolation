@@ -16,3 +16,4 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 	const double per);
 void run_Seungyong(const int model, const int nbr_pts, const double tolerance, const std::string path);
 void run_piegl(const int model, const int nbr_pts, const double per);
+void read_mesh_series(std::string path, std::string namebase, int end);

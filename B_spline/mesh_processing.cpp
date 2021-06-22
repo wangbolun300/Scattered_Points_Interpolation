@@ -571,7 +571,15 @@ void constrained_delaunay_triangulation(
 	F = WF;
 	assert(WV.rows() == Vin.rows());
 }
-
+bool is_strictly_increasing(std::vector<double> U) {
+	for (int i = 0; i < U.size()-1; i++) {
+		if (U[i] == U[i + 1]) {
+			return false;
+		}
+		
+	}
+	return true;
+}
 // given parameters and the connectivity, get the U and V parameters, and a map showing the positions of the points
 // in U and V
 void generate_UV_grid(const Eigen::MatrixXd& param,
@@ -622,6 +630,8 @@ void generate_UV_grid(const Eigen::MatrixXd& param,
 		int vrefer = Vmap[i];
 		map(urefer, vrefer) = i;
 	}
+	assert(is_strictly_increasing(U));
+	assert(is_strictly_increasing(V));
 }
 #include <igl/cotmatrix.h>
 // smooth the given mesh, h is the parameter corresponding to the time step, itrs is the number of iterations

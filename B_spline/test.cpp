@@ -528,7 +528,7 @@ void direct_project_x_y_and_parametrization(const Eigen::MatrixXd& ver, Eigen::M
 	}
 	// triangulation
 	constrained_delaunay_triangulation(para_new, loop, F);
-	std::cout << "check directly parametrization\n" << param << std::endl;
+	//std::cout << "check directly parametrization\n" << param << std::endl;
 }
 Eigen::MatrixXd get_peak_sample_points(const int nbr, const int skip) {
 	Eigen::MatrixXd ver;
@@ -773,7 +773,7 @@ void get_model_sample_points(const int nbr, Eigen::MatrixXd &V, Eigen::MatrixXi 
 				}
 				else {
 					u= 2 * s * upara - s;
-					v= 2 * s * upara - s;
+					v= 2 * s * vpara - s;
 				}
 				ver.row(verline) = mfunction_value(method,u,v);
 				verline++;
@@ -976,7 +976,7 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 	int method = model;
 	bool corners = false;
 	get_model_sample_points(nbr, ver, F, param, method, corners);
-	std::cout << "ver\n" << ver << std::endl;
+	//std::cout << "ver\n" << ver << std::endl;
 	int degree1 = 3;
 	int degree2 = 3;
 	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
@@ -995,14 +995,13 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 		exit(0);
 	}
 	timer.start();
+	std::cout << "before generating knot vectors" << std::endl;
+	std::cout << "data size " << ver.rows() << std::endl;
 	generate_interpolation_knot_vectors(degree1, degree2, Uknot, Vknot, param,per_ours,per, target_steps, enable_max_fix_nbr);
 	//lofting_method_generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr, per);
 	timer.stop();
 	time_knot = timer.getElapsedTimeInSec();
-	Eigen::MatrixXd paramout(ver.rows(), 3), zeros(ver.rows(),1);
-	zeros = Eigen::MatrixXd::Constant(ver.rows(), 1, 0);
-	
-	paramout << param_perturbed, zeros;
+
 	//std::cout << "perturbed max dis " << perturbed_distance(param, param_perturbed) << std::endl;
 	Bsurface surface;
 	Eigen::MatrixXd SPs;
@@ -1099,7 +1098,7 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 	////std::cout << "p0\n" << p0 << std::endl;
 	//viewer.data().add_points(p0, red);
 	//viewer.data().add_points(p1, green);
-	viewer.launch();
+	//viewer.launch();
 }
 
 void run_Seungyong(const int model, const int nbr_pts, const double tolerance, const std::string path) {
@@ -1244,4 +1243,21 @@ void run_piegl(const int model, const int nbr_pts, const double per = 0.2) {
 	viewer.data().add_points(p0, red);
 	viewer.data().add_points(p1, green);
 	viewer.launch();
+}
+
+void read_mesh_series(std::string path, std::string namebase, int end) {
+	std::string file0 = path + namebase + std::to_string(0) + ".obj";
+	Eigen::MatrixXd ver;
+	Eigen::MatrixXi f;
+	igl::read_triangle_mesh(file0, ver, f);
+	for (int i = 1; i < end + 1; i++) {
+		std::cout << "reading " << i << std::endl;
+		std::string file = path + namebase + std::to_string(i) + ".obj";
+		Eigen::MatrixXd ver_t;
+		Eigen::MatrixXi f_t;
+		igl::read_triangle_mesh(file, ver_t, f_t);
+		ver = ver + ver_t;
+	}
+	file0= path + namebase+ "sum.obj";
+	igl::write_triangle_mesh(file0, ver, f);
 }
