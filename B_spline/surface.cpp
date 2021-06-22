@@ -1396,10 +1396,12 @@ Eigen::MatrixXd weight_matrix_calculation(const Eigen::MatrixXi& fcp,const Eigen
 				}
 				double weight = double(row_nbr_pts)
 					*
-					double(col_before_nbr*col_before_nbr)
+					1/double(col_before_nbr)
 					*
 					weight_strategy(interval_info, col_nbr_pts);
-				
+				if (weight >= 1) {
+					std::cout << "large weight " << weight << std::endl;
+				}
 				assert(weight > 0);
 				
 				weight_matrix(i, j) = weight;
@@ -1409,7 +1411,14 @@ Eigen::MatrixXd weight_matrix_calculation(const Eigen::MatrixXi& fcp,const Eigen
 	assert(fcp_weight_validation(fcp, weight_matrix));
 	return weight_matrix;
 }
-
+bool para_to_feasible_is_clean(std::vector<std::vector<std::array<int, 2>>> &para_to_feasible) {
+	for (int i = 0; i < para_to_feasible.size(); i++) {
+		if (para_to_feasible[i].size() > 1) {
+			return false;
+		}
+	}
+	return true;
+}
 // calculate weights and select ACP according to the weight
 Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(const Eigen::MatrixXi& fcp,const bool v_direction,
 	const std::vector<double> &Uknot, const std::vector<double> &Vknot, 
@@ -1468,7 +1477,7 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 	Eigen::MatrixXi selected_fcp = fcp;
 	int nbr_rounds = 0;
 	while (updated) {
-		std::cout << "before round " << nbr_rounds << std::endl;
+		//std::cout << "before round " << nbr_rounds << std::endl;
 		// initialize para_matrix. it will record the u or v parameters of each fcp
 		Eigen::MatrixXd para_matrix = Eigen::MatrixXd::Constant(rows, cols, -1);
 		int uv = v_direction ? 1 : 0;
@@ -1482,8 +1491,6 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 		}
 		// initialize interval matrix. it will record which interval [u_i, u_(i+1)] does the parameters in
 		Eigen::MatrixXi interval_matrix = Eigen::MatrixXi::Constant(rows, cols, -1);
-		// calculate weight
-		weight_matrix = weight_matrix_calculation(selected_fcp, interval_matrix, degree);
 		for (int i = 0; i < rows; i++) {
 			for (int j = 0; j < cols; j++) {
 				if (selected_fcp(i, j) < 0) {
@@ -1494,6 +1501,8 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 				interval_matrix(i, j) = which;
 			}
 		}
+		// calculate weight
+		weight_matrix = weight_matrix_calculation(selected_fcp, interval_matrix, degree);
 		// calculate weight finished
 		assert(fcp_weight_validation(selected_fcp, weight_matrix));
 		selected_fcp = 
@@ -1501,13 +1510,16 @@ Eigen::MatrixXi calculate_active_control_points_from_feasible_control_points(con
 				feasible_order);
 			
 		nbr_rounds += 1;
-		std::cout << "after round " << nbr_rounds << std::endl;
+		//std::cout << "after round " << nbr_rounds << std::endl;
 		
 	}
-	std::cout << "select fcp nbr of rounds " << nbr_rounds << std::endl;
+	//std::cout << "select fcp nbr of rounds " << nbr_rounds << std::endl;
 	//exit(0);
 	//selected_fcp = remove_redundant_FCP(selected_fcp, para_to_feasible);
-	
+	if (!para_to_feasible_is_clean(para_to_feasible)) {
+		std::cout << "FCP still have rendundant elements" << std::endl;
+		exit(0);
+	}
 	return selected_fcp;
 }
 std::vector<double> get_iso_line_parameters_from_ACP(const Eigen::MatrixXi&ACP, const int id, const Eigen::MatrixXd& paras, const bool v_direction) {
@@ -1581,7 +1593,7 @@ bool progressively_generate_interpolation_knot_vectors(const bool v_direction, i
 	if (enable_max_fix_nbr) {
 		int estimate_nbr_cp = param.rows()*param.rows() / 2;
 		nbr_fixed_in_each_itr = std::max(1,std::abs(int(kv.size()-kv_other.size())));// std::max((int)sqrt(estimate_nbr_cp) / target_steps, 2);
-		std::cout << "max fix nbr, " << nbr_fixed_in_each_itr << std::endl;
+		//std::cout << "max fix nbr, " << nbr_fixed_in_each_itr << std::endl;
 	}
 	else {
 		nbr_fixed_in_each_itr = -1;
@@ -1618,7 +1630,7 @@ bool progressively_generate_interpolation_knot_vectors(const bool v_direction, i
 	else {
 		Uknot = kv;
 	}
-	std::cout << "** sizes " << Uknot.size() << " " << Vknot.size() << std::endl;
+	//std::cout << "** sizes " << Uknot.size() << " " << Vknot.size() << std::endl;
 	return finished;
 }
 
@@ -1736,19 +1748,19 @@ void generate_interpolation_knot_vectors( int degree1, int degree2,
 			return;
 		}
 		v_direction = !v_direction;
-		if (!finished) {
+		/*if (!finished) {
 			std::cout << "switched, UV size "<<Utemp.size()<<" "<<Vtemp.size() << std::endl;
 
-		}
+		}*/
 	}
 	print_vector(Utemp);
 	print_vector(Vtemp);
 
-	std::cout << "Uknot Vknot size "<< Utemp.size()<<" "<<Vtemp.size() << std::endl;
+	//std::cout << "Uknot Vknot size "<< Utemp.size()<<" "<<Vtemp.size() << std::endl;
 
 	
 	
-	std::cout << "knot fixing finished" << std::endl;
+	std::cout << "knot fixing finished, sizes " << Utemp.size() << " " << Vtemp.size() << std::endl;
 	// post processing
 	bool post_processing = false;
 	if (post_processing) {

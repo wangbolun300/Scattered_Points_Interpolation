@@ -957,9 +957,8 @@ void write_svg_knot_vectors(const std::string& file, const std::vector<double> &
 	fout << "</svg>" << std::endl;
 	fout.close();
 }
-void run_ours(const int model, const int nbr_pts, double &per_ours, const std::string path, const std::string tail="",
-	const double per=0.2
-	) {
+void run_ours(const int model, const int nbr_pts, double &per_ours, const std::string path, const std::string tail,
+	const double per, const bool enable_local_energy=false) {
 	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3), pcolor(1, 3), red(1, 3), green(1, 3), blue(1, 3);
 	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;; pcolor << 0, 0.9, 0.5;
 	red << 1, 0, 0; green << 0, 1, 0; blue << 0, 0, 1;
@@ -986,7 +985,6 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 	//double per = 0.2;
 	int target_steps = 10; 
 	bool enable_max_fix_nbr = true;
-	bool enable_local_energy = false;
 	igl::opengl::glfw::Viewer viewer;
 	if (0) {
 		//viewer.data().set_mesh(param_perturbed, F);
@@ -1021,14 +1019,15 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 		time_solve = timer.getElapsedTimeInSec();
 		surface_visulization(surface, 100, SPs, SFs);
 		if (enable_local_energy) {
-			
+			double timeitr = 0;
 			for (int i = 0; i < 20; i++) {
-				
+				timer.start();
 				Eigen::MatrixXd energy, euu, evv, euv;
 				energy = surface_energy_calculation(surface, basis, 1, euu, evv, euv);
 				bool uorv;
 				int which;
-				detect_max_energy_interval(surface, energy, euu, evv, uorv, which);
+				double max_energy;
+				detect_max_energy_interval(surface, energy, euu, evv, uorv, which, max_energy);
 				std::vector<double> Unew = surface.U;
 				std::vector<double> Vnew = surface.V;
 				if (!uorv) {// u get updated
@@ -1043,12 +1042,21 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 				basis.clear();
 				basis.init(surface);
 				solve_control_points_for_fairing_surface(surface, param, ver, basis);
+				timer.stop();
+				timeitr += timer.getElapsedTimeInSec();
 				std::cout << " control points solved" << std::endl;
 				surface_visulization(surface, 100, SPs, SFs);
 				
 				igl::write_triangle_mesh(path + "ours_"+"p"+ std::to_string(nbr)+"_refine_"+std::to_string(i)+"_m_"+std::to_string(method)+tail+".obj", SPs, SFs);
+				std::vector<std::string> titles = { {"time_knot","time_solve","precision","nu","nv", "cps","time_itr","max_energy"} };
+				int cps = (surface.nu() + 1)*(surface.nv() + 1);
+				precision = max_interpolation_err(ver, param, surface);
+				std::vector<double> data = { {time_knot, time_solve,precision, 
+					double(surface.nu()),double(surface.nv()), double(cps),timeitr,max_energy} };
+				write_csv(path + "ours_" + "p" + std::to_string(nbr) + "_refine_" + std::to_string(i) + "_m_" + std::to_string(method) + tail + ".csv",
+					titles, data);
 			}
-			//exit(1);
+			return;
 		}
 		
 	}
@@ -1073,7 +1081,7 @@ void run_ours(const int model, const int nbr_pts, double &per_ours, const std::s
 			titles, data);
 	}
 	output_timing();
-	if (1) {// write svg files
+	if (0) {// write svg files
 		write_svg_pts(path + "param.svg", param);
 		write_svg_knot_vectors(path + "knots.svg", surface.U, surface.V);
 	}
@@ -1244,7 +1252,107 @@ void run_piegl(const int model, const int nbr_pts, const double per = 0.2) {
 	viewer.data().add_points(p1, green);
 	viewer.launch();
 }
+void run_lofting(const int model, const int nbr_pts, const double per) {
+	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3), pcolor(1, 3), red(1, 3), green(1, 3), blue(1, 3);
+	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;; pcolor << 0, 0.9, 0.5;
+	red << 1, 0, 0; green << 0, 1, 0; blue << 0, 0, 1;
 
+	igl::Timer timer;
+	double time_total = 0;
+	Eigen::MatrixXd ver;
+	int nbr = nbr_pts;// nbr of points
+	Eigen::MatrixXi F;
+	Eigen::MatrixXd param;
+	//get_mesh_vertices_and_parametrization(ver, F, param);
+	int method = model;
+	bool corners = false;
+	get_model_sample_points(nbr, ver, F, param, method, corners);
+
+	int degree1 = 3;
+	int degree2 = 3;
+	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
+	std::vector<double> Vknot = Uknot;
+	int perturb_itr = 0;
+
+
+	//mesh_parameter_perturbation(param, F, param_perturbed, perturb_itr);
+	//std::cout << "param_perturbed\n" << param_perturbed << std::endl;
+	igl::opengl::glfw::Viewer viewer;
+	if (0) {
+		//viewer.data().set_mesh(param_perturbed, F);
+		viewer.data().add_points(ver, ecolor);
+		viewer.launch();
+		exit(0);
+	}
+	timer.start();
+	//piegl_method_generate_interpolation_knot_vectors(degree1, degree2, Uknot, Vknot, param, per);
+	lofting_method_generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, per);
+
+	Eigen::MatrixXd paramout(ver.rows(), 3), zeros(ver.rows(), 1);
+	zeros = Eigen::MatrixXd::Constant(ver.rows(), 1, 0);
+
+	//paramout << param_perturbed, zeros;
+	//std::cout << "perturbed max dis " << perturbed_distance(param, param_perturbed) << std::endl;
+	Bsurface surface;
+	Eigen::MatrixXd SPs;
+	Eigen::MatrixXi SFs;
+	if (1) {
+		surface.degree1 = 3;
+		surface.degree2 = 3;
+		surface.U = Uknot;
+		surface.V = Vknot;
+		std::cout << "before initialize the basis " << std::endl;
+		PartialBasis basis(surface);
+		std::cout << "initialize the basis done" << std::endl;
+		std::cout << "before solving control points" << std::endl;
+		solve_control_points_for_fairing_surface(surface, param, ver, basis);
+		surface_visulization(surface, 100, SPs, SFs);
+
+	}
+	timer.stop();
+	time_total = timer.getElapsedTimeInSec();
+
+	std::cout << "nu and nv " << surface.nu() << " " << surface.nv() << std::endl;
+	std::cout << "#cp " << (surface.nu() + 1)*(surface.nv() + 1) << std::endl;
+	print_vector(surface.U);
+	print_vector(surface.V);
+	std::cout << "maximal interpolation error " << max_interpolation_err(ver, param, surface) << std::endl;
+	std::cout << "total time " << time_total << std::endl;
+	bool write_file = true;
+	if (write_file)
+	{
+		Eigen::MatrixXi Pf;
+		const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+		write_points(path + "pts" + std::to_string(nbr) + "_m_" + std::to_string(method) + ".obj", ver);
+		igl::write_triangle_mesh(path + "lofting_" + "p" + std::to_string(nbr) + "_m_" + std::to_string(method) + ".obj", SPs, SFs);
+	}
+	output_timing();
+
+	std::cout << "final surface size " << surface.nu() + 1 << " " << surface.nv() + 1
+		<< " total control points " << (surface.nu() + 1)*(surface.nv() + 1) << std::endl;
+
+
+
+	/*
+	viewer.data().set_edges(bdver, edges, fcolor);*/
+	//viewer.data().add_points(vector_to_matrix_3d(inter_pts), ecolor);
+
+	// see the linear interpolated surface
+	//viewer.data().set_mesh(param, F);
+	//viewer.data().add_edges(edge0, edge1, pcolor);
+
+	//viewer.data().set_mesh(param_perturbed, F);
+	viewer.data().clear();
+	viewer.data().set_mesh(SPs, SFs);
+	//viewer.data().add_points(ver, ecolor);
+	Eigen::MatrixXd p0(1, 3), p1(1, 3);
+	p0.row(0) = BSplineSurfacePoint(surface, 0, 0);
+	p1.row(0) = BSplineSurfacePoint(surface, 0, 1);
+	//std::cout << "p0\n" << p0 << std::endl;
+	viewer.data().add_points(p0, red);
+	viewer.data().add_points(p1, green);
+	viewer.launch();
+}
 void read_mesh_series(std::string path, std::string namebase, int end) {
 	std::string file0 = path + namebase + std::to_string(0) + ".obj";
 	Eigen::MatrixXd ver;

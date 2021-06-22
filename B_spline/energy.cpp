@@ -631,9 +631,9 @@ Eigen::MatrixXd surface_energy_calculation(Bsurface& surface, PartialBasis& basi
 
 // [U[which],U[which+1]) is the problematic one
 void detect_max_energy_interval(Bsurface& surface, const Eigen::MatrixXd& energy, const Eigen::MatrixXd &energy_uu,
-	const Eigen::MatrixXd & energy_vv, bool& uorv, int &which) {
+	const Eigen::MatrixXd & energy_vv, bool& uorv, int &which, double& em) {
 	int k1, k2;
-	double em = 0;
+	em = 0;
 	for (int i = 0; i < energy.rows(); i++) {
 		for (int j = 0; j < energy.cols(); j++) {
 			double evalue = energy(i, j);
@@ -838,7 +838,6 @@ void push_control_point_list_into_surface(Bsurface& surface, const std::vector<V
 }
 void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::MatrixXd& paras,
 	const Eigen::MatrixXd & points, PartialBasis& basis) {
-	bool sparse_solve = true;
 	//using namespace Eigen;
 	typedef Eigen::SparseMatrix<double> SparseMatrixXd;
 	assert(paras.rows() == points.rows());
@@ -849,21 +848,16 @@ void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::Ma
 	A = surface_least_square_lambda_multiplier_left_part(surface, paras,basis);
 	SparseMatrixXd matB;
 	Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
-	if (sparse_solve) {
-		matB = A.sparseView();
 
-		solver.compute(matB);
-		if (solver.info() != Eigen::Success) {
-			// decomposition failed
-			std::cout << "solving failed" << std::endl;
-			return;
-		}
+	matB = A.sparseView();
+	A.resize(0, 0);
+	solver.compute(matB);
+	if (solver.info() != Eigen::Success) {
+		// decomposition failed
+		std::cout << "solving failed" << std::endl;
+		return;
 	}
-	else {
-		decomp = A.fullPivLu();
-	}
-	
-	
+
 	for (int i = 0; i < 3; i++) {
 		Eigen::MatrixXd b = surface_least_square_lambda_multiplier_right_part(surface, paras, points, i);
 		double err = 0.0;
@@ -871,18 +865,16 @@ void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::Ma
 		// solve the matrix contains the p and lambda
 		std::cout << "before solving" << std::endl;
 		Eigen::MatrixXd p_lambda;
-		if (sparse_solve) {
-			p_lambda = solver.solve(b);
-			if (solver.info() != Eigen::Success) {
-				std::cout << "solving failed" << std::endl;
-				return;
-			}
-		}
-		else {
-			p_lambda = decomp.solve(b);
-		}
 		
-		double relative_error = (A*p_lambda - b).norm() / b.norm(); // norm() is L2 norm
+		p_lambda = solver.solve(b);
+		if (solver.info() != Eigen::Success) {
+			std::cout << "solving failed" << std::endl;
+			return;
+		}
+
+
+		
+		double relative_error = (matB*p_lambda - b).norm() / b.norm(); // norm() is L2 norm
 		std::cout << "after solving, error is "<<relative_error << std::endl;
 		push_p_lambda_vector_to_control_points(p_lambda, i, cps);
 	}

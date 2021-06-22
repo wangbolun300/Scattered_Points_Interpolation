@@ -67,7 +67,7 @@ Eigen::MatrixXd surface_energy_calculation(Bsurface& surface, PartialBasis& basi
 
 // [U[which],U[which+1]) is the problematic one
 void detect_max_energy_interval(Bsurface& surface, const Eigen::MatrixXd& energy, const Eigen::MatrixXd &energy_uu,
-	const Eigen::MatrixXd & energy_vv, bool& uorv, int &which);
+	const Eigen::MatrixXd & energy_vv, bool& uorv, int &which, double &em);
 void iteratively_approximate_method(int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
 	const Eigen::MatrixXd& param, const Eigen::MatrixXd& ver,

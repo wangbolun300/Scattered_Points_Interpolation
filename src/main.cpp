@@ -343,11 +343,11 @@ void test1() {
 // method = 5, snail
 void ours_results(std::string tail = "") {
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	int model = 5;
+	int model = 1;
 	int nbr = 50;
 	double par = 0.9;// ours
-	double per = 0.9;
-	run_ours(model, nbr, par, path, tail, per);
+	double per = 0.5;
+	run_ours(model, nbr, par, path, tail, per,false);
 }
 void piegl_results() {
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
@@ -382,7 +382,7 @@ void run_diff_per() {
 			std::string("m")+std::to_string(i)+"\\";
 		for (int j = 0; j < pers.size(); j++) {
 			std::string tail = "per_"+std::to_string(j);
-			run_ours(models[i], pnbr, per_ours, path, tail, pers[j]);
+			run_ours(models[i], pnbr, per_ours, path, tail, pers[j],false);
 		}
 	}
 }
@@ -396,25 +396,66 @@ void run_diff_delta() {
 			std::string("m") + std::to_string(i) + "\\";
 		for (int j = 0; j < pars.size(); j++) {
 			std::string tail = "par_" + std::to_string(j);
-			run_ours(models[i], pnbr, pars[j], path, tail, per);
+			run_ours(models[i], pnbr, pars[j], path, tail, per,false);
 		}
 	}
 }
 void run_diff_data_nbr() {
 	int pnbr = 50;
-	double per = 0.5;
+	double per = 0.9;
 	double delta = 0.9;
 	int model = 3;
-	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\diff_data_nbr_middle_per\\";
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\diff_data_nbr_delta001\\";
 	std::array<double, 10> pnbrs = { {50,100,150,200,250,300,350,400,450,500} };
 
-	for (int i = 3; i < pnbrs.size(); i++) {
+	for (int i = 0; i < pnbrs.size(); i++) {
 		std::string tail = "";
-		run_ours(model, pnbrs[i], delta, path, tail, per);
+		run_ours(model, pnbrs[i], delta, path, tail, per,false);
 	}
 }
+void run_local_refine() {
+	int pnbr = 50;
+	double per = 0.9;
+	double delta = 0.9;
+	int model = 0;
+	std::string tail = "";
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\local_refine_2\\";
+	run_ours(model, pnbr, delta, path, tail, per,true);
+
+}
+void run_lofting_method() {
+	int pnbr = 50;
+	double per = 0.9;
+	std::vector<int> models = { {0,1,2,3,4,5} };
+	for (int i = 0; i < models.size(); i++) {
+		run_lofting(models[i], 50, per);
+	}
+	
+}
+void run_ours_over_all_models() {
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+	std::vector<int> models = { {0,1,2,3,4,5} };
+	int nbr = 50;
+	double par = 0.9;// ours
+	double per = 0.9;
+	for (int i = 0; i < models.size(); i++) {
+		std::string tail = "";
+		run_ours(models[i], nbr, par, path, tail, per, false);
+	}
+	
+	
+}
 int main() {
-	run_diff_data_nbr();
+	ours_results();
+	// method = 0, peak; 
+// method = 1, contour; 
+// method = 2, hyperbolic; 
+// method = 3, sinus;
+// method = 4, bilinear
+// method = 5, snail
+//run_ours_over_all_models();
+	//run_lofting_method();
+	//run_local_refine();
 	/*std::string tail = "naive";
 	ours_results(tail);*/
 	//run_diff_per();

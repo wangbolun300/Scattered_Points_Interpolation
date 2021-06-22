@@ -611,14 +611,19 @@ void generate_UV_grid(const Eigen::MatrixXd& param,
 	double ut = -1, vt = -1;
 	int uorder = -1, vorder = -1;
 	for (int i = 0; i < pnbr; i++) {
+		bool udiff = false;
+		bool vdiff = false;
 		if (queue_u.top().first != ut) {
+			udiff = true;
 			ut = queue_u.top().first;
 			U.push_back(ut);
 		}
 		if (queue_v.top().first != vt) {
+			vdiff = true;
 			vt = queue_v.top().first;
 			V.push_back(vt);
 		}
+		
  		Umap[queue_u.top().second] = U.size() - 1;
 		Vmap[queue_v.top().second] = V.size() - 1;
 		queue_u.pop();
@@ -628,10 +633,13 @@ void generate_UV_grid(const Eigen::MatrixXd& param,
 	for (int i = 0; i < pnbr; i++) {
 		int urefer = Umap[i];
 		int vrefer = Vmap[i];
+		if (map(urefer, vrefer) != -1) {
+			std::cout << "PARAMETRIZATION ERROR, DUPLICATION" << std::endl;
+		}
 		map(urefer, vrefer) = i;
 	}
-	assert(is_strictly_increasing(U));
-	assert(is_strictly_increasing(V));
+	//assert(is_strictly_increasing(U));
+	//assert(is_strictly_increasing(V));
 }
 #include <igl/cotmatrix.h>
 // smooth the given mesh, h is the parameter corresponding to the time step, itrs is the number of iterations
