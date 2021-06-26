@@ -3,11 +3,12 @@
 #include<array>
 #include<iostream>
 #include<vector>
-
+#include<Eigen/Sparse>
+#include<Eigen/SparseLU>
 //#define NO_SELECTING_ACP
 //#define NAIVE_SELECTING_ACP
-
-
+//#define WEIGHT_NAIVE
+typedef Eigen::SparseMatrix<double> SparseMatrixXd;
 typedef Eigen::Vector3d Vector3d;
 typedef Eigen::Vector3i Vector3i;
 typedef Eigen::Vector2d Vector2d;

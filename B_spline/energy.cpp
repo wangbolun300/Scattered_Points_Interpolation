@@ -85,7 +85,7 @@ std::vector<double> handle_division_func(const std::vector<double>& a, const dou
 		// if the denominator is 0, then this term is 0
 		return result;
 	}
-	else return polynomial_times(a, 1/b);
+	else return polynomial_times(a, 1 / b);
 }
 
 std::vector<double> Nip_func(const int i, const int p, const double u, const std::vector<double> &U) {
@@ -118,7 +118,7 @@ std::vector<double> Nip_func(const int i, const int p, const double u, const std
 	return polynomial_add(result1, result2);
 }
 double polynomial_value(const std::vector<double>& poly, const double para) {
-	double result=0;
+	double result = 0;
 	for (int i = 0; i < poly.size(); i++) {
 		result += poly[i] * std::pow(para, i);
 	}
@@ -151,7 +151,7 @@ const std::vector<double> polynomial_differential(const std::vector<double>& fun
 		result[i] = func[i + 1] * (i + 1);
 	}
 	return result;
-	
+
 }
 const std::vector<double> polynomial_differential(const std::vector<double>& func, const int order) {
 	std::vector<double> result = func;
@@ -197,10 +197,10 @@ std::vector<double> PolynomialBasis::poly(const int id, const double value, cons
 	if (!inited) {
 		std::cout << "WRONG USAGE OF CLASS PolynomialBasis, YOU SHOULD INITIALIZE IT BY CALLING init()" << std::endl;
 	}
-	
+
 	std::vector<double> kv;
 	int degree;
-	
+
 	if (UVknot) {
 		kv = Vknot;
 		degree = degree2;
@@ -254,14 +254,14 @@ std::vector<std::vector<std::vector<double>>> PolynomialBasis::calculate(const b
 	}
 	std::vector<std::vector<std::vector<double>>> pl;
 	pl.resize(n + 1);// n+1 intervals;
-	
-	for (int i = degree; i < n+1; i++) {// in interval [U[i], U[i+1])
+
+	for (int i = degree; i < n + 1; i++) {// in interval [U[i], U[i+1])
 		pl[i].resize(degree + 1);
 		for (int j = 0; j < degree + 1; j++) {
 			pl[i][j] = Nip_func(i - degree + j, degree, kv[i], kv);
 		}
 	}
-	
+
 	return pl;
 
 }
@@ -289,7 +289,7 @@ std::vector<std::vector<std::vector<double>>> PartialBasis::do_partial(const
 PartialBasis::PartialBasis() {
 
 }
-PartialBasis::PartialBasis( Bsurface& surface) {
+PartialBasis::PartialBasis(Bsurface& surface) {
 	init(surface);
 }
 void PartialBasis::init(Bsurface& surface) {
@@ -351,7 +351,7 @@ std::vector<double> PartialBasis::poly(const int id, const double value, const b
 		if (partial == 2) {
 			result = Vbasis_2[which][index];
 		}
-		
+
 	}
 	else {
 		if (partial == 0) {
@@ -370,7 +370,7 @@ std::vector<double> PartialBasis::poly(const int id, const double value, const b
 // construct an integration of multiplication of two B-spline basis (intergration of partial(Ni1)*partial(Ni2))
 // the integration domain is [u1, u2]
 double construct_an_integration(const int degree, const std::vector<double>& U,
-	const int partial1, const int partial2, const int i1, const int i2, const double u1, const double u2, 
+	const int partial1, const int partial2, const int i1, const int i2, const double u1, const double u2,
 	PolynomialBasis &basis, const bool uv) {
 	timer.start();
 	std::vector<double> func1 = basis.poly(i1, u1, uv);
@@ -479,10 +479,10 @@ double construct_an_integration(const int degree, const std::vector<double>& U,
 	return result;
 }
 // do partial difference to Pi, the cofficient of jth element Pj.
-double surface_energy_least_square( Bsurface& surface, const int i, const int j, PartialBasis& basis) {
+double surface_energy_least_square(Bsurface& surface, const int i, const int j, PartialBasis& basis) {
 	// figure out which Pij corresponding to the ith control point
-	int partial_i = i / (surface.nv()+1);
-	int partial_j = i - partial_i * (surface.nv()+1);
+	int partial_i = i / (surface.nv() + 1);
+	int partial_j = i - partial_i * (surface.nv() + 1);
 
 	// figure out which Pij corresponding to the jth control point
 	int coff_i = j / (surface.nv() + 1);
@@ -509,9 +509,9 @@ double surface_energy_least_square( Bsurface& surface, const int i, const int j,
 				continue;// if the area is 0, then no need to compute
 			}
 			// Suu part
-			double value1 = construct_an_integration(degree1, surface.U, 2, 2, 
-				partial_i, coff_i, surface.U[k1], surface.U[k1 + 1],basis,false);
-			double value2 = construct_an_integration(degree2, surface.V, 0, 0, 
+			double value1 = construct_an_integration(degree1, surface.U, 2, 2,
+				partial_i, coff_i, surface.U[k1], surface.U[k1 + 1], basis, false);
+			double value2 = construct_an_integration(degree2, surface.V, 0, 0,
 				partial_j, coff_j, surface.V[k2], surface.V[k2 + 1], basis, true);
 			// Suv part
 			double value3 = construct_an_integration(degree1, surface.U, 1, 1,
@@ -527,11 +527,11 @@ double surface_energy_least_square( Bsurface& surface, const int i, const int j,
 		}
 	}
 	return result;
-	
+
 }
 
 // in interval [U[i], U[i+1])x[V[j], V[j+1])
-double discrete_surface_partial_value_squared(const int partial1, const int partial2, 
+double discrete_surface_partial_value_squared(const int partial1, const int partial2,
 	const int i, const int j, Bsurface& surface,
 	PartialBasis& basis, const double u, const double v) {
 	int p = surface.degree1;
@@ -560,7 +560,7 @@ double discrete_surface_partial_value_squared(const int partial1, const int part
 
 // calculate thin-plate-energy in region [Ui, U(i+1)]x[Vj, V(j+1)]
 Eigen::MatrixXd surface_energy_calculation(Bsurface& surface, PartialBasis& basis,
-	 const int discrete, Eigen::MatrixXd &energy_uu, Eigen::MatrixXd &energy_vv, Eigen::MatrixXd& energy_uv) {
+	const int discrete, Eigen::MatrixXd &energy_uu, Eigen::MatrixXd &energy_vv, Eigen::MatrixXd& energy_uv) {
 	int p = surface.degree1;
 	int q = surface.degree2;
 	std::vector<double> U = surface.U;
@@ -609,8 +609,8 @@ Eigen::MatrixXd surface_energy_calculation(Bsurface& surface, PartialBasis& basi
 			double vvsum = 0;
 			double uvsum = 0;
 			double single_area = delta_u * delta_v;
-			for (int k1 = 0; k1 < n_sample-1; k1++) {
-				for (int k2 = 0; k2 < n_sample-1; k2++) {
+			for (int k1 = 0; k1 < n_sample - 1; k1++) {
+				for (int k2 = 0; k2 < n_sample - 1; k2++) {
 					uusum += (values_uu(k1, k2) + values_uu(k1, k2 + 1) + values_uu(k1 + 1, k2) + values_uu(k1 + 1, k2 + 1)) / 4;
 					vvsum += (values_vv(k1, k2) + values_vv(k1, k2 + 1) + values_vv(k1 + 1, k2) + values_vv(k1 + 1, k2 + 1)) / 4;
 					uvsum += (values_uv(k1, k2) + values_uv(k1, k2 + 1) + values_uv(k1 + 1, k2) + values_uv(k1 + 1, k2 + 1)) / 4;
@@ -626,7 +626,7 @@ Eigen::MatrixXd surface_energy_calculation(Bsurface& surface, PartialBasis& basi
 	energy = energy_uu + 2 * energy_uv + energy_vv;
 	return energy;
 	std::cout << "energy\n" << energy << std::endl;
-	
+
 }
 
 // [U[which],U[which+1]) is the problematic one
@@ -668,14 +668,14 @@ Eigen::MatrixXd energy_part_of_surface_least_square(Bsurface& surface, PartialBa
 	for (int i = 0; i < psize; i++) {
 		//std::cout << "the ith row of matrix" << std::endl;
 		for (int j = 0; j < psize; j++) {
-			result(i, j) = surface_energy_least_square(surface, i, j,basis);
+			result(i, j) = surface_energy_least_square(surface, i, j, basis);
 		}
 	}
 	std::cout << "energy matrix finish calculation" << std::endl;
 	return result;
 }
 
-double surface_error_least_square(Bsurface& surface, const int i, const int j, 
+double surface_error_least_square(Bsurface& surface, const int i, const int j,
 	const Eigen::MatrixXd& paras) {
 	// figure out which Pij corresponding to the ith control point
 	int partial_i = i / (surface.nv() + 1);
@@ -701,9 +701,9 @@ double surface_error_least_square(Bsurface& surface, const int i, const int j,
 		double N2 = Nip(partial_j, degree2, v, surface.V);
 		double N3 = Nip(coff_i, degree1, u, surface.U);
 		double N4 = Nip(coff_j, degree2, v, surface.V);
-		if (N1 == 0|| N2 == 0|| N3 == 0|| N4 == 0) {
+		if (N1 == 0 || N2 == 0 || N3 == 0 || N4 == 0) {
 			continue;
-		} 
+		}
 		result += N1 * N2*N3*N4;
 	}
 	return result;
@@ -776,8 +776,8 @@ Eigen::MatrixXd lambda_part_of_surface_least_square(Bsurface& surface, const Eig
 	return result;
 }
 
-Eigen::MatrixXd surface_least_square_lambda_multiplier_left_part(Bsurface& surface, 
-	const Eigen::MatrixXd& paras,PartialBasis& basis) {
+Eigen::MatrixXd surface_least_square_lambda_multiplier_left_part(Bsurface& surface,
+	const Eigen::MatrixXd& paras, PartialBasis& basis) {
 	std::cout << "inside left part" << std::endl;
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
 	int target_size = paras.rows();// nbr of target data points
@@ -785,14 +785,14 @@ Eigen::MatrixXd surface_least_square_lambda_multiplier_left_part(Bsurface& surfa
 	Eigen::MatrixXd result(size, size);
 	Eigen::MatrixXd rd = Eigen::MatrixXd::Zero(target_size, target_size);// right down corner part
 	std::cout << "finish rd" << std::endl;
-	Eigen::MatrixXd lu = energy_part_of_surface_least_square(surface,basis);
+	Eigen::MatrixXd lu = energy_part_of_surface_least_square(surface, basis);
 	std::cout << "finish lu" << std::endl;
 	Eigen::MatrixXd ld = eqality_part_of_surface_least_square(surface, paras);
 	std::cout << "finish ld" << std::endl;
 	Eigen::MatrixXd ru = -ld.transpose();
 	std::cout << "finish ru" << std::endl;
-		//lambda_part_of_surface_least_square(surface, paras);
-	
+	//lambda_part_of_surface_least_square(surface, paras);
+
 	std::cout << "sizes" << std::endl;
 	std::cout << "lu, " << lu.rows() << " " << lu.cols() << std::endl;
 	std::cout << "ru, " << ru.rows() << " " << ru.cols() << std::endl;
@@ -845,7 +845,7 @@ void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::Ma
 	std::vector<Vector3d> cps(psize);// control points
 	Eigen::MatrixXd A;
 	Eigen::FullPivLU<Eigen::DenseBase<Eigen::MatrixXd>::PlainMatrix> decomp;
-	A = surface_least_square_lambda_multiplier_left_part(surface, paras,basis);
+	A = surface_least_square_lambda_multiplier_left_part(surface, paras, basis);
 	SparseMatrixXd matB;
 	Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
 
@@ -865,7 +865,7 @@ void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::Ma
 		// solve the matrix contains the p and lambda
 		std::cout << "before solving" << std::endl;
 		Eigen::MatrixXd p_lambda;
-		
+
 		p_lambda = solver.solve(b);
 		if (solver.info() != Eigen::Success) {
 			std::cout << "solving failed" << std::endl;
@@ -873,9 +873,9 @@ void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::Ma
 		}
 
 
-		
+
 		double relative_error = (matB*p_lambda - b).norm() / b.norm(); // norm() is L2 norm
-		std::cout << "after solving, error is "<<relative_error << std::endl;
+		std::cout << "after solving, error is " << relative_error << std::endl;
 		push_p_lambda_vector_to_control_points(p_lambda, i, cps);
 	}
 	push_control_point_list_into_surface(surface, cps);
@@ -909,17 +909,17 @@ std::vector<double> knot_vector_level(const int degree, const int level) {
 	}
 	return result;
 }
-Eigen::MatrixXd equality_part_of_Seungyong(Bsurface& surface, 
+Eigen::MatrixXd equality_part_of_Seungyong(Bsurface& surface,
 	const std::vector<std::vector<std::vector<int>>>& overlaps, const int nbr_related) {
 
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
-	
+
 	Eigen::MatrixXd result = Eigen::MatrixXd::Zero(nbr_related, psize);
 	int degree1 = surface.degree1;
 	int degree2 = surface.degree2;
 	std::vector<double> U = surface.U;
 	std::vector<double> V = surface.V;
-	
+
 	for (int i = 0; i < result.rows(); i++) {
 		int counter = 0;
 		for (int j = 0; j < result.cols(); j++) {
@@ -933,7 +933,7 @@ Eigen::MatrixXd equality_part_of_Seungyong(Bsurface& surface,
 				}
 				counter++;
 			}
-			
+
 		}
 	}
 	return result;
@@ -965,10 +965,10 @@ void none_zero_basis_ids(const int interval, const std::vector<double>& U, const
 	}
 }
 
-Eigen::MatrixXd left_part_of_Seungyong(Bsurface&surface, PartialBasis& basis, 
+Eigen::MatrixXd left_part_of_Seungyong(Bsurface&surface, PartialBasis& basis,
 	const Eigen::MatrixXd&param, std::vector<std::vector<std::vector<int>>> &overlaps,
 	std::vector<int> &uinterval, std::vector<int>&vinterval, int &nbr_related) {
-	std::vector<double> U = surface.U; 
+	std::vector<double> U = surface.U;
 	std::vector<double> V = surface.V;
 	uinterval.resize(param.rows());
 	vinterval.resize(param.rows());
@@ -1014,7 +1014,7 @@ Eigen::MatrixXd left_part_of_Seungyong(Bsurface&surface, PartialBasis& basis,
 		int id0, id1, id2, id3;// id0=i-p, id1=i.
 		none_zero_basis_ids(k1, U, u, nu, degree1, id0, id1);
 		none_zero_basis_ids(k2, V, v, nv, degree2, id2, id3);
-		
+
 		assert(id0 >= 0 && id0 <= nu + 1); assert(id1 >= 0 && id1 <= nu + 1);
 		assert(id2 >= 0 && id2 <= nv + 1); assert(id3 >= 0 && id3 <= nv + 1);
 		for (int j = id0; j < id1 + 1; j++) {
@@ -1034,7 +1034,7 @@ Eigen::MatrixXd left_part_of_Seungyong(Bsurface&surface, PartialBasis& basis,
 		}
 	}
 	int cnbr = (nu + 1)*(nv + 1);// nbr of the control points
-	
+
 	//int sz = nbr_related + cnbr; // matrix size
 	//Eigen::MatrixXd result(sz, sz);
 	int sz = cnbr; // matrix size
@@ -1046,7 +1046,7 @@ Eigen::MatrixXd left_part_of_Seungyong(Bsurface&surface, PartialBasis& basis,
 	//result << lu, ru, ld, rd;
 	return result;
 }
-double right_part_element_for_Seungyong(const int rid,const int cid,
+double right_part_element_for_Seungyong(const int rid, const int cid,
 	const std::vector<std::vector<std::vector<int>>>&overlaps, const std::vector<int> &uinterval,
 	const std::vector<int>& vinterval, const std::vector<double>& U,
 	const std::vector<double>& V, const int degree1, const int degree2, int nu, int nv,
@@ -1061,7 +1061,7 @@ double right_part_element_for_Seungyong(const int rid,const int cid,
 		int id0, id1, id2, id3;// id0=i-p, id1=i.
 		none_zero_basis_ids(k1, U, u, nu, degree1, id0, id1);
 		none_zero_basis_ids(k2, V, v, nv, degree2, id2, id3);
-		
+
 
 		for (int j = id0; j < id1 + 1; j++) {
 			for (int k = id2; k < id3 + 1; k++) {
@@ -1103,7 +1103,7 @@ double right_part_element_for_Seungyong(const int rid,const int cid,
 }
 
 Eigen::VectorXd right_part_of_Seungyong(Bsurface& surface, const Eigen::MatrixXd& paras,
-	const Eigen::MatrixXd& ver, const int dimension, 
+	const Eigen::MatrixXd& ver, const int dimension,
 	const std::vector<std::vector<std::vector<int>>>&overlaps,
 	const std::vector<int> &uinterval, const std::vector<int> &vinterval, const int nbr_related) {
 
@@ -1128,8 +1128,8 @@ Eigen::VectorXd right_part_of_Seungyong(Bsurface& surface, const Eigen::MatrixXd
 		}
 	}
 	return result;
-	
-	
+
+
 	for (int i = 0; i < psize; i++) {
 		result[i] = 0;
 	}
@@ -1144,7 +1144,7 @@ Eigen::VectorXd right_part_of_Seungyong(Bsurface& surface, const Eigen::MatrixXd
 					if (counter >= checking) {
 						value = right_part_element_for_Seungyong(j, k, overlaps, uinterval, vinterval, surface.U, surface.V, surface.degree1,
 							surface.degree2, nu, nv, ver, paras, dimension);
-						assert(value < std::numeric_limits<double>::infinity() && 
+						assert(value < std::numeric_limits<double>::infinity() &&
 							value > -std::numeric_limits<double>::infinity());
 						jump = true;
 						break;
@@ -1179,10 +1179,10 @@ void iteratively_approximate_method(int degree1, int degree2,
 		std::vector<int> uinterval, vinterval;
 		int nbr_related;
 		std::cout << "before get left" << std::endl;
-		Eigen::MatrixXd left = left_part_of_Seungyong(slevel, basis, param,overlaps, uinterval, vinterval, nbr_related);
+		Eigen::MatrixXd left = left_part_of_Seungyong(slevel, basis, param, overlaps, uinterval, vinterval, nbr_related);
 		std::cout << "get left" << std::endl;
 		/////////////////
-		
+
 		//SparseMatrixXd matB;
 		//Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
 
@@ -1194,25 +1194,25 @@ void iteratively_approximate_method(int degree1, int degree2,
 		//	std::cout << "solving failed" << std::endl;
 		//	return;
 		//}
-		
-		
+
+
 		/////////////////
 		int sz = (slevel.nu() + 1)*(slevel.nv() + 1);
 		std::vector<Vector3d> cps(sz);
 		for (int i = 0; i < 3; i++) {
-			Eigen::VectorXd right = right_part_of_Seungyong(slevel,param,err,i,overlaps,uinterval,vinterval,nbr_related);
+			Eigen::VectorXd right = right_part_of_Seungyong(slevel, param, err, i, overlaps, uinterval, vinterval, nbr_related);
 			Eigen::MatrixXd p_lambda;
-			
+
 			p_lambda = right;
-		/*	if (solver.info() != Eigen::Success) {
-				std::cout << "solving failed" << std::endl;
-				return;
-			}*/
+			/*	if (solver.info() != Eigen::Success) {
+					std::cout << "solving failed" << std::endl;
+					return;
+				}*/
 			for (int j = 0; j < cps.size(); j++) {
 				cps[j][i] = p_lambda(j, 0);
 			}
 			//std::cout << "right part\n" << right << std::endl;
-			
+
 		}
 		push_control_point_list_into_surface(slevel, cps);
 		surfaces.push_back(slevel);
@@ -1230,7 +1230,7 @@ void iteratively_approximate_method(int degree1, int degree2,
 			}
 		}
 		std::cout << "max overlap is " << max_overlap << std::endl;
-		
+
 		//std::cout << "error matrix\n" << err << std::endl;
 		if (max_error <= tolerance) {
 			break;

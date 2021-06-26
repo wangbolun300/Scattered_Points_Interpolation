@@ -433,11 +433,11 @@ void run_lofting_method() {
 	
 }
 void run_ours_over_all_models() {
-	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\weight_naive\\";
 	std::vector<int> models = { {0,1,2,3,4,5} };
 	int nbr = 50;
 	double par = 0.9;// ours
-	double per = 0.9;
+	double per = 0.5;
 	for (int i = 0; i < models.size(); i++) {
 		std::string tail = "";
 		run_ours(models[i], nbr, par, path, tail, per, false);
@@ -445,8 +445,40 @@ void run_ours_over_all_models() {
 	
 	
 }
+#include<igl/decimate.h>
+void mesh_simplify() {
+	int fnbr = 3000;
+	std::string foldername= "D:\\vs\\sparse_data_interpolation\\meshes\\meshmodels\\";
+	std::string name = "hand-in.obj";
+	std::string prefix = "simplified_"+std::to_string(fnbr)+"_";
+	Eigen::VectorXi J;
+	std::string file = foldername + name;
+	Eigen::MatrixXd ver, vout;
+	Eigen::MatrixXi f, fout;
+	
+	igl::read_triangle_mesh(file, ver, f);
+
+	igl::decimate(ver, f, fnbr, vout, fout, J);
+	igl::write_triangle_mesh(foldername + prefix + name, vout, fout);
+	std::cout << "simplified " << name << std::endl;
+
+}
+void mesh_reconstruction() {
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\meshmodels\\results\\";
+	const int model = 0;;
+	int nbr = 50;
+	double par = 0.9;// ours
+	double per = 0.2;
+	
+	std::string tail = "";
+	run_mesh_reconstruction(model, nbr, par, path, tail, per, false);
+
+}
+
 int main() {
-	ours_results();
+	mesh_reconstruction();
+	//mesh_simplify();
+	//ours_results();
 	// method = 0, peak; 
 // method = 1, contour; 
 // method = 2, hyperbolic; 

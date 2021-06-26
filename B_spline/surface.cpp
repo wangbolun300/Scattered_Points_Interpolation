@@ -1394,10 +1394,13 @@ Eigen::MatrixXd weight_matrix_calculation(const Eigen::MatrixXi& fcp,const Eigen
 					assert(nbr_share > 0);
 					interval_info[nbr_share] += 1;
 				}
-				double weight = double(row_nbr_pts)
+				double weight = 
+#ifndef WEIGHT_NAIVE			
+					double(row_nbr_pts)
 					*
 					1/double(col_before_nbr)
 					*
+#endif
 					weight_strategy(interval_info, col_nbr_pts);
 				if (weight >= 1) {
 					std::cout << "large weight " << weight << std::endl;
@@ -1732,7 +1735,7 @@ void generate_interpolation_knot_vectors( int degree1, int degree2,
 	print_vector(Vtemp);
 	bool finished = false;
 	bool v_direction;// = start_from_v_direction;
-	if (Utemp.size() > Vtemp.size()) {// iso-v line
+	if (Utemp.size() > Vtemp.size()) {// iso-v line, update V
 		v_direction = true;
 	}
 	else {
