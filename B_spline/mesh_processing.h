@@ -51,3 +51,7 @@ void remeshing_based_on_map_grid(const Eigen::MatrixXd& param, const Eigen::Matr
 	const Eigen::MatrixXi& F,
 	const std::vector<double>& U, const std::vector<double>&V, const Eigen::MatrixXi& map,
 	Eigen::MatrixXd& paramout, Eigen::MatrixXd& ver_out, Eigen::MatrixXi& Fout);
+
+// the returned value is sqrt distance. but sqrtD is un-squared
+double point_mesh_distance(const Eigen::MatrixXd ver, const Eigen::MatrixXd& Vmesh,
+	const Eigen::MatrixXi& Fmesh, Eigen::VectorXd &sqrD);

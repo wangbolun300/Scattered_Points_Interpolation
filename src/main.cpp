@@ -344,32 +344,47 @@ void test1() {
 void ours_results(std::string tail = "") {
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
 	int model = 1;
-	int nbr = 50;
+	int nbr = 100;
 	double par = 0.9;// ours
 	double per = 0.5;
 	run_ours(model, nbr, par, path, tail, per,false);
 }
 void piegl_results() {
-	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	int model = 2;
-	int nbr = 50;
-	double per = 0.9;
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\pigel\\";
+	int model = 5;
+	int nbr = 100;
+	double per = 0.5;
 	run_piegl(model, nbr, per);
 }
 
 void seung_results() {
-	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	int model = 5;
-	int nbr = 50;
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\seung\\";
+	int model = 1;
+	int nbr = 100;
 	double tolerance = 1e-8;
 	run_Seungyong(model, nbr, tolerance, path);
 }
 
 void write_seung_mesh_series() {
-	std::string path = "D:\\vs\\sparse_data_interpolation\\figures\\seuyoung\\";
-	std::string namebase = "Seungyong_p50_m_1_level_";
-	int end = 8;
-	read_mesh_series(path, namebase, end);
+	std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\seung\\";
+	std::vector<int> ptlist = { {50,100} };
+	std::vector<int> modelist = { {1,2,5} };
+	int end;
+	for (int i = 0; i < ptlist.size(); i++) {
+		int pnbr = ptlist[i];
+		for (int j = 0; j < modelist.size(); j++) {
+			int model = modelist[j];
+			if (pnbr == 50 && model == 2) {
+				end = 7;
+			}
+			else {
+				end = 8;
+			}
+			std::string namebase = "Seungyong_p"+std::to_string(pnbr)+"_m_"+
+				std::to_string(model)+"_level_";
+			read_mesh_series(path, namebase, end);
+		}
+	}
 }
 
 void run_diff_per() {
@@ -433,9 +448,9 @@ void run_lofting_method() {
 	
 }
 void run_ours_over_all_models() {
-	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\weight_naive\\";
+	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
 	std::vector<int> models = { {0,1,2,3,4,5} };
-	int nbr = 50;
+	int nbr = 100;
 	double par = 0.9;// ours
 	double per = 0.5;
 	for (int i = 0; i < models.size(); i++) {
@@ -464,19 +479,58 @@ void mesh_simplify() {
 
 }
 void mesh_reconstruction() {
+	const std::string inpath = "D:\\vs\\sparse_data_interpolation\\meshes\\meshmodels\\";
 	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\meshmodels\\results\\";
-	const int model = 0;;
+	const std::string model = "simplified_2500_TigerMask4.obj";
+	//const std::string model = "mask3kf.obj";
 	int nbr = 50;
 	double par = 0.9;// ours
-	double per = 0.2;
+	double per = 0.5;
 	
 	std::string tail = "";
-	run_mesh_reconstruction(model, nbr, par, path, tail, per, false);
-
+	run_mesh_reconstruction(inpath,model, nbr, par, path, tail, per, false);
 }
 
+void calculate_hausdorff() {
+	const std::string molpath = "D:\\vs\\sparse_data_interpolation\\meshes\\meshmodels\\";
+	const std::string surpath = "D:\\vs\\sparse_data_interpolation\\meshes\\meshmodels\\results\\";
+	//const std::string model = "simplified_2500_TigerMask4.obj";
+	
+	//const std::string model = "mask3kf.obj";
+	//const std::string surface = "ours_p50_m_mask3kf.obj";
+	const std::string model = "TigerMask4.obj";
+	const std::string surface = "ours_p50_m_simplified_2500_TigerMask4.obj";
+	const std::string mol_file = molpath + model;
+	const std::string sur_file = surpath + surface;
+	Eigen::MatrixXd surfver, meshver,colors;
+	Eigen::MatrixXi surfF, meshF; 
+	Eigen::VectorXd sqrD, realD;
+	igl::read_triangle_mesh(mol_file, meshver, meshF);
+	igl::read_triangle_mesh(sur_file, surfver, surfF);
+	double maxdis = point_mesh_distance(surfver, meshver, meshF, sqrD);
+	std::cout << "max distance " << maxdis << std::endl;
+	double upperbound = 1.5;
+	realD.resize(sqrD.size());
+	colors.resize(sqrD.size(),3);
+	for (int i = 0; i < sqrD.size(); i++) {
+		realD[i] = sqrt(sqrD[i]);
+		double r = realD[i] / upperbound;
+		colors.row(i) = Vector3d(r, 0, 0);
+	}
+	igl::writeOFF(surpath + "color_" + surface+".off", surfver, surfF, colors);
+
+	Eigen::MatrixXd error_points(realD.size(), 3);
+	Eigen::VectorXd zeros = Eigen::VectorXd::Zero(realD.size());
+	error_points << realD, zeros, zeros;
+	write_points(surpath + "dis_" + surface, error_points);
+}
+
+
 int main() {
-	mesh_reconstruction();
+	write_seung_mesh_series();
+	//piegl_results();
+	//calculate_hausdorff();
+	//mesh_reconstruction();
 	//mesh_simplify();
 	//ours_results();
 	// method = 0, peak; 

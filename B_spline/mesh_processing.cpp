@@ -868,3 +868,30 @@ void remeshing_based_on_map_grid(const Eigen::MatrixXd& param, const Eigen::Matr
 		}
 	}
 }
+//bool box_box_intersection(const Vector3d& pmin, const Vector3d& pmax, const Vector3d& bmin, const Vector3d& bmax) {
+//	
+//	for (int i = 0; i < 3; i++) {
+//		if (pt[i] < bmin[i]) {
+//			return false;
+//		}
+//		if (pt[i] > bmax[i]) {
+//			return false;
+//		}
+//	}
+//	return true;
+//}
+//double point_mesh_distance(const Vector3d& pt, const Eigen::MatrixXd &V, const Eigen::MatrixXd&F,
+//	const Eigen::MatrixXd& boxmin, const Eigen::MatrixXd& boxmax ) {
+//	
+//	for(int i=0;i<)
+//}
+
+#include <igl/point_mesh_squared_distance.h>
+double point_mesh_distance(const Eigen::MatrixXd ver, const Eigen::MatrixXd& Vmesh,
+	const Eigen::MatrixXi& Fmesh, Eigen::VectorXd &sqrD) {
+	Eigen::VectorXi I;
+	Eigen::MatrixXd C;
+	igl::point_mesh_squared_distance(ver, Vmesh, Fmesh, sqrD, I, C);
+
+	return sqrt(sqrD.maxCoeff());
+}

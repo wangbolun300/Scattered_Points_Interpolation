@@ -8,7 +8,7 @@ project(Sparse_Interp)
 # project-options
 
 # GMP
-option(SPARSE_INTERPOLATION_WITH_GMP		"Use gmp to have rational predicates"	  ON)
+option(SPARSE_INTERPOLATION_WITH_GMP		"Use gmp to have rational predicates"	  OFF)
 
 
 # libigl
@@ -45,8 +45,6 @@ include(UseColors)
 include(${PROJECT_NAME}Dependencies)
 include(PrependCurrentPath)
 include(Sparse_InterpUtils)
-
-
 
 
 

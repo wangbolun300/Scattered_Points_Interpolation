@@ -192,6 +192,7 @@ double peak_function(const double x, const double y) {
 	if (fabs(r) < SCALAR_ZERO) {
 		r = 0;
 	}
+	r /= 2;
 	return r;
 }
 
@@ -702,7 +703,7 @@ void get_model_sample_points(const int nbr, Eigen::MatrixXd &V, Eigen::MatrixXi 
 			return snail_function(x, y);
 		}
 	};
-	std::vector<double> scale= { {6,2,1,1,1} };
+	std::vector<double> scale= { {3,2,1,1,1} };
 	std::vector<int> seed = { {3,7,33,10,5,0} };
 	Eigen::MatrixXd ver;
 	ver.resize(nbr, 3);
@@ -1358,7 +1359,7 @@ void read_mesh_series(std::string path, std::string namebase, int end) {
 	Eigen::MatrixXd ver;
 	Eigen::MatrixXi f;
 	igl::read_triangle_mesh(file0, ver, f);
-	for (int i = 1; i < end + 1; i++) {
+	for (int i = 1; i < end + 1; i++) {// 0 has already been included
 		std::cout << "reading " << i << std::endl;
 		std::string file = path + namebase + std::to_string(i) + ".obj";
 		Eigen::MatrixXd ver_t;
@@ -1369,7 +1370,7 @@ void read_mesh_series(std::string path, std::string namebase, int end) {
 	file0= path + namebase+ "sum.obj";
 	igl::write_triangle_mesh(file0, ver, f);
 }
-void run_mesh_reconstruction(const int model, const int nbr_pts, double &per_ours, const std::string path, const std::string tail,
+void run_mesh_reconstruction(const std::string inpath, const std::string modelname, const int nbr_pts, double &per_ours, const std::string path, const std::string tail,
 	const double per, const bool enable_local_energy = false) {
 	Eigen::MatrixXd fcolor(1, 3), ecolor(1, 3), pcolor(1, 3), red(1, 3), green(1, 3), blue(1, 3);
 	fcolor << 1, 0, 0; ecolor << 0.9, 0.9, 0.9;; pcolor << 0, 0.9, 0.5;
@@ -1383,26 +1384,25 @@ void run_mesh_reconstruction(const int model, const int nbr_pts, double &per_our
 	int nbr = nbr_pts;// nbr of points
 	Eigen::MatrixXi F;
 	Eigen::MatrixXd param, paramout;
-	//std::string modelname = "simplifiedmask3kf1500.obj";
-	std::string modelname = "simplified_3000_pig.obj";
-	std::string meshfile = "D:\\vs\\sparse_data_interpolation\\meshes\\meshmodels\\" + modelname;
+	//std::string modelname = "mask3kf.obj";
+	//std::string modelname = "simplified_2500_TigerMask4.obj";
+	std::string meshfile = inpath + modelname;
+		//"D:\\vs\\sparse_data_interpolation\\meshes\\meshmodels\\" + modelname;
 	
 	//get_mesh_vertices_and_parametrization(ver, F, param);
-	int method = model;
 	bool corners = false;
 	mesh_parameterization(meshfile, ver, param, F);
 	paramout.resize(param.rows(), 3);
 	Eigen::VectorXd param_zero= Eigen::VectorXd::Zero(param.rows());
 	paramout << param, param_zero;
+	igl::write_triangle_mesh(path + "param_" + modelname + tail, paramout, F);
+
 	//get_model_sample_points(nbr, ver, F, param, method, corners);
 	//std::cout << "ver\n" << ver << std::endl;
 	int degree1 = 3;
 	int degree2 = 3;
 	std::vector<double> Uknot = { {0,0,0,0,1,1,1,1} };
 	std::vector<double> Vknot = Uknot;
-	int perturb_itr = 0;
-	//double per_ours = 0.9;
-	//double per = 0.2;
 	int target_steps = 10;
 	bool enable_max_fix_nbr = true;
 	igl::opengl::glfw::Viewer viewer;
@@ -1416,7 +1416,7 @@ void run_mesh_reconstruction(const int model, const int nbr_pts, double &per_our
 	std::cout << "before generating knot vectors" << std::endl;
 	std::cout << "data size " << ver.rows() << std::endl;
 	generate_interpolation_knot_vectors(degree1, degree2, Uknot, Vknot, param, per_ours, per, target_steps, enable_max_fix_nbr);
-	//lofting_method_generate_interpolation_knot_vectors(false, degree1, degree2, Uknot, Vknot, param, param_perturbed, F, perturb_itr, per);
+	
 	timer.stop();
 	time_knot = timer.getElapsedTimeInSec();
 
@@ -1424,6 +1424,7 @@ void run_mesh_reconstruction(const int model, const int nbr_pts, double &per_our
 	Bsurface surface;
 	Eigen::MatrixXd SPs;
 	Eigen::MatrixXi SFs;
+	int visual_nbr = 200;
 	if (1) {
 		surface.degree1 = 3;
 		surface.degree2 = 3;
@@ -1437,7 +1438,7 @@ void run_mesh_reconstruction(const int model, const int nbr_pts, double &per_our
 		solve_control_points_for_fairing_surface(surface, param, ver, basis);
 		timer.stop();
 		time_solve = timer.getElapsedTimeInSec();
-		surface_visulization(surface, 100, SPs, SFs);
+		surface_visulization(surface, visual_nbr, SPs, SFs);
 		if (enable_local_energy) {
 			double timeitr = 0;
 			for (int i = 0; i < 20; i++) {
@@ -1465,9 +1466,9 @@ void run_mesh_reconstruction(const int model, const int nbr_pts, double &per_our
 				timer.stop();
 				timeitr += timer.getElapsedTimeInSec();
 				std::cout << " control points solved" << std::endl;
-				surface_visulization(surface, 100, SPs, SFs);
+				surface_visulization(surface, visual_nbr, SPs, SFs);
 
-				igl::write_triangle_mesh(path + "ours_" + "p" + std::to_string(nbr) + "_refine_" + std::to_string(i) + "_m_" + std::to_string(method) + tail + ".obj", SPs, SFs);
+				igl::write_triangle_mesh(path + "ours_" + "p" + std::to_string(nbr) + "_refine_" + std::to_string(i) + "_m_" + modelname + tail, SPs, SFs);
 				std::vector<std::string> titles = { {"time_knot","time_solve","precision","nu","nv", "cps","time_itr","max_energy"} };
 				int cps = (surface.nu() + 1)*(surface.nv() + 1);
 				precision = max_interpolation_err(ver, param, surface);
@@ -1491,9 +1492,8 @@ void run_mesh_reconstruction(const int model, const int nbr_pts, double &per_our
 	if (write_file)
 	{
 		Eigen::MatrixXi Pf;
-		write_points(path + "pts" + std::to_string(nbr) + "_m_" + modelname + ".obj", ver);
-		igl::write_triangle_mesh(path + "ours_" + "p" + std::to_string(nbr) + "_m_" + modelname + tail + ".obj", SPs, SFs);
-		igl::write_triangle_mesh(path  + "param_"+ modelname + tail + ".obj", paramout, F);
+		write_points(path + "pts" + std::to_string(nbr) + "_m_" + modelname, ver);
+		igl::write_triangle_mesh(path + "ours_" + "p" + std::to_string(nbr) + "_m_" + modelname + tail, SPs, SFs);
 		std::vector<std::string> titles = { {"time_knot","time_solve","precision","nu","nv", "cps"} };
 		int cps = (surface.nu() + 1)*(surface.nv() + 1);
 		std::vector<double> data = { {time_knot, time_solve,precision, double(surface.nu()),double(surface.nv()), double(cps)} };

@@ -18,5 +18,6 @@ void run_Seungyong(const int model, const int nbr_pts, const double tolerance, c
 void run_piegl(const int model, const int nbr_pts, const double per);
 void read_mesh_series(std::string path, std::string namebase, int end);
 void run_lofting(const int model, const int nbr_pts, const double per);
-void run_mesh_reconstruction(const int model, const int nbr_pts, double &per_ours, const std::string path, const std::string tail,
+void run_mesh_reconstruction(const std::string inpath, const std::string modelname, const int nbr_pts, double &per_ours, const std::string path, const std::string tail,
 	const double per, const bool enable_local_energy);
+void write_points(const std::string& file, const Eigen::MatrixXd& ver);
