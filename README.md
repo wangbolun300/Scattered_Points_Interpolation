@@ -4,7 +4,7 @@ The implementation of the paper "Scattered Points Interpolation with Globally Sm
 
 ## Build
 
-To build the library and executable benchmark on Linux or macOS run:
+Before build the code, you need to have CMake installed on your machine. To build the library and executable benchmark on Linux or macOS run:
 ```sh
 mkdir build
 cd build
