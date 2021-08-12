@@ -19,9 +19,10 @@ You can run the examples:
 ```
 where `delta` and `per` are two input parameters, ranging from 0 to 1, we recommand that `delta = 0.9` and `per = 0.5`. `nbr` is the number of sampled points, we suggest to choose a number no more than 500. `outpath` is the output path. For example, on Windows, you can run `./Sparse_Interp_bin benchmarks 0.9 0.5 100 C:\\`.
 
-Similarly, you can get the 2 mesh model interpolation results in the paper by running
 
 ### Mesh models 
+Similarly, you can get the 2 mesh model interpolation results in the paper by running
+
 ```bash
 ./Sparse_Interp_bin meshes modelname outpath
 ```
