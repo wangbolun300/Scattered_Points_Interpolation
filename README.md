@@ -44,8 +44,6 @@ You can run the results of Figure 7 in the paper, by
 It will produce the results in Figure 9.
 
 ## Outputs
-<<<<<<< HEAD
+
 After running the code, in `outpath` there will be a interpolation surface in `.obj` format, and for each interpolation surface, there is a corresponding `.csv` file recording its runtime, maximal interpolation error, and the number of control points. After running the benchmarks, the 6 benchmark models: Peak, Drop, Hyperbolic, Sinus, Bilinear and Snail will be output into `outpath`. After running the results in Figure 7 and Figure 9, the maximal energy for each iteration will also be written into the `.csv` files.
-=======
-After running the code, in `outpath` there will be a interpolation surface in `.obj` format, and for each interpolation surface, there is a corresponding `.csv` file recording its runtime, maximal interpolation error, and the number of control points. After running the benchmarks, the 6 benchmark models: Peak, Drop, Hyperbolic, Sinus, Bilinear and Snail will be output into `outpath`. After running the results in Figure 7 and Figure 9, the maximal energy for each iteration will also be written into the `.csv` files.
->>>>>>> 61604cb78b5d7cdebd211ebdffaa714d586e129d
+
