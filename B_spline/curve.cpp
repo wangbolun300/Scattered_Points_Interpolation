@@ -206,7 +206,9 @@ std::vector<double> knot_vector_insert_one_value(const std::vector<double>& U, c
 		if (i < U.size() - 1) {
 			if (value >= U[i] && value < U[i + 1]) {
 				assert(value != U[i]);
-
+				if (value == U[i]) {
+					continue;
+				}
 				result.push_back(value);
 
 			}

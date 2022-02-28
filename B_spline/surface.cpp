@@ -1857,6 +1857,7 @@ void generate_interpolation_knot_vectors(int degree1, int degree2,
 		}
 		else {
 			per_ours_tmp *= 0.9;
+			std::cout<<"delta is reduced to "<<per_ours_tmp<<std::endl;
 		}
 	}
 	per_ours = per_ours_tmp;
@@ -1906,4 +1907,30 @@ void piegl_method_generate_interpolation_knot_vectors(int degree1, int degree2,
 	bool ff;
 	Uknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Uknot, Ugrid, per, ff);
 	Vknot = fix_knot_vector_to_interpolate_curve_WKW(degree2, Vknot, Vgrid, per, ff);
+}
+
+void initialize_pia_knot_vector_single(const int degree1, const int nu, std::vector<double>&U) {
+	U.resize(nu + degree1 + 2);
+	for (int i = 0; i < degree1 + 1; i++) {
+		U[i] = 0;
+	}
+	std::cout << "check 1" << std::endl;
+	for (int i = nu + 1; i < nu + degree1 + 2; i++) {
+		U[i] = 1;
+	}
+	int nbr_intervals = nu + 1 - degree1;
+	double length_interval = double(1) / nbr_intervals;
+	std::cout << "check 2" << std::endl;
+	for (int i = degree1 + 1; i < nu + 1; i++) {
+		U[i] = U[i - 1] + length_interval;
+	}
+}
+
+void initialize_pia_knot_vectors(int degree1, int degree2,
+	std::vector<double>& U, std::vector<double>& V, int nu, int nv) {
+	
+	initialize_pia_knot_vector_single(degree1, nu, U);
+	initialize_pia_knot_vector_single(degree2, nv, V);
+	std::cout << "check 3" << std::endl;
+	return;
 }

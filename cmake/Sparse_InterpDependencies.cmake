@@ -16,7 +16,7 @@ include(${PROJECT_NAME}DownloadExternal)
 
 # Eigen
 if(NOT TARGET Eigen3::Eigen)
-sparse_interp_download_eigen()
+# sparse_interp_download_eigen()
   add_library(${PROJECT_NAME}_eigen INTERFACE)
   target_include_directories(${PROJECT_NAME}_eigen SYSTEM INTERFACE
     $<BUILD_INTERFACE:${SPARSE_EXTERNAL}/eigen>
@@ -36,7 +36,7 @@ endif()
 
   # libigl for timing
 if(NOT TARGET igl::core)
-  sparse_interp_download_libigl()
+  # sparse_interp_download_libigl()
     # Import libigl targets
     list(APPEND CMAKE_MODULE_PATH "${SPARSE_EXTERNAL}/libigl/cmake")
     include(libigl)

@@ -86,3 +86,5 @@ void piegl_method_generate_interpolation_knot_vectors(int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
 	const Eigen::MatrixXd& param_original,
 	const double per);
+void progressive_iterative_approximation(Bsurface &surface, const Eigen::MatrixXd &param, const Eigen::MatrixXd &ver,
+	const int max_itr, const double threadshold);

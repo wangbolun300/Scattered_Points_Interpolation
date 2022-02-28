@@ -488,12 +488,12 @@ void find_border_loop(const Eigen::MatrixXd& V, Eigen::VectorXi& loop) {
 	for (int i = 0; i < border_flags.size(); i++) {
 		border_flags[i] = false;
 	}
-	std::cout << "start push border" << std::endl;
+	//std::cout << "start push border" << std::endl;
 	std::vector<int> vec;
 	vec.push_back(id0);
 	border_flags[id0] = true;
 	for (int i = 0; i < vec.size(); i++) {
-		std::cout << "ith border point "<<i <<" "<<vec[i]<< std::endl;
+		//std::cout << "ith border point "<<i <<" "<<vec[i]<< std::endl;
 		int current = vec[i];
 		if (vec.size() >= 2 && vec.front() == vec.back()) {// the first element is the last element, searching finished
 			break;

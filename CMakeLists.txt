@@ -59,7 +59,8 @@ SI_copy_headers(${SPLINE_SOURCES})
 #target_sources(SPLINE_LIB PRIVATE ${SPLINE_SOURCES})
 target_include_directories(SPLINE_LIB PUBLIC B_spline/)
 target_link_libraries(SPLINE_LIB PUBLIC igl::core igl::predicates igl::opengl_glfw igl::triangle)
-
+target_compile_definitions(SPLINE_LIB PUBLIC
+    SI_MESH_DIR="${CMAKE_CURRENT_SOURCE_DIR}/external/meshes/")
 ###############################
 
 add_subdirectory(sparse_interp)
@@ -90,4 +91,5 @@ add_executable(${PROJECT_NAME}_bin
   )
 target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME}_bin PUBLIC SPLINE_LIB igl::core igl::opengl_glfw)
+
 
