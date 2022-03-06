@@ -76,116 +76,6 @@ void test_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control_pts_col
 
 
 }
-void visual_curve_fitting(Eigen::MatrixXd& control_pts, Eigen::MatrixXd& control_pts_color,
-	Eigen::MatrixXd& curve_pts, Eigen::MatrixXd& curve_pts_color,
-	Eigen::MatrixXd& target_pts, Eigen::MatrixXd& target_pts_color) {
-	int nbr_curve_pts = 500;
-	// 8 control points
-	//std::vector<double> U_init = { {0,0,0,0,0.1,0.4,0.7,0.9,1,1,1,1} };
-	std::vector<double> U_init = { {0,0,0,0,1,1,1,1} };
-	int Qnbr = 12;
-	int degree = 3;
-	std::vector<Vector3d> pts(Qnbr);
-	pts[0] = Vector3d(0, 0, 0);
-	pts[1] = Vector3d(0, 1, 0);
-	pts[2] = Vector3d(0, 1, 2);
-	pts[3] = Vector3d(0, 1, 1);
-	pts[4] = Vector3d(0, 2, 1);
-	pts[5] = Vector3d(0, 2, 0);
-	pts[6] = Vector3d(0, 3, 1);
-	pts[7] = Vector3d(0, 3, 3);
-	pts[8] = Vector3d(0, 2, 3);
-	pts[9] = Vector3d(0, 3, 0);
-	pts[10] = Vector3d(0, 2, 2);
-	pts[11] = Vector3d(0, 4, 0);
-
-	std::vector<double> paras = Centripetal_parameterization(pts);
-	std::cout << "paras " << std::endl;
-	for (int i = 0; i < paras.size(); i++) {
-		std::cout << paras[i] << std::endl << std::endl;
-	}
-	std::vector<double> result_vector =
-	//{ {0,0,0,0,0.1,1,1,1,1} };
-		//fix_knot_vector_to_interpolate_curve_boolean(degree, U_init, paras);
-		fix_knot_vector_to_interpolate_curve(degree, U_init, paras, pts);
-	std::cout << "fixed " << std::endl;
-	for (int i = 0; i < result_vector.size(); i++) {
-		std::cout << result_vector[i] << std::endl << std::endl;
-	}
-	Eigen::MatrixXd Control = solve_curve_control_points(degree, result_vector, paras, pts);
-	std::cout << "control points:" << std::endl << Control << std::endl;
-
-	Vector3d color1(0, 0, 0), color2(0.5, 0.5, 0.5), color3(1, 0, 0);
-	//////////////////////
-	// target points and color
-	target_pts = vector_to_matrix_3d(pts);
-
-	target_pts_color.resize(Qnbr, 3);
-	for (int i = 0; i < Qnbr; i++) {
-		target_pts_color.row(i) = color3;
-	}
-	// target points and color
-	////////////////////////
-	//////////////////////
-	// control points and color
-	control_pts = Control;
-
-	control_pts_color.resize(Control.rows(), 3);
-	for (int i = 0; i < Control.rows(); i++) {
-		control_pts_color.row(i) = color1;
-	}
-	// control points and color
-	////////////////////////
-	////////////////////////
-	//set curve points and color
-	curve_pts.resize(nbr_curve_pts, 3);
-	for (int i = 0; i < nbr_curve_pts; i++) {
-		double temp_para = i / double(nbr_curve_pts);
-		curve_pts.row(i) = BsplinePoint(degree, result_vector, temp_para, control_pts);
-	}
-
-	curve_pts_color.resize(nbr_curve_pts, 3);
-	for (int i = 0; i < nbr_curve_pts; i++) {
-		curve_pts_color.row(i) = color2;
-	}
-	//set curve points and color
-	/////////////////////////
-
-}
-void test_curve_knot_fixing() {
-	/*Eigen::MatrixXd& curve_pts, Eigen::MatrixXd& curve_pts_color,
-		Eigen::MatrixXd& target_pts, Eigen::MatrixXd& target_pts_color*/
-	int nbr_curve_pts = 500;
-	// 8 control points
-	std::vector<double> U = { {0,0,0,0,0.1,0.4,0.7,0.9,1,1,1,1} };
-
-	int Qnbr = 12;
-	int degree = 3;
-	std::vector<Vector3d> pts(Qnbr);
-	pts[0] = Vector3d(0, 0, 0);
-	pts[1] = Vector3d(0, 1, 0);
-	pts[2] = Vector3d(0, 1, 2);
-	pts[3] = Vector3d(0, 1, 1);
-	pts[4] = Vector3d(0, 2, 1);
-	pts[5] = Vector3d(0, 2, 0);
-	pts[6] = Vector3d(0, 3, 1);
-	pts[7] = Vector3d(0, 3, 3);
-	pts[8] = Vector3d(0, 2, 3);
-	pts[9] = Vector3d(0, 3, 0);
-	pts[10] = Vector3d(0, 2, 2);
-	pts[11] = Vector3d(0, 4, 0);
-
-	std::vector<double> paras = Centripetal_parameterization(pts);
-	std::cout << "paras " << std::endl;
-	for (int i = 0; i < paras.size(); i++) {
-		std::cout << paras[i] << std::endl << std::endl;
-	}
-	std::vector<double> result_vector = fix_knot_vector_to_interpolate_curve(degree, U, paras, pts);
-	std::cout << "fixed " << std::endl;
-	for (int i = 0; i < result_vector.size(); i++) {
-		std::cout << result_vector[i] << std::endl << std::endl;
-	}
-}
 double peak_function(const double x, const double y) {
 	double r = 3 * pow(1 - x, 2)*exp(-x * x - (y + 1)*(y + 1)) - 10 * (0.2*x - pow(x, 3) - pow(y, 5))*
 		exp(-x * x - y * y) - 1 / 3 * exp(-pow(x + 1, 2) - y * y);
@@ -275,64 +165,8 @@ void test_surface_visual(Eigen::MatrixXd &ver, Eigen::MatrixXi& faces) {
 	B_spline_surface_to_mesh(surface, 50, ver, faces);
 }
 
-void test_surface_knot_preprocessing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::MatrixXi& knotE) {
-	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	const std::string filename = path + "camel_smallest.obj";
-
-	Eigen::MatrixXd V; Eigen::MatrixXi F;
-	Eigen::MatrixXd  param;
-	mesh_parameterization(filename, V, param, F);
-
-	int degree1 = 3, degree2 = 3;
-	std::vector<double> vecU = { {0,0,0,0,0.1,1,1,1,1} };
-	std::vector<double> vecV = { {0,0,0,0,0.1,1,1,1,1} };
-	std::vector<double> Uout, Vout;
-	fix_surface_grid_parameter_too_many(degree1, vecU, degree2, vecV, param, Uout, Vout);
-	std::cout << "fixed U is \n"; print_vector(Uout);
-	std::cout << "fixed V is \n"; print_vector(Vout);
-	points.resize(param.rows(), 3);
-	for (int i = 0; i < points.rows(); i++) {
-		points.row(i) << param.row(i), 0;
-	}
-	knot_intervals_to_mesh(degree1, degree2, Uout, Vout, knotP, knotE);
-} 
-
-// here the points are the parameters or the 3d positions
-void test_knot_fixing(Eigen::MatrixXd &points, Eigen::MatrixXd& knotP, Eigen::MatrixXi& knotE) {
-	const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
-	const std::string filename = path + "camel_smallest.obj";
-	// camel_small_open.obj is the problematic one
-	Eigen::MatrixXd Ver; Eigen::MatrixXi F;
-	Eigen::MatrixXd  param;
-	mesh_parameterization(filename, Ver, param, F);
-	points.resize(param.rows(), 3);
-	for (int i = 0; i < points.rows(); i++) {
-		points.row(i) << param.row(i), 0;
-	}
-	int degree1 = 3, degree2 = 3;
-	std::vector<double> vecU = { {0,0,0,0,0.1,1,1,1,1} };
-	std::vector<double> vecV = { {0,0,0,0,0.1,1,1,1,1} };
-	std::vector<double> Uout, Vout;
 
 
-	//knot_intervals_to_mesh(degree1, degree2, Uout, Vout, knotP, knotE);
-	std::cout << "before fixing" << std::endl;
-	std::cout << "para size " << param.rows() << std::endl;
-	fix_knot_vector_to_interpolate_surface(degree1, degree2, vecU, vecV, param, Ver, Uout, Vout);
-	//easist_way_to_fix_knot_vector_to_interpolate_surface(degree1, degree2, vecU, vecV, param, Ver, Uout, Vout);
-	std::cout << "fixed U" << std::endl; print_vector(Uout);
-	std::cout << "fixed V" << std::endl; print_vector(Vout);
-	std::vector<int> list;
-	for (int i = 0; i < param.rows(); i++) {
-		list.push_back(i);
-	}
-	for (int i = 0; i < 3; i++) {
-		bool solvable = selected_rows_have_solution(degree1, degree2, Uout, Vout, param, Ver, list, i);
-		std::cout << "solvable test, i=" << i << ", solvable= " << solvable << std::endl;
-	}
-	knot_intervals_to_mesh(degree1, degree2, Uout, Vout, knotP, knotE);
-	//std::cout << "param\n" << param << std::endl;
-}
 Eigen::MatrixXi inverse_faces(const Eigen::MatrixXi& F) {
 	Eigen::MatrixXi result(F.rows(), 3);
 	for (int i = 0; i < F.rows(); i++) {
@@ -346,49 +180,7 @@ int map_ij_to_list_id(const int i, const int j,const int isize, const int jsize)
 	
 	return i * jsize + j;
 }
-void fit_border_with_curve(const Eigen::MatrixXd& paras, const Eigen::MatrixXd &ver, const Eigen::MatrixXi& map,
-	const bool is_v, const int line_id, Bcurve& curve, const double a, const double b, std::vector<Vector3d> &points) {
-	std::vector<double> paralist;
-	
-	if (is_v) {
-		//curve.U = V;
-		for (int i = 0; i < map.rows(); i++) {// iso-v
-			
-			if (map(i, line_id) >= 0) {
-				double value = paras(map(i, line_id), 0);
-				Vector3d vertex = ver.row(map(i, line_id));
-				paralist.push_back(value);
-				points.push_back(vertex);
-			}
-			
-		}
-	}
-	else {
-		//curve.U = U;
-		
-		for (int i = 0; i < map.cols(); i++) {// iso-u
-			if (map(line_id, i) >= 0) {
-				double value = paras(map(line_id, i), 1);
-				paralist.push_back(value);
-				Vector3d vertex = ver.row(map(line_id, i));
-				points.push_back(vertex);
-			}
-		}
-	}
-	std::cout << "paras and points" << std::endl;
-	print_vector(paralist);
-	curve.degree = 3;
-	std::vector<double> kv = { {0,0,0,0,0.1,0.2,0.4,0.5,0.6,0.7,0.8,1,1,1,1} };
-	
-	std::vector<double> kv_new = fix_knot_vector_to_interpolate_curve(curve.degree, kv, paralist, points);
-	std::cout << "knot vector get fixed" << std::endl;
 
-	
-
-	curve.U = kv_new;
-	print_vector(kv_new);
-	solve_control_points_for_fairing_curve(curve, paralist, points, a, b);
-}
 void curve_visulization(const Bcurve&curve, const int nbr, Eigen::MatrixXd&e0, Eigen::MatrixXd &e1) {
 	e0.resize(nbr, 3);
 	e1.resize(nbr, 3);

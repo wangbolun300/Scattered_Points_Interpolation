@@ -9,25 +9,7 @@
 #include <igl/predicates/predicates.h>
 #include <igl/triangle/cdt.h>
 #include<igl/triangle/triangulate.h>
-Eigen::MatrixXd list_to_matrix_3d(const std::vector<std::vector<double>>& v) {
-	Eigen::MatrixXd result(v.size(), 3);
-	for (int i = 0; i < v.size(); i++) {
-		result(i, 0) = v[i][0];
-		result(i, 1) = v[i][1];
-		result(i, 2) = v[i].size() >= 3 ? v[i][2] : 0;
-	}
-	return result;
-}
-Eigen::MatrixXd list_to_matrix_3d(const std::vector<Vector3d>& v, const std::vector<int>& selected) {
-	Eigen::MatrixXd result(selected.size(), 3);
-	for (int i = 0; i < selected.size(); i++) {
-		result(i, 0) = v[selected[i]][0];
-		result(i, 1) = v[selected[i]][1];
-		result(i, 2) = v[selected[i]].size() >= 3 ? v[selected[i]][2] : 0;
-	}
-	return result;
 
-}
 
 Eigen::MatrixXd vector_to_matrix_3d(const std::vector<Vector3d>& v) {
 	Eigen::MatrixXd result(v.size(), 3);
@@ -51,13 +33,7 @@ void vertices_to_edges(const Eigen::MatrixXd& pts, Eigen::MatrixXi &edges) {
 		edges(i, 0) = i; edges(i, 1) = i + 1;
 	}
 }
-void test_read_mesh(const std::string &filename) {
-	Eigen::MatrixXd V;
-	Eigen::MatrixXi F;
 
-	bool read = igl::read_triangle_mesh(filename, V, F);
-
-}
 
 void read_and_visual_mesh(const std::string &filename,Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
 	bool read = igl::read_triangle_mesh(filename, V, F);

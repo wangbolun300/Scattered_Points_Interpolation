@@ -10,8 +10,6 @@ B_spline/test.h
 B_spline/test.cpp
 B_spline/mesh_processing.h
 B_spline/mesh_processing.cpp
-B_spline/exact_calculation.h
-B_spline/exact_calculation.cpp
 B_spline/Rational.hpp
 B_spline/energy.h
 B_spline/energy.cpp
