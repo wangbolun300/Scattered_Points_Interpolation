@@ -1,4 +1,4 @@
-# sparse data interpolation
+# Scattered Points Interpolation with Globally Smooth B-Spline Surface using Iterative Knot Insertion
 
 The implementation of the paper "Scattered Points Interpolation with Globally Smooth B-Spline Surface using Iterative Knot Insertion". This code is tested on Windows and Linux, and it probably works on Mac.
 
