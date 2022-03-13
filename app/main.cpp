@@ -66,34 +66,7 @@ void mesh_reconstruction(const std::string model, const std::string outpath) {
 
 
 int main(int argc, char *argv[]) {
-	//bool run_lofting_method = false;
-	//if (run_lofting_method) {
-	//	run_lofting(0, 500, 0.5, "./");
-	//}
-	//else {
-	//	int model = 5;
-	//	int nbr_pts = 100;
-	//	int max_itr = 200;
-	//	double threadshold = 1e-7;
-	//	int nbr_sqrt = std::max(sqrt(nbr_pts), 4.0);// at least there should be 4 control points; 
-	//	const std::string meshfile =
-	//		//"D:\\vs\\sparse_data_interpolation\\sparse_data\\external\\meshes\\mask3kf.obj";
-	//		"D:\\vs\\sparse_data_interpolation\\sparse_data\\external\\meshes\\tiger.obj";
-	//	//run_pia_mesh_reconstruct( meshfile, max_itr, threadshold, 60, "./"); 
-	//	run_pia(model, nbr_pts, max_itr, threadshold, nbr_sqrt, "./");
-	//}
-	mesh_reconstruction("mask3kf.obj", "./");
 	
-
-	/*double delta = 0.9;
-	int algorithm = 0;
-	int model = 1;
-	run_ours(model, 100, delta, "./", "", 0.5, false);*/
-	//run_other_sampling_strategies(model, delta, "./", "grid", 0.5, algorithm);
-	
-	std::cout << "done"<< std::endl;
-
-	exit(0);
 	std::string type = argv[1];
 
 	// run the benchmark models, the arguments are:

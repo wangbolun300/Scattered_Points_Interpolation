@@ -61,6 +61,11 @@ target_compile_definitions(SPLINE_LIB PUBLIC
     SI_MESH_DIR="${CMAKE_CURRENT_SOURCE_DIR}/external/meshes/")
 ###############################
 
+add_subdirectory(comparisons)
+add_library(compare  ${COMPARE_SOURCES})
+SI_copy_headers(${COMPARE_SOURCES})
+target_include_directories(compare PUBLIC comparisons/)
+target_link_libraries(compare PUBLIC SPLINE_LIB)
 
 
 
@@ -69,8 +74,10 @@ target_compile_definitions(SPLINE_LIB PUBLIC
 
 
 add_executable(${PROJECT_NAME}_bin
-    app/main.cpp
+    app/main.cpp 
+	app/test.cpp
   )
 target_link_libraries(${PROJECT_NAME}_bin PUBLIC SPLINE_LIB igl::core igl::opengl_glfw)
+target_link_libraries(${PROJECT_NAME}_bin PUBLIC compare)
 
 

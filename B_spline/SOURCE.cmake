@@ -6,8 +6,6 @@ B_spline/curve.cpp
 B_spline/surface.h
 B_spline/surface.cpp
 B_spline/Types.hpp
-B_spline/test.h
-B_spline/test.cpp
 B_spline/mesh_processing.h
 B_spline/mesh_processing.cpp
 B_spline/energy.h
