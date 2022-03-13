@@ -39,6 +39,7 @@ void read_and_visual_mesh(const std::string &filename,Eigen::MatrixXd &V, Eigen:
 	bool read = igl::read_triangle_mesh(filename, V, F);
 }
 
+// map the vertices of the mesh boundary to a [0, 1] x [0, 1] domain
 void map_vertices_to_square(const Eigen::MatrixXd& V, const Eigen::VectorXi& bnd, Eigen::MatrixXd &bnd_uv){
 	bnd_uv.resize(bnd.size(), 2);
 	double total_dist = 0;
@@ -173,7 +174,7 @@ void generate_clean_mesh_data_for_parametrization(const Eigen::MatrixXd V, const
 	remove_redundent_mesh_vertices(Vout, Fout, Vout, Fout);
 
 }
-// this is to remove some faces of a mesh accroding to the vertices coordinates.
+// this is to remove some faces whose x, y or z coordinates (the parameter 'axis') of vertices larger than 'value'
 // axis select from 0, 1, 2. 
 void remove_some_faces(const int axis, const double value, const bool remove_larger,
 	const Eigen::MatrixXd& V, const Eigen::MatrixXi F, Eigen::MatrixXi& newF) {
@@ -198,6 +199,8 @@ void remove_some_faces(const int axis, const double value, const bool remove_lar
 	}
 
 }
+
+// use igl::harmonic to map the mesh (0 genus) to a u-v domain.
 void mesh_parameterization(
 	const std::string &meshfile, Eigen::MatrixXd& V, Eigen::MatrixXd &param, Eigen::MatrixXi &F) {
 	/*const std::string path = "D:\\vs\\sparse_data_interpolation\\meshes\\";
@@ -219,6 +222,7 @@ void mesh_parameterization(
 
 }
 
+// find the shortest edge length of the mesh.
 double shortest_edge_length_of_parametric_domain(const Eigen::MatrixXd& paras, const Eigen::MatrixXi &F) {
 	double rst = 1;
 	for (int i = 0; i < F.rows(); i++) {
@@ -249,6 +253,8 @@ int orient_2d(const Vector2d& a, const Vector2d &b, const Vector2d &c) {
 	}
 	return 0;
 }
+
+// USELESS CODE
 // check if the perturbed triangles are still hold the orientation
 // if the orientations are the same, then this parameter is safe to be perturbed.
 bool check_the_perturbed_one_parameter(const Eigen::MatrixXd& para_in, const Eigen::MatrixXd& perturbed, const Eigen::MatrixXi &F,
@@ -270,6 +276,8 @@ bool check_the_perturbed_one_parameter(const Eigen::MatrixXd& para_in, const Eig
 	}
 	return true;
 }
+
+// USELESS CODE
 bool perturb_paras_and_check_validity(Eigen::MatrixXd &paras, const Eigen::MatrixXi& F, const int u_or_v,
 	const Eigen::VectorXi order, const Eigen::MatrixXi &info, const int info_ref, const double target_value) {
 	Eigen::MatrixXd para_tmp = paras;
@@ -308,7 +316,7 @@ Eigen::MatrixXi update_info_list(const int info1, const int info2, const int ref
 	return result;
 }
 
-
+// USELESS CODEs
 // itr is the number of iterations;
 void mesh_parameter_perturbation(const Eigen::MatrixXd &para_in, const Eigen::MatrixXi &F, 
 	Eigen::MatrixXd &para_out, int itr) {
@@ -431,6 +439,7 @@ int find_a_border_point(const Eigen::MatrixXd& V, const bool is_v, const bool sm
 	}
 	return id;
 }
+
 // when co-linear, check if p is on closed s0-s1
 bool point_on_segment_2d(const Vector2d& s0, const Vector2d& s1, const Vector2d&p) {
 	double umin = std::min(s0[0], s1[0]);
@@ -541,21 +550,14 @@ void constrained_delaunay_triangulation(
 	H.resize(0, 0);// there is no hole
 	//std::string flags = "-c";
 	//igl::triangle::cdt(Vin, Ein, flags, WV, WF, WE, J);
-	std::cout << "start triangulation" << std::endl;
+	
 	igl::triangle::triangulate(Vin, Ein, H, "", WV, WF);
-	std::cout << "finish triangulation" << std::endl;
+	
 	F = WF;
 	assert(WV.rows() == Vin.rows());
 }
-bool is_strictly_increasing(std::vector<double> U) {
-	for (int i = 0; i < U.size()-1; i++) {
-		if (U[i] == U[i + 1]) {
-			return false;
-		}
-		
-	}
-	return true;
-}
+
+
 // given parameters and the connectivity, get the U and V parameters, and a map showing the positions of the points
 // in U and V
 void generate_UV_grid(const Eigen::MatrixXd& param,
@@ -614,10 +616,11 @@ void generate_UV_grid(const Eigen::MatrixXd& param,
 		}
 		map(urefer, vrefer) = i;
 	}
-	//assert(is_strictly_increasing(U));
-	//assert(is_strictly_increasing(V));
+
 }
 #include <igl/cotmatrix.h>
+
+// USELESS  CODE
 // smooth the given mesh, h is the parameter corresponding to the time step, itrs is the number of iterations
 // fixed are the ids of the vertices that do not move
 void smooth_mesh_vertices(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F,
@@ -670,7 +673,7 @@ bool is_point_in_triangle_2d(const Vector2d& v0, const Vector2d&v1, const Vector
 	return false;
 }
 // given a parameter u and v, we find one ring triangle in F, and returns the orientation of F
-// the statement is: 
+// the status is: 
 // 0, in the middle of the triangle
 // 1, on edge F0, F1
 // 2, on edge F1, F2
@@ -787,6 +790,8 @@ bool check_UV_validation(const std::vector<double >&U) {
 	}
 	return true;
 }
+
+// USELESS CODE
 void remeshing_based_on_map_grid(const Eigen::MatrixXd& param, const Eigen::MatrixXd& vertices,
 	const Eigen::MatrixXi& F,
 	const std::vector<double>& U, const std::vector<double>&V, const Eigen::MatrixXi& map, 

@@ -7,8 +7,6 @@ project(Sparse_Interp)
 
 # project-options
 
-# GMP
-option(SPARSE_INTERPOLATION_WITH_GMP		"Use gmp to have rational predicates"	  OFF)
 
 
 # libigl
@@ -63,33 +61,16 @@ target_compile_definitions(SPLINE_LIB PUBLIC
     SI_MESH_DIR="${CMAKE_CURRENT_SOURCE_DIR}/external/meshes/")
 ###############################
 
-add_subdirectory(sparse_interp)
-add_library(${PROJECT_NAME}  ${SPARSE_SOURCES})
-SI_copy_headers(${SPARSE_SOURCES})
-target_include_directories(${PROJECT_NAME} PUBLIC sparse_interp/)
-target_link_libraries(${PROJECT_NAME} PUBLIC igl::core igl::triangle SPLINE_LIB  igl::opengl_glfw)
 
 
 
 
 ################################
-if(SPARSE_INTERPOLATION_WITH_GMP)
-	find_package(GMP)
-
-	IF(NOT ${GMP_FOUND})
-			MESSAGE(FATAL_ERROR "Cannot find GMP")
-	ENDIF()
-	target_include_directories(SPLINE_LIB PUBLIC ${GMP_INCLUDE_DIRS})
-	target_link_libraries(SPLINE_LIB PUBLIC ${GMP_LIBRARIES})
-	target_compile_definitions(SPLINE_LIB PUBLIC SPARSE_INTERP_WITH_GMP)
-
-endif()
 
 
 add_executable(${PROJECT_NAME}_bin
-    src/main.cpp
+    app/main.cpp
   )
-target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME}_bin PUBLIC SPLINE_LIB igl::core igl::opengl_glfw)
 
 

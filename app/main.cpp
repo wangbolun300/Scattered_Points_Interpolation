@@ -9,10 +9,8 @@
 #include <igl/map_vertices_to_circle.h>
 #include <igl/harmonic.h>
 #include <igl/write_triangle_mesh.h>
-#include<exact_calculation.h>
 #include<energy.h>
 #include <fstream>
-#include<integration.h>
 
 
 std::string root_path(SI_MESH_DIR);

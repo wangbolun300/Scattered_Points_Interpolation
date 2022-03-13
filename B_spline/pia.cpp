@@ -9,6 +9,8 @@ double para_distance(const double uvalue, const double vvalue, const Eigen::Matr
 	cornor << uvalue, vvalue;
 	return (cornor.row(0) - param.row(row)).norm();
 }
+
+//set up the initial surface as a bilinear surface interpolating the four conors of the surface
 void set_up_initial_surface(Bsurface &surface, const Eigen::MatrixXd &param, const Eigen::MatrixXd &ver) {
 	int nbr = ver.rows();
 	double dis00 = 2, dis01 = 2, dis10 = 2, dis11 = 2;
@@ -306,4 +308,28 @@ void progressive_iterative_approximation(Bsurface &surface, const Eigen::MatrixX
 
 
 	
+}
+
+
+void initialize_pia_knot_vector_single(const int degree1, const int nu, std::vector<double>&U) {
+	U.resize(nu + degree1 + 2);
+	for (int i = 0; i < degree1 + 1; i++) {
+		U[i] = 0;
+	}
+	for (int i = nu + 1; i < nu + degree1 + 2; i++) {
+		U[i] = 1;
+	}
+	int nbr_intervals = nu + 1 - degree1;
+	double length_interval = double(1) / nbr_intervals;
+	for (int i = degree1 + 1; i < nu + 1; i++) {
+		U[i] = U[i - 1] + length_interval;
+	}
+}
+
+void initialize_pia_knot_vectors(int degree1, int degree2,
+	std::vector<double>& U, std::vector<double>& V, int nu, int nv) {
+	
+	initialize_pia_knot_vector_single(degree1, nu, U);
+	initialize_pia_knot_vector_single(degree2, nv, V);
+	return;
 }
