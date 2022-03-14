@@ -61,7 +61,7 @@ target_compile_definitions(SPLINE_LIB PUBLIC
     SI_MESH_DIR="${CMAKE_CURRENT_SOURCE_DIR}/external/meshes/")
 ###############################
 
-add_subdirectory(comparisons)
+include(comparisons/compare.cmake)
 add_library(compare  ${COMPARE_SOURCES})
 SI_copy_headers(${COMPARE_SOURCES})
 target_include_directories(compare PUBLIC comparisons/)

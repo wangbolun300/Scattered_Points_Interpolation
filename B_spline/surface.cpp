@@ -893,46 +893,6 @@ void generate_interpolation_knot_vectors( int degree1, int degree2,
 	return;
 }
 
-void lofting_method_generate_interpolation_knot_vectors(const bool start_from_v_direction, int degree1, int degree2,
-	std::vector<double>& Uknot, std::vector<double>& Vknot,
-	const Eigen::MatrixXd& param_original, 
-	 const double per) {
-	
-	std::vector<double> Ugrid, Vgrid;
-	Eigen::MatrixXi grid_map;
-	generate_UV_grid(param_original, Ugrid, Vgrid, grid_map);
-	std::cout << "** UV grid sizes, " << Ugrid.size() << ", " << Vgrid.size() << std::endl;
-	bool fully_fixed;
-	for (int i = 0; i < Vgrid.size(); i++) {
-		std::vector<double> paras = get_iso_line_parameters(degree1, degree2, true, i, Ugrid, Vgrid, grid_map);
-		//std::cout << "\nthe " << i << "th iso line parameters " << std::endl;
-		//print_vector(paras);
-		Uknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Uknot, paras, per, fully_fixed);
-		assert(fully_fixed == true);
-	}
-	std::cout << "finished initialize Uknot" << std::endl;
-	print_vector(Uknot);
-	/*std::cout << "\n** the fixed U knot" << std::endl;
-	*/
-
-	// fix iso-u lines knot vector
-	for (int i = 0; i < Ugrid.size(); i++) {// for each u parameter
-		std::vector<double> paras = get_iso_line_parameters(degree1, degree2, false, i, Ugrid, Vgrid, grid_map);
-		/*std::cout << "\nthe " << i << "th iso line parameters " << std::endl;
-		print_vector(paras);*/
-		Vknot = fix_knot_vector_to_interpolate_curve_WKW(degree2, Vknot, paras, per, fully_fixed);
-		assert(fully_fixed == true);
-
-	}
-	std::cout << "finished initialize Vknot" << std::endl;
-	print_vector(Vknot);
-	if (start_from_v_direction) {
-		Vknot = fix_knot_vector_to_interpolate_curve_WKW(degree2, Vknot, Vgrid, per, fully_fixed);
-	}
-	else {
-		Uknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Uknot, Ugrid, per, fully_fixed);
-	}
-}
 
 void generate_interpolation_knot_vectors(int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
@@ -969,6 +929,7 @@ double max_interpolation_err(const Eigen::MatrixXd&ver, const Eigen::MatrixXd& p
 	}
 	return err;
 }
+// calculate interpolation error for approximation/interpolation method
 Eigen::MatrixXd interpolation_err_for_apprximation(const Eigen::MatrixXd&ver, 
 	const Eigen::MatrixXd& param, Bsurface& surface,double &max_err) {
 	Eigen::MatrixXd result(ver.rows(), ver.cols());
@@ -989,14 +950,3 @@ Eigen::MatrixXd interpolation_err_for_apprximation(const Eigen::MatrixXd&ver,
 	return result;
 }
 
-void piegl_method_generate_interpolation_knot_vectors(int degree1, int degree2,
-	std::vector<double>& Uknot, std::vector<double>& Vknot,
-	const Eigen::MatrixXd& param_original, 
-	const double per) {
-	std::vector<double> Ugrid, Vgrid;
-	Eigen::MatrixXi grid_map;
-	generate_UV_grid(param_original, Ugrid, Vgrid, grid_map);
-	bool ff;
-	Uknot = fix_knot_vector_to_interpolate_curve_WKW(degree1, Uknot, Ugrid, per, ff);
-	Vknot = fix_knot_vector_to_interpolate_curve_WKW(degree2, Vknot, Vgrid, per, ff);
-}

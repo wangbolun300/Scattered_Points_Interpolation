@@ -27,12 +27,6 @@ void fix_stairs_row_too_many(const int degree, const std::vector<double>& Uin,
 
 std::vector<double> knot_vector_insert_one_value(const std::vector<double>& U, const double value);
 
-bool equation_has_solution(const Eigen::MatrixXd& A,
-	const Eigen::VectorXd& b, int& rank_diff);
-
-// check if there is solution(s) for interpolation problem
-bool equation_has_solution(const Eigen::MatrixXd& A,
-	const Eigen::VectorXd& b);
 
 // using boolean predicates to conservatively fix a knot vector to interpolate curve
 std::vector<double> fix_knot_vector_to_interpolate_curve_boolean(const int degree, const std::vector<double>& init_vec,

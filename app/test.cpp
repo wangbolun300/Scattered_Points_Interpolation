@@ -10,6 +10,7 @@
 #include<energy.h>
 #include <igl/write_triangle_mesh.h>
 #include<igl/Timer.h>
+#include <comparison.h>
 
 
 void B_spline_surface_to_mesh(const Bsurface &surface, const int pnbr, Eigen::MatrixXd &ver, Eigen::MatrixXi& faces) {

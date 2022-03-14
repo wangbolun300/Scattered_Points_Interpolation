@@ -11,7 +11,6 @@ B_spline/mesh_processing.cpp
 B_spline/energy.h
 B_spline/energy.cpp
 B_spline/curve_energy.cpp
-B_spline/pia.cpp
 
 )
 ################################################################################
