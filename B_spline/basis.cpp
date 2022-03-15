@@ -1,6 +1,7 @@
 #include"basis.h"
 #include<iostream>
 #include<assert.h>
+namespace SIBSplines{
 // the B-spline basis function N_{i,0}(u). U is the knot vector
 double Ni0(const int i, const double u, const std::vector<double> &U) {
 	if (u >= U[i] && u < U[i + 1]) return 1.0;
@@ -94,4 +95,5 @@ void print_vector(const std::vector<int>& input) {
 		std::cout << input[i] << ", ";
 	}
 	std::cout << std::endl;
+}
 }

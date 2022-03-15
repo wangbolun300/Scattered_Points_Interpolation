@@ -2,6 +2,8 @@
 #include<curve.h>
 #include <iomanip> 
 #include<mesh_processing.h>
+
+namespace SIBSplines{
 int Bsurface::nu() {
 	return U.size() - 2 - degree1;
 }
@@ -9,7 +11,7 @@ int Bsurface::nv() {
 	return V.size() - 2 - degree2;
 }
 // TODO make this function more efficient by removing 0 valued elements
-Vector3d BSplineSurfacePoint(const int degree1, const int degree2,
+Vector3d BSplineSurfacePoint_(const int degree1, const int degree2,
 	const std::vector<double>& U, const std::vector<double>& V, const double upara,
 	const double vpara, const std::vector<std::vector<Vector3d>>& control) {
 	Eigen::Vector3d result = Eigen::Vector3d(0, 0, 0);
@@ -29,8 +31,8 @@ Vector3d BSplineSurfacePoint(const int degree1, const int degree2,
 	}
 	return result;
 }
-Vector3d BSplineSurfacePoint(const Bsurface& surface, const double upara, const double vpara) {
-	return BSplineSurfacePoint(surface.degree1, surface.degree2, surface.U, surface.V, upara, vpara, surface.control_points);
+Vector3d Bsurface::BSplineSurfacePoint(const Bsurface& surface, const double upara, const double vpara) {
+	return BSplineSurfacePoint_(surface.degree1, surface.degree2, surface.U, surface.V, upara, vpara, surface.control_points);
 }
 // id_list may contain id, if contains, return the one right after id; if the one is the id is the last of id_list,
 	// still return id. this happens when:
@@ -803,7 +805,7 @@ std::vector<double> update_knot_vector_based_on_grid(const int degree1, const in
 	}
 	return Utemp;
 }
-void generate_interpolation_knot_vectors( int degree1, int degree2,
+void Bsurface::generate_interpolation_knot_vectors( int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
 	const Eigen::MatrixXd& param_original, 
 	const double per_ours,const double per, const int target_steps, const bool enable_max_fix_nbr, per_too_large &per_flag) {
@@ -894,7 +896,7 @@ void generate_interpolation_knot_vectors( int degree1, int degree2,
 }
 
 
-void generate_interpolation_knot_vectors(int degree1, int degree2,
+void Bsurface::generate_interpolation_knot_vectors(int degree1, int degree2,
 	std::vector<double>& Uknot, std::vector<double>& Vknot,
 	const Eigen::MatrixXd& param_original, 
 	double &per_ours, const double per, const int target_steps, const bool enable_max_fix_nbr) {
@@ -915,7 +917,7 @@ void generate_interpolation_knot_vectors(int degree1, int degree2,
 	per_ours = per_ours_tmp;
 	return;	
 }
-double max_interpolation_err(const Eigen::MatrixXd&ver, const Eigen::MatrixXd& param, Bsurface& surface) {
+double Bsurface::max_interpolation_err(const Eigen::MatrixXd&ver, const Eigen::MatrixXd& param, Bsurface& surface) {
 	double err = 0;
 	for (int i = 0; i < ver.rows(); i++) {
 		Vector3d v = ver.row(i);
@@ -930,7 +932,7 @@ double max_interpolation_err(const Eigen::MatrixXd&ver, const Eigen::MatrixXd& p
 	return err;
 }
 // calculate interpolation error for approximation/interpolation method
-Eigen::MatrixXd interpolation_err_for_apprximation(const Eigen::MatrixXd&ver, 
+Eigen::MatrixXd Bsurface::interpolation_err_for_apprximation(const Eigen::MatrixXd&ver, 
 	const Eigen::MatrixXd& param, Bsurface& surface,double &max_err) {
 	Eigen::MatrixXd result(ver.rows(), ver.cols());
 	double err = 0;
@@ -950,3 +952,63 @@ Eigen::MatrixXd interpolation_err_for_apprximation(const Eigen::MatrixXd&ver,
 	return result;
 }
 
+void B_spline_surface_to_mesh(Bsurface &surface, const int pnbr, Eigen::MatrixXd &ver, Eigen::MatrixXi& faces) {
+	std::vector<std::vector<Vector3d>> pts;
+	ver.resize(pnbr*pnbr, 3);
+	int verline = 0;
+	for (int i = 0; i < pnbr; i++) {
+		for (int j = 0; j < pnbr; j++) {
+			double upara = double(i) / (pnbr - 1);
+			double vpara = double(j) / (pnbr - 1);
+			ver.row(verline) = surface.BSplineSurfacePoint(surface, upara, vpara);
+			verline++;
+		}
+	}
+	faces.resize(2 * (pnbr - 1)*(pnbr - 1), 3);
+	int fline = 0;
+	for (int i = 0; i < pnbr - 1; i++) {
+		for (int j = 0; j < pnbr - 1; j++) {
+			faces.row(fline) = Vector3i( i + pnbr * (j + 1), i + pnbr * j, i + pnbr * (1 + j) + 1);
+			faces.row(fline + 1) = Vector3i( i + pnbr * (1 + j) + 1, i + pnbr * j, i + pnbr * j + 1);
+			fline += 2;
+		}
+	}
+}
+
+
+
+
+void Bsurface::surface_visulization(Bsurface& surface, const int nbr, Eigen::MatrixXd & v, Eigen::MatrixXi &f) {
+	B_spline_surface_to_mesh(surface, nbr, v, f);
+	return;
+}
+// void surface_visulization(std::vector<Bsurface>& surfaces, const int pnbr, Eigen::MatrixXd & ver, 
+// 	Eigen::MatrixXi &faces, const int without) {
+// 	std::vector<std::vector<Vector3d>> pts;
+// 	ver.resize(pnbr*pnbr, 3);
+// 	int verline = 0;
+// 	for (int i = 0; i < pnbr; i++) {
+// 		for (int j = 0; j < pnbr; j++) {
+// 			double upara = double(i) / (pnbr - 1);
+// 			double vpara = double(j) / (pnbr - 1);
+// 			ver.row(verline) = Vector3d(0, 0, 0);
+// 			for (int si = 0; si < surfaces.size()- without; si++) {
+// 				ver.row(verline) += BSplineSurfacePoint(surfaces[si], upara, vpara);
+// 			}
+			
+// 			verline++;
+// 		}
+// 	}
+// 	faces.resize(2 * (pnbr - 1)*(pnbr - 1), 3);
+// 	int fline = 0;
+// 	for (int i = 0; i < pnbr - 1; i++) {
+// 		for (int j = 0; j < pnbr - 1; j++) {
+// 			faces.row(fline) = Vector3i(i + pnbr * (j + 1), i + pnbr * j, i + pnbr * (1 + j) + 1);
+// 			faces.row(fline + 1) = Vector3i(i + pnbr * (1 + j) + 1, i + pnbr * j, i + pnbr * j + 1);
+// 			fline += 2;
+// 		}
+// 	}
+// 	return;
+// }
+
+}

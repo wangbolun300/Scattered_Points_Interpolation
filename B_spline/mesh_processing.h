@@ -1,6 +1,7 @@
 #pragma once
 #include<igl/read_triangle_mesh.h>
 #include<Types.hpp>
+namespace SIBSplines{
 void read_and_visual_mesh(const std::string &filename, Eigen::MatrixXd &V, Eigen::MatrixXi &F);
 
 // map the vertices loop to a [0,1]x[0,1] square
@@ -42,3 +43,5 @@ void generate_UV_grid(const Eigen::MatrixXd& param,
 // the returned value is sqrt distance. but sqrtD is un-squared
 double point_mesh_distance(const Eigen::MatrixXd ver, const Eigen::MatrixXd& Vmesh,
 	const Eigen::MatrixXi& Fmesh, Eigen::VectorXd &sqrD);
+
+}

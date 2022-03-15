@@ -6,9 +6,10 @@
 #include<Eigen/SparseLU>
 #include<Types.hpp>
 #include<cmath>
+namespace SIBSplines{
 igl::Timer timer;
 double time0 = 0, time1 = 0, time2 = 0, time3 = 0;
-std::vector<double> polynomial_simplify(const std::vector<double>& poly) {
+std::vector<double> ply_operations::polynomial_simplify(const std::vector<double>& poly) {
 	std::vector<double> result = poly;
 	int size = poly.size();
 	for (int i = 0; i < size - 1; i++) {
@@ -22,7 +23,7 @@ std::vector<double> polynomial_simplify(const std::vector<double>& poly) {
 	return result;
 }
 
-std::vector<double> polynomial_add(const std::vector<double>& poly1, const std::vector<double>& poly2) {
+std::vector<double> ply_operations::polynomial_add(const std::vector<double>& poly1, const std::vector<double>& poly2) {
 	int size = std::max(poly1.size(), poly2.size());
 	std::vector<double> result(size);
 	for (int i = 0; i < size; i++) {
@@ -38,9 +39,9 @@ std::vector<double> polynomial_add(const std::vector<double>& poly1, const std::
 			result[i] = poly2[i];
 		}
 	}
-	return polynomial_simplify(result);
+	return ply_operations::polynomial_simplify(result);
 }
-std::vector<double> polynomial_times(const std::vector<double>& poly1, const std::vector<double>& poly2) {
+std::vector<double> ply_operations::polynomial_times(const std::vector<double>& poly1, const std::vector<double>& poly2) {
 	int size = poly1.size() + poly2.size() - 1;
 	std::vector<double> result(size);
 	for (int i = 0; i < size; i++) {// initialize the result
@@ -52,9 +53,9 @@ std::vector<double> polynomial_times(const std::vector<double>& poly1, const std
 			result[i + j] += poly1[i] * poly2[j];
 		}
 	}
-	return polynomial_simplify(result);
+	return ply_operations::polynomial_simplify(result);
 }
-std::vector<double> polynomial_times(const std::vector<double>& poly1, const double& nbr) {
+std::vector<double> ply_operations::polynomial_times(const std::vector<double>& poly1, const double& nbr) {
 	std::vector<double> result;
 	if (nbr == 0) {
 		result.resize(1);
@@ -66,7 +67,7 @@ std::vector<double> polynomial_times(const std::vector<double>& poly1, const dou
 		result[i] *= nbr;
 	}
 
-	return polynomial_simplify(result);
+	return ply_operations::polynomial_simplify(result);
 }
 std::vector<double> Ni0_func(const int i, const double u, const std::vector<double> &U) {
 	std::vector<double> result(1);
@@ -85,7 +86,7 @@ std::vector<double> handle_division_func(const std::vector<double>& a, const dou
 		// if the denominator is 0, then this term is 0
 		return result;
 	}
-	else return polynomial_times(a, 1 / b);
+	else return ply_operations::polynomial_times(a, 1 / b);
 }
 
 std::vector<double> Nip_func(const int i, const int p, const double u, const std::vector<double> &U) {
@@ -106,7 +107,7 @@ std::vector<double> Nip_func(const int i, const int p, const double u, const std
 	}
 	std::vector<double> v;
 	v = { {-U[i],1} };// u - U[i]
-	std::vector<double> result1 = polynomial_times(handle_division_func(v, U[i + p] - U[i]), Nip_func(i, p - 1, u, U));
+	std::vector<double> result1 = ply_operations::polynomial_times(handle_division_func(v, U[i + p] - U[i]), Nip_func(i, p - 1, u, U));
 	/*std::cout << "**this degree " << p << std::endl;
 	std::cout << "v "  << std::endl;
 	print_vector(v);
@@ -114,27 +115,27 @@ std::vector<double> Nip_func(const int i, const int p, const double u, const std
 	print_vector(Nip(i, p - 1, u, U));*/
 
 	v = { {U[i + p + 1],-1} };// U[i+p+1] - u 
-	std::vector<double> result2 = polynomial_times(handle_division_func(v, U[i + p + 1] - U[i + 1]), Nip_func(i + 1, p - 1, u, U));
-	return polynomial_add(result1, result2);
+	std::vector<double> result2 = ply_operations::polynomial_times(handle_division_func(v, U[i + p + 1] - U[i + 1]), Nip_func(i + 1, p - 1, u, U));
+	return ply_operations::polynomial_add(result1, result2);
 }
-double polynomial_value(const std::vector<double>& poly, const double para) {
+double ply_operations::polynomial_value(const std::vector<double>& poly, const double para) {
 	double result = 0;
 	for (int i = 0; i < poly.size(); i++) {
 		result += poly[i] * std::pow(para, i);
 	}
 	return result;
 }
-std::vector<double> polynomial_integration(const std::vector<double>& poly) {
+std::vector<double> ply_operations::polynomial_integration(const std::vector<double>& poly) {
 	std::vector<double> result(poly.size() + 1);
 	result[0] = 0;
 	for (int i = 1; i < result.size(); i++) {
 		result[i] = poly[i - 1] / i;
 	}
-	return polynomial_simplify(result);
+	return ply_operations::polynomial_simplify(result);
 }
-double polynomial_integration(const std::vector<double>& poly, const double lower, const double upper) {
-	double up = polynomial_value(polynomial_integration(poly), upper);
-	double lw = polynomial_value(polynomial_integration(poly), lower);
+double ply_operations::polynomial_integration(const std::vector<double>& poly, const double lower, const double upper) {
+	double up = ply_operations::polynomial_value(ply_operations::polynomial_integration(poly), upper);
+	double lw = ply_operations::polynomial_value(ply_operations::polynomial_integration(poly), lower);
 	return up - lw;
 }
 
@@ -303,6 +304,16 @@ void PartialBasis::init(Bsurface& surface) {
 	degree1 = surface.degree1;
 	degree2 = surface.degree2;
 }
+void PartialBasis::init(PolynomialBasis &pb){
+	Ubasis = pb.Ubasis;
+	Vbasis = pb.Vbasis;
+	Ubasis_1 = do_partial(Ubasis); Vbasis_1 = do_partial(Vbasis);
+	Ubasis_2 = do_partial(Ubasis_1); Vbasis_2 = do_partial(Vbasis_1);
+	Uknot = pb.Uknot;
+	Vknot = pb.Vknot;
+	degree1 = pb.degree1;
+	degree2 = pb.degree2;
+}
 void PartialBasis::clear() {
 	Uknot.clear();
 	Vknot.clear();
@@ -402,14 +413,14 @@ double construct_an_integration(const int degree, const std::vector<double>& U,
 	//print_vector(func1);
 	//print_vector(func2);
 	timer.start();
-	std::vector<double> func = polynomial_times(func1, func2);
+	std::vector<double> func = ply_operations::polynomial_times(func1, func2);
 	//std::cout << "times" << std::endl;
 	//print_vector(func);
 	double upper = u2;
 	if (u2 == U.back()) {
 		upper = U.back() - SCALAR_ZERO;
 	}
-	double result = polynomial_integration(func, u1, upper);
+	double result = ply_operations::polynomial_integration(func, u1, upper);
 	timer.stop();
 	time2 += timer.getElapsedTimeInMilliSec();
 
@@ -431,13 +442,13 @@ double construct_an_integration(const int degree, const std::vector<double>& U,
 	time1 += timer.getElapsedTimeInMilliSec();
 
 	timer.start();
-	std::vector<double> func = polynomial_times(func1, func2);
+	std::vector<double> func = ply_operations::polynomial_times(func1, func2);
 
 	double upper = u2;
 	if (u2 == U.back()) {
 		upper = U.back() - SCALAR_ZERO;
 	}
-	double result = polynomial_integration(func, u1, upper);
+	double result = ply_operations::polynomial_integration(func, u1, upper);
 	timer.stop();
 	time2 += timer.getElapsedTimeInMilliSec();
 
@@ -465,14 +476,14 @@ double construct_an_integration(const int degree, const std::vector<double>& U,
 	//print_vector(func1);
 	//print_vector(func2);
 	timer.start();
-	std::vector<double> func = polynomial_times(func1, func2);
+	std::vector<double> func = ply_operations::polynomial_times(func1, func2);
 	//std::cout << "times" << std::endl;
 	//print_vector(func);
 	double upper = u2;
 	if (u2 == U.back()) {
 		upper = U.back() - SCALAR_ZERO;
 	}
-	double result = polynomial_integration(func, u1, upper);
+	double result = ply_operations::polynomial_integration(func, u1, upper);
 	timer.stop();
 	time2 += timer.getElapsedTimeInMilliSec();
 
@@ -539,10 +550,10 @@ double discrete_surface_partial_value_squared(const int partial1, const int part
 	Eigen::VectorXd Nl(p + 1);
 	Eigen::VectorXd Nr(q + 1);
 	for (int k = 0; k < p + 1; k++) {
-		Nl[k] = polynomial_value(basis.poly(i - p + k, u, 0, partial1), u);
+		Nl[k] = ply_operations::polynomial_value(basis.poly(i - p + k, u, 0, partial1), u);
 	}
 	for (int k = 0; k < q + 1; k++) {
-		Nr[k] = polynomial_value(basis.poly(j - q + k, v, 1, partial2), v);
+		Nr[k] = ply_operations::polynomial_value(basis.poly(j - q + k, v, 1, partial2), v);
 	}
 	Eigen::MatrixXd px(p + 1, q + 1), py(p + 1, q + 1), pz(p + 1, q + 1);
 	for (int k1 = 0; k1 < p + 1; k1++) {
@@ -559,7 +570,7 @@ double discrete_surface_partial_value_squared(const int partial1, const int part
 }
 
 // calculate thin-plate-energy in region [Ui, U(i+1)]x[Vj, V(j+1)]
-Eigen::MatrixXd surface_energy_calculation(Bsurface& surface, PartialBasis& basis,
+Eigen::MatrixXd Bsurface::surface_energy_calculation(Bsurface& surface, PartialBasis& basis,
 	const int discrete, Eigen::MatrixXd &energy_uu, Eigen::MatrixXd &energy_vv, Eigen::MatrixXd& energy_uv) {
 	int p = surface.degree1;
 	int q = surface.degree2;
@@ -630,7 +641,7 @@ Eigen::MatrixXd surface_energy_calculation(Bsurface& surface, PartialBasis& basi
 }
 
 // [U[which],U[which+1]) is the problematic one
-void detect_max_energy_interval(Bsurface& surface, const Eigen::MatrixXd& energy, const Eigen::MatrixXd &energy_uu,
+void Bsurface::detect_max_energy_interval(Bsurface& surface, const Eigen::MatrixXd& energy, const Eigen::MatrixXd &energy_uu,
 	const Eigen::MatrixXd & energy_vv, bool& uorv, int &which, double& em) {
 	int k1, k2;
 	em = 0;
@@ -836,7 +847,7 @@ void push_control_point_list_into_surface(Bsurface& surface, const std::vector<V
 	surface.control_points = control;
 	return;
 }
-void solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::MatrixXd& paras,
+void Bsurface::solve_control_points_for_fairing_surface(Bsurface& surface, const Eigen::MatrixXd& paras,
 	const Eigen::MatrixXd & points, PartialBasis& basis) {
 	//using namespace Eigen;
 	typedef Eigen::SparseMatrix<double> SparseMatrixXd;
@@ -886,5 +897,5 @@ void output_timing() {
 	std::cout << "get differential time " << time1 << std::endl;
 	std::cout << "get integration time " << time2 << std::endl;
 }
-
+}
 

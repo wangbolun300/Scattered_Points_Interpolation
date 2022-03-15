@@ -2,11 +2,12 @@
 #include <Eigen/Dense>
 #include<iostream>
 #include<queue>
+namespace SIBSplines{
 int Bcurve::nu() {
 	return U.size() - 2 - degree;
 }
 // return a point position of a given curve
-Vector3d BsplinePoint(const int degree, const std::vector<double>& U, const double para,
+Vector3d Bcurve::BsplinePoint(const int degree, const std::vector<double>& U, const double para,
 	const std::vector<Vector3d> &pts) {
 	Eigen::Vector3d result = Eigen::Vector3d(0, 0, 0);
 	for (int i = 0; i < pts.size(); i++) {
@@ -17,7 +18,7 @@ Vector3d BsplinePoint(const int degree, const std::vector<double>& U, const doub
 	return result;
 }
 // return a point position of a given curve
-Vector3d BsplinePoint(const int degree, const std::vector<double>& U, const double para,
+Vector3d Bcurve::BsplinePoint(const int degree, const std::vector<double>& U, const double para,
 	const Eigen::MatrixXd& pts) {
 	Eigen::Vector3d result = Eigen::Vector3d(0, 0, 0);
 	for (int i = 0; i < pts.rows(); i++) {
@@ -86,7 +87,7 @@ Eigen::MatrixXd build_matrix_R(const int degree, const std::vector<double>& U,
 }
 
 // least square method solve the control points
-Eigen::MatrixXd solve_curve_control_points(const int degree, const std::vector<double>& U,
+Eigen::MatrixXd Bcurve::solve_curve_control_points(const int degree, const std::vector<double>& U,
 	const std::vector<double>& paras, const std::vector<Vector3d>& points) {
 	int npoints = points.size();
 	int n = U.size() - 2 - degree; // there are n+1 control points;
@@ -131,7 +132,7 @@ std::vector<double> knot_vector_insert_one_value(const std::vector<double>& U, c
 
 
 
-bool curve_can_be_interpolated(const std::vector<double>& U,const int degree, const Eigen::VectorXd & paras, 
+bool Bcurve::curve_can_be_interpolated(const std::vector<double>& U,const int degree, const Eigen::VectorXd & paras, 
 	int &prob_id) {
 	prob_id = -1;
 	std::vector<std::vector<int>> para_ids(U.size() - 1);// there are U.size()-1 intervals
@@ -168,7 +169,7 @@ bool curve_can_be_interpolated(const std::vector<double>& U,const int degree, co
 	return true;
 
 }
-bool curve_can_be_interpolated(const std::vector<double>& U, const int degree, const std::vector<double> & paras,
+bool Bcurve::curve_can_be_interpolated(const std::vector<double>& U, const int degree, const std::vector<double> & paras,
 	int &prob_id) {
 	Eigen::VectorXd prs;
 	prs.resize(paras.size());
@@ -314,7 +315,10 @@ std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, c
 	return result;
 
 }
-
+std::vector<double> Bcurve::fix_knot_vector_to_interpolate_curve(const int degree, const std::vector<double>& init_vec,
+	const std::vector<double>& paras, const double per,  bool &fully_fixed, const int fix_nbr){
+		return fix_knot_vector_to_interpolate_curve_WKW(degree, init_vec,paras,per, fully_fixed, fix_nbr);
+	}
 // TODO add a parameter weight to control the percentage
 // per in [0,1]. when per =0, we have larger tolerance for feasible points, which means it converges to tranditional methods
 std::vector<int> feasible_control_point_of_given_parameter(const double para, const std::vector<double>&U, 
@@ -391,4 +395,4 @@ std::vector<int> feasible_control_point_of_given_parameter(const double para, co
 	assert(result.size() > 0);
 	return result;
 }
-
+}

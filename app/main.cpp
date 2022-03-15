@@ -12,7 +12,7 @@
 #include<energy.h>
 #include <fstream>
 
-
+using namespace SIBSplines;
 std::string root_path(SI_MESH_DIR);
 // run the example that insert lots of knot locally and refine it based on the energy.
 void insert_redundant(const std::string path) {

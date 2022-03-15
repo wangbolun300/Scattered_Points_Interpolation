@@ -3,6 +3,7 @@
 // the ith row, jth column element of the curve energy matrix of function applying least-square to Intergrate(||C'||^2+||C''||^2). 
 // which means do partial difference to Pi, and 
 // the cofficient of Pj. a and b are the parameters needed for the 1 order and 2 order differential part separately
+namespace SIBSplines{
 double curve_energy_least_square(const Bcurve& curve, const int i, const int j, const double a, const double b) {
 
 	int degree = curve.degree;
@@ -114,7 +115,7 @@ void push_p_lambda_vector_to_control_points(const Eigen::MatrixXd &pl,
 
 // the output is the curve.control_points
 // trying to find a curve minimizing the energy, while interpolating the points whose parameters are paras.
-void solve_control_points_for_fairing_curve(Bcurve& curve, const std::vector<double>& paras,
+void Bcurve::solve_control_points_for_fairing_curve(Bcurve& curve, const std::vector<double>& paras,
 	const Eigen::MatrixXd & points, const double a, const double b) {
 	assert(paras.size() == points.rows());
 	std::vector<Vector3d> cps(curve.nu() + 1);// control points
@@ -133,9 +134,10 @@ void solve_control_points_for_fairing_curve(Bcurve& curve, const std::vector<dou
 	}
 	curve.control_points = cps;
 }
-void solve_control_points_for_fairing_curve(Bcurve& curve, const std::vector<double>& paras,
+void Bcurve::solve_control_points_for_fairing_curve(Bcurve& curve, const std::vector<double>& paras,
 	const std::vector<Vector3d> & pts, const double a, const double b) {
 	Eigen::MatrixXd points = vector_to_matrix_3d(pts);
 	solve_control_points_for_fairing_curve(curve, paras, points, a, b);
 	return;
+}
 }
