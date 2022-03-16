@@ -82,7 +82,7 @@ After running the code, in `outpath` there will be a interpolation surface in `.
 
 ## Contact
 
-The code is far from being perfect, i.e. solving stability problem for large amount of data points. If you have problem using our code, or you have a bug to report, please contact us by `wangbolun@buaa.edu.cn`, or post and issue on GitHub. We'd appreciate to have your contribution. If you are using our code in your projects, please contact us and briefly tell us what you use it for. That will all become the motivation we maintaining the code.
+The code is far from being perfect, i.e. solving stability problem for large amount of data points. If you have problem using our code, or you have a bug to report, please contact us by `wangbolun@buaa.edu.cn`, or post an issue on GitHub. We'd appreciate to have your contribution. If you are using our code in your projects, please contact us and briefly tell us what you use it for. That will all become the motivation we maintaining the code.
 
 ## TODO
 1. replace the current sparse linear system solver since it is unefficient and momery-consuming.
