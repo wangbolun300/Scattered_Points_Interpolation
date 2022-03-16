@@ -1,5 +1,5 @@
 #pragma once
-#include<basis.h>
+#include<sparse_interp/basis.h>
 #include <array>
 namespace SIBSplines{
 Vector3d BSplineSurfacePoint(const int degree1, const int degree2,

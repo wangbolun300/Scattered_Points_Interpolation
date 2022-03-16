@@ -1,5 +1,5 @@
 #pragma once
-#include <surface.h>
+#include <sparse_interp/surface.h>
 namespace SIBSplines
 {
 	// this file contains the comparison methods:

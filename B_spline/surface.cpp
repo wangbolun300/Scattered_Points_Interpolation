@@ -1,7 +1,7 @@
-#include<surface.h>
-#include<curve.h>
+#include<sparse_interp/surface.h>
+#include<sparse_interp/curve.h>
 #include <iomanip> 
-#include<mesh_processing.h>
+#include<sparse_interp/mesh_processing.h>
 
 namespace SIBSplines{
 int Bsurface::nu() {

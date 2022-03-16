@@ -1,6 +1,6 @@
 #pragma once
-#include <basis.h>
-#include<surface.h>
+#include <sparse_interp/basis.h>
+#include<sparse_interp/surface.h>
 namespace SIBSplines{
 
 

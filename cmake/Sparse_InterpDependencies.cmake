@@ -16,7 +16,7 @@ include(${PROJECT_NAME}DownloadExternal)
 
 # Eigen
 if(NOT TARGET Eigen3::Eigen)
-# sparse_interp_download_eigen()
+  sparse_interp_download_eigen()
   add_library(${PROJECT_NAME}_eigen INTERFACE)
   target_include_directories(${PROJECT_NAME}_eigen SYSTEM INTERFACE
     $<BUILD_INTERFACE:${SPARSE_EXTERNAL}/eigen>

@@ -159,8 +159,11 @@ namespace SIBSplines
 	Eigen::MatrixXd slove_linear_system(const Eigen::MatrixXd &A, const Eigen::MatrixXd &b,
 										const bool check_error, double &relative_error);
 	void write_points(const std::string& file, const Eigen::MatrixXd& ver);
-	void write_csv(const std::string& file, const std::vector<std::string> titles,const std::vector<double> data);
-	bool write_triangle_mesh(const std::string filename, const Eigen::MatrixXd &ver,Eigen::MatrixXi &f);
+	void write_csv(const std::string &file, const std::vector<std::string> titles, const std::vector<double> data);
+	bool write_triangle_mesh(const std::string filename, const Eigen::MatrixXd &ver, Eigen::MatrixXi &f);
+	// parametrize the mesh onto [0, 1]x[0, 1]
+	void mesh_parameterization(
+		const std::string &meshfile, Eigen::MatrixXd &V, Eigen::MatrixXd &param, Eigen::MatrixXi &F);
 	void print_vector(const std::vector<double> &input);
 	void print_vector(const std::vector<int> &input);
 

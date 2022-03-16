@@ -48,24 +48,25 @@ include(Sparse_InterpUtils)
 
 ############################
 # B spline library.
-# igl -> SPLINE_LIB
+# igl -> splines
 include(B_spline/SOURCE.cmake)
-#prepend_current_path(SPLINE_SOURCES)
-add_library(SPLINE_LIB ${SPLINE_SOURCES})
+prepend_current_path(SPLINE_SOURCES)
 SI_copy_headers(${SPLINE_SOURCES})
-#SI_set_source_group(${SPLINE_SOURCES})
-#target_sources(SPLINE_LIB PRIVATE ${SPLINE_SOURCES})
-target_include_directories(SPLINE_LIB PUBLIC B_spline/)
-target_link_libraries(SPLINE_LIB PUBLIC igl::core igl::predicates igl::opengl_glfw igl::triangle)
-target_compile_definitions(SPLINE_LIB PUBLIC
-    SI_MESH_DIR="${CMAKE_CURRENT_SOURCE_DIR}/external/meshes/")
+SI_set_source_group(${SPLINE_SOURCES})  
+add_library(splines ${SPLINE_SOURCES})
+#target_sources(splines PRIVATE ${SPLINE_SOURCES})
+target_include_directories(splines PUBLIC ${PROJECT_BINARY_DIR}/include)
+target_link_libraries(splines PUBLIC igl::core igl::predicates igl::opengl_glfw igl::triangle Eigen3::Eigen)
+target_compile_definitions(splines PUBLIC
+    SI_MESH_DIR="${CMAKE_CURRENT_SOURCE_DIR}/app/meshes/")
 ###############################
 
+# the comparison methods
 include(comparisons/compare.cmake)
 add_library(compare  ${COMPARE_SOURCES})
 SI_copy_headers(${COMPARE_SOURCES})
-target_include_directories(compare PUBLIC comparisons/)
-target_link_libraries(compare PUBLIC SPLINE_LIB)
+target_include_directories(compare PUBLIC ${PROJECT_BINARY_DIR}/include)
+target_link_libraries(compare PUBLIC splines)
 
 
 
@@ -77,7 +78,15 @@ add_executable(${PROJECT_NAME}_bin
     app/main.cpp 
 	app/test.cpp
   )
-target_link_libraries(${PROJECT_NAME}_bin PUBLIC SPLINE_LIB igl::core igl::opengl_glfw)
+target_include_directories(${PROJECT_NAME}_bin PUBLIC ${PROJECT_BINARY_DIR}/include)
+target_link_libraries(${PROJECT_NAME}_bin PUBLIC splines igl::core igl::opengl_glfw)
 target_link_libraries(${PROJECT_NAME}_bin PUBLIC compare)
+
+add_executable(example_bin
+    app/example.cpp
+  )
+target_include_directories(example_bin PUBLIC ${PROJECT_BINARY_DIR}/include)
+target_link_libraries(example_bin PUBLIC splines igl::core)
+
 
 

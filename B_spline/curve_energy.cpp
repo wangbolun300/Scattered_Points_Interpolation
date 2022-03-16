@@ -1,5 +1,5 @@
-#include<energy.h>
-#include<curve.h>
+#include<sparse_interp/energy.h>
+#include<sparse_interp/curve.h>
 // the ith row, jth column element of the curve energy matrix of function applying least-square to Intergrate(||C'||^2+||C''||^2). 
 // which means do partial difference to Pi, and 
 // the cofficient of Pj. a and b are the parameters needed for the 1 order and 2 order differential part separately

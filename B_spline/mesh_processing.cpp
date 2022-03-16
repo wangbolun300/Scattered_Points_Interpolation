@@ -1,6 +1,6 @@
-#include <mesh_processing.h>
+#include <sparse_interp/mesh_processing.h>
 #include <array>
-#include <curve.h>
+#include <sparse_interp/curve.h>
 #include <igl/boundary_loop.h>
 #include <igl/map_vertices_to_circle.h>
 #include <igl/harmonic.h>
@@ -650,5 +650,22 @@ namespace SIBSplines
 		igl::point_mesh_squared_distance(ver, Vmesh, Fmesh, sqrD, I, C);
 
 		return sqrt(sqrD.maxCoeff());
+	}
+
+	void write_points(const std::string &file, const Eigen::MatrixXd &ver)
+	{
+		std::ofstream fout;
+		fout.open(file);
+		for (int i = 0; i < ver.rows(); i++)
+		{
+			fout
+				//<< std::setprecision(17)
+				<< "v " << ver(i, 0) << " " << ver(i, 1) << " " << ver(i, 2) << std::endl;
+		}
+		fout.close();
+	}
+	bool write_triangle_mesh(const std::string filename, const Eigen::MatrixXd &ver, Eigen::MatrixXi &f)
+	{
+		return igl::write_triangle_mesh(filename, ver, f);
 	}
 }

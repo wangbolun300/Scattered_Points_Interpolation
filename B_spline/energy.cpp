@@ -1,10 +1,10 @@
-#include<energy.h>
-#include<surface.h> 
+#include<sparse_interp/energy.h>
+#include<sparse_interp/surface.h> 
 #include<igl/Timer.h>
 #include <Eigen/Dense>
 #include<Eigen/Sparse>
 #include<Eigen/SparseLU>
-#include<Types.hpp>
+#include<sparse_interp/Types.hpp>
 #include<cmath>
 namespace SIBSplines{
 igl::Timer timer;

@@ -1,7 +1,7 @@
-#include <comparison.h>
-#include <curve.h>
-#include <mesh_processing.h>
-#include <energy.h>
+#include <sparse_interp/comparison.h>
+#include <sparse_interp/curve.h>
+#include <sparse_interp/mesh_processing.h>
+#include <sparse_interp/energy.h>
 
 namespace SIBSplines
 {

@@ -1,4 +1,4 @@
-#include"curve.h"
+#include<sparse_interp/curve.h>
 #include <Eigen/Dense>
 #include<iostream>
 #include<queue>

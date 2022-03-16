@@ -5,10 +5,10 @@
 //
 //
 #include <cmath>
-#include <Types.hpp>
+#include <sparse_interp/Types.hpp>
 #include <limits>
 #include <math.h>
-#include <mesh_processing.h>
+#include <sparse_interp/mesh_processing.h>
 
 namespace SIBSplines
 {

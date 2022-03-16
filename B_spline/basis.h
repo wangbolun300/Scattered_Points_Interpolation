@@ -1,6 +1,6 @@
 #pragma once
 #include<vector>
-#include"Types.hpp"
+#include<sparse_interp/Types.hpp>
 namespace SIBSplines{
 double Nip(const int i, const int p, const double u, const std::vector<double> &U);
 double kth_derivate_Nip(const int k, const int i,

@@ -1,15 +1,15 @@
-#include"basis.h"
-#include"curve.h"
+#include<sparse_interp/basis.h>
+#include<sparse_interp/curve.h>
 #include <igl/opengl/glfw/Viewer.h>
 #include<iostream>
 #include<array>
 #include"test.h"
-#include<mesh_processing.h>
+#include<sparse_interp/mesh_processing.h>
 #include <igl/boundary_loop.h>
 #include <igl/map_vertices_to_circle.h>
 #include <igl/harmonic.h>
 #include <igl/write_triangle_mesh.h>
-#include<energy.h>
+#include<sparse_interp/energy.h>
 #include <fstream>
 
 using namespace SIBSplines;
