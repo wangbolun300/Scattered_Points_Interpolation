@@ -43,6 +43,8 @@ Then, you can access the classes `Bcurve` and `Bsurface`. We have a tutorial exa
     numpages     = forthcoming
 }
 ```
+
+In `app/test.h` we also provide you some functions for some other classical methods we implemented, including Lofting method [Wen-Ke Wang et al, 2008, CAD], Multilevel B-spline [Seungyong Lee, et al., 1997, TVCG], Averaging method, [Piegl et al. 1996, The NURBS book] and IGA [Kineri et al. 2012, CAD]. We will continue to maintain the library, adding more methods for the users to choose (Actually, by assembling the existing functions, you can have many more trianditional methods. But we will provide you the interface, so that you do not need to look deep into the low-level functions).
 ## Examples in our paper
 
 We provide some functions to run the results shown in our paper.
