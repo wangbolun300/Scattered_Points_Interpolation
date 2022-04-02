@@ -35,12 +35,10 @@ Then, you can access the classes `Bcurve` and `Bsurface`. We have a tutorial exa
     title        = {Scattered Points Interpolation with Globally Smooth B-Spline Surface using Iterative Knot Insertion},
     author       = {Xin Jiang and Bolun Wang and Guanying Huo and Cheng Su and Dong-Ming Yan and Zhiming Zheng},
     year         = 2022,
-    month        = forthcoming,
     journal      = {Computer-Aided Design},
-    volume       = forthcoming,
-    number       = forthcoming,
-    articleno    = forthcoming,
-    numpages     = forthcoming
+    volume       = {148},
+    pages        = {103244},
+    issn         = {0010-4485}
 }
 ```
 
