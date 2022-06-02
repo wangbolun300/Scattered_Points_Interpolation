@@ -27,7 +27,7 @@ void run_mesh_reconstruction()
 	int nbr = param.rows();					// the number of data points
 	surface.degree1 = 3;					// degree of u direction
 	surface.degree2 = 3;					// degree of v direction
-	surface.U = {{0, 0, 0, 0, 1, 1, 1, 1}}; // the initial U knot vector
+	surface.U = { {0, 0, 0, 0, 1, 1, 1, 1} }; // the initial U knot vector
 	surface.V = surface.U;					// the initial V knot vector
 	int target_steps = 10;					// the number of iterations for constructing lists $L$.
 	bool enable_max_fix_nbr = true;			// progressively update the knot vectors to make the two knot vectors balanced in length.

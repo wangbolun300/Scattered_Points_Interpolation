@@ -84,7 +84,7 @@ namespace SIBSplines
 		bool curve_can_be_interpolated(const std::vector<double> &U, const int degree, const std::vector<double> &paras,
 									   int &prob_id);
 		bool curve_can_be_interpolated(const std::vector<double> &U, const int degree, const Eigen::VectorXd &paras, int &prob_id);
-		std::vector<double> Bcurve::fix_knot_vector_to_interpolate_curve(const int degree, const std::vector<double> &init_vec,
+		std::vector<double> fix_knot_vector_to_interpolate_curve(const int degree, const std::vector<double> &init_vec,
 																		 const std::vector<double> &paras, const double per, bool &fully_fixed, const int fix_nbr);
 		void solve_control_points_for_fairing_curve(Bcurve &curve, const std::vector<double> &paras,
 													const std::vector<Vector3d> &pts, const double a, const double b);

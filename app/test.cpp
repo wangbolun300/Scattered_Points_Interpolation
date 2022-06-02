@@ -337,7 +337,7 @@ namespace SIBSplines
 			nbr = nbr_other + nbr_local;
 			param.resize(nbr, 2);
 			int current = 0;
-			for (int i = 0; i < INFINITE; i++)
+			for (int i = 0; i < INFINITY; i++)
 			{
 				Vector3d para3d = Vector3d::Random();
 				double u = (1 + para3d[0]) / 2;
@@ -354,7 +354,7 @@ namespace SIBSplines
 				}
 			}
 			int c1 = 0;
-			for (int i = 0; i < INFINITE; i++)
+			for (int i = 0; i < INFINITY; i++)
 			{
 				Vector3d para3d = Vector3d::Random();
 				double u = (1 + para3d[0]) / 2;

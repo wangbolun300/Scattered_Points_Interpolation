@@ -36,7 +36,7 @@ endif()
 
   # libigl for timing
 if(NOT TARGET igl::core)
-  # sparse_interp_download_libigl()
+  sparse_interp_download_libigl()
     # Import libigl targets
     list(APPEND CMAKE_MODULE_PATH "${SPARSE_EXTERNAL}/libigl/cmake")
     include(libigl)
