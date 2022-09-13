@@ -487,7 +487,7 @@ Eigen::MatrixXd weight_matrix_calculation(const Eigen::MatrixXi& fcp,const Eigen
 				int col_nbr_pts = 0;// how many points there are in this column (except for whose parameter is 0 or 1)
 				int col_before_nbr = 1;// how many points related but before this point
 				int row_nbr_pts = 1;
-				for (int k = 0; k < j; k++) {
+				for (int k = 0; k < i; k++) {
 					if (this_id == fcp(k, j)) {
 						row_nbr_pts += 1;
 					}
