@@ -1,7 +1,7 @@
 
 # Scattered Points Interpolation with Globally Smooth B-Spline Surface using Iterative Knot Insertion
 ![](./fig/mask_assemble.jpg)
-The implementation of the paper "[Scattered Points Interpolation with Globally Smooth B-Spline Surface using Iterative Knot Insertion](https://www.sciencedirect.com/science/article/pii/S0010448522000331)".
+The implementation of the paper "[Scattered Points Interpolation with Globally Smooth B-Spline Surface using Iterative Knot Insertion](https://github.com/wangbolun300/Scattered_Points_Interpolation/blob/master/fig/BSplineInterpolation-compressed.pdf)".
 
 ## Introduction
 Our algorithm generates a single B-spline surface patch which interpolates the given scattered 3d data points. The inputs are the scattered 3d data points and their parametrization (in domain [0, 1] x [0, 1]). The output is the generated B-spline surface.
