@@ -973,6 +973,7 @@ void B_spline_surface_to_mesh(Bsurface &surface, const int pnbr, Eigen::MatrixXd
 			fline += 2;
 		}
 	}
+	std::cout<<"the surface is converted into a mesh\n";
 }
 
 

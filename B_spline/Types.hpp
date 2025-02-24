@@ -13,6 +13,7 @@
 namespace SIBSplines
 {
 	typedef Eigen::SparseMatrix<double> SparseMatrixXd;
+	typedef Eigen::Triplet<double> Trip;
 	typedef Eigen::Vector3d Vector3d;
 	typedef Eigen::Vector3i Vector3i;
 	typedef Eigen::Vector2d Vector2d;

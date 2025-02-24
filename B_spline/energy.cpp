@@ -541,6 +541,53 @@ double surface_energy_least_square(Bsurface& surface, const int i, const int j, 
 
 }
 
+// do partial difference to Pi, the cofficient of jth element Pj.
+double surface_energy_least_square_tripletes(Bsurface& surface, const int partial_i, const int partial_j,
+const int coff_i, const int coff_j, PartialBasis& basis) {
+	// figure out which Pij corresponding to the ith control point
+	
+
+	// if do partial Pij, the related other Pi1j1 will be: i1 = i-p~i+p, j1= j-q~j+q
+	int degree1 = surface.degree1, degree2 = surface.degree2;
+	if (coff_i<partial_i - degree1 || coff_i>partial_i + degree1) return 0;
+	if (coff_j<partial_j - degree2 || coff_j>partial_j + degree2) return 0;
+
+
+	// do partial Pij
+	// for each block, (U_k1, U_(k1+1)), (V_k2, V_(k2+1)). the related control points are k1-p,...,k1 and k2-q,..., k2
+	double result = 0;
+	for (int k1 = partial_i; k1 < partial_i + degree1 + 1; k1++) {
+		for (int k2 = partial_j; k2 < partial_j + degree2 + 1; k2++) {
+			//std::cout << " k1, k2 " << k1 << " " << k2 << std::endl;
+			if (coff_i<k1 - degree1 || coff_i>k1 || coff_j<k2 - degree2 || coff_j>k2) {
+				continue;
+			}
+			assert(k1 + 1 < surface.U.size());
+			assert(k2 + 1 < surface.V.size());
+			if (surface.U[k1] == surface.U[k1 + 1] || surface.V[k2] == surface.V[k2 + 1]) {
+				continue;// if the area is 0, then no need to compute
+			}
+			// Suu part
+			double value1 = construct_an_integration(degree1, surface.U, 2, 2,
+				partial_i, coff_i, surface.U[k1], surface.U[k1 + 1], basis, false);
+			double value2 = construct_an_integration(degree2, surface.V, 0, 0,
+				partial_j, coff_j, surface.V[k2], surface.V[k2 + 1], basis, true);
+			// Suv part
+			double value3 = construct_an_integration(degree1, surface.U, 1, 1,
+				partial_i, coff_i, surface.U[k1], surface.U[k1 + 1], basis, false);
+			double value4 = construct_an_integration(degree2, surface.V, 1, 1,
+				partial_j, coff_j, surface.V[k2], surface.V[k2 + 1], basis, true);
+			// Svv part
+			double value5 = construct_an_integration(degree1, surface.U, 0, 0,
+				partial_i, coff_i, surface.U[k1], surface.U[k1 + 1], basis, false);
+			double value6 = construct_an_integration(degree2, surface.V, 2, 2,
+				partial_j, coff_j, surface.V[k2], surface.V[k2 + 1], basis, true);
+			result += 2 * value1*value2 + 4 * value3*value4 + 2 * value5*value6;
+		}
+	} 
+	return result;
+
+}
 // in interval [U[i], U[i+1])x[V[j], V[j+1])
 double discrete_surface_partial_value_squared(const int partial1, const int partial2,
 	const int i, const int j, Bsurface& surface,
@@ -685,6 +732,44 @@ Eigen::MatrixXd energy_part_of_surface_least_square(Bsurface& surface, PartialBa
 	std::cout << "energy matrix finish calculation" << std::endl;
 	return result;
 }
+void energy_part_of_surface_least_square(Bsurface& surface, PartialBasis& basis, std::vector<Trip>& tripletes)
+{
+	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
+	int degree1 = surface.degree1, degree2 = surface.degree2;
+	for(int partial_i = 0;partial_i<surface.nu()+1; partial_i++)
+	{
+		for(int partial_j=0;partial_j<surface.nv()+1;partial_j++)
+		{
+			int i = partial_i * (surface.nv()+ 1) + partial_j;
+			if(i>=psize)
+			{
+				std::cout<<"i out of range\n";
+			}
+			for(int coff_i = partial_i-degree1;coff_i<=partial_i+degree1;coff_i++)
+			{
+				if(coff_i<0||coff_i>=surface.nu()+1)
+				{
+					continue;
+				}
+				for(int coff_j = partial_j-degree2;coff_j<=partial_j+degree2;coff_j++)
+				{
+					if(coff_j<0||coff_j>=surface.nv()+1)
+					{
+						continue;
+					}
+					int j = coff_i*(surface.nv()+1) + coff_j;
+					if(j>=psize)
+			{
+				std::cout<<"j out of range\n";
+			}
+					double value = surface_energy_least_square_tripletes(surface, partial_i, partial_j, coff_i, coff_j, basis);
+					tripletes.push_back(Trip(i,j,value));
+				}
+			}
+		}
+	}
+
+}
 
 double surface_error_least_square(Bsurface& surface, const int i, const int j,
 	const Eigen::MatrixXd& paras) {
@@ -780,6 +865,32 @@ Eigen::MatrixXd eqality_part_of_surface_least_square(Bsurface& surface, const Ei
 	}
 	return result;
 }
+ // this function generate ld and ru.
+void eqality_part_of_surface_least_square(Bsurface& surface, const Eigen::MatrixXd& paras, int shifti, int shiftj, std::vector<Trip>& tripletes) {
+	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
+	// Eigen::MatrixXd result(paras.rows(), psize);
+	int degree1 = surface.degree1;
+	int degree2 = surface.degree2;
+	std::vector<double> U = surface.U;
+	std::vector<double> V = surface.V;
+	for (int i = 0; i < paras.rows(); i++) {
+		for (int j = 0; j < psize + 1; j++) {
+			// figure out the jth control point corresponding to which Pij
+			int coff_i = j / (surface.nv() + 1);
+			int coff_j = j - coff_i * (surface.nv() + 1);
+			double u = paras(i, 0);
+			double v = paras(i, 1);
+			// the corresponding cofficient should be N_coffi(u) and N_coffj(v)
+			double N1 = Nip(coff_i, degree1, u, U);
+			double N2 = Nip(coff_j, degree2, v, V);
+			double value = N1 * N2;
+			tripletes.push_back(Trip(i+shifti, j+shiftj, value));
+			tripletes.push_back(Trip(j+shiftj, i+shifti, value));
+		}
+	}
+	return;
+}
+
 
 Eigen::MatrixXd lambda_part_of_surface_least_square(Bsurface& surface, const Eigen::MatrixXd& paras) {
 	Eigen::MatrixXd A = eqality_part_of_surface_least_square(surface, paras);
@@ -812,6 +923,24 @@ Eigen::MatrixXd surface_least_square_lambda_multiplier_left_part(Bsurface& surfa
 	result << lu, ru,
 		ld, rd;
 	return result;
+}
+void surface_least_square_lambda_multiplier_left_part(Bsurface& surface,
+	const Eigen::MatrixXd& paras, PartialBasis& basis, std::vector<Trip>& tripletes) {
+	std::cout << "inside left part" << std::endl;
+	tripletes.clear();
+	
+	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
+	tripletes.reserve(psize);
+	int target_size = paras.rows();// nbr of target data points
+	int size = psize + target_size;
+	energy_part_of_surface_least_square(surface, basis, tripletes);
+	std::cout<<"finished energy part\n";
+	int shifti = psize, shiftj = 0;
+	eqality_part_of_surface_least_square(surface, paras, shifti, shiftj, tripletes);
+	std::cout<<"finished equality part\n";
+
+	
+	return;
 }
 
 Eigen::MatrixXd surface_least_square_lambda_multiplier_right_part(Bsurface& surface, const Eigen::MatrixXd& paras,
@@ -854,14 +983,21 @@ void Bsurface::solve_control_points_for_fairing_surface(Bsurface& surface, const
 	assert(paras.rows() == points.rows());
 	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
 	std::vector<Vector3d> cps(psize);// control points
-	Eigen::MatrixXd A;
+	// Eigen::MatrixXd A;
+	// A = surface_least_square_lambda_multiplier_left_part(surface, paras, basis);
+	// std::cout<<"A\n"<<A<<"\n";
+
 	Eigen::FullPivLU<Eigen::DenseBase<Eigen::MatrixXd>::PlainMatrix> decomp;
-	A = surface_least_square_lambda_multiplier_left_part(surface, paras, basis);
+	std::vector<Trip> tripletes;
+	surface_least_square_lambda_multiplier_left_part(surface, paras, basis, tripletes);
 	SparseMatrixXd matB;
 	Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
-
-	matB = A.sparseView();
-	A.resize(0, 0);
+	int size = psize + paras.rows();
+	matB.resize(size, size);
+	// std::cout<<"matrix is solved, nbr of tripletes "<<tripletes.size()<<"\n";
+	matB.setFromTriplets(tripletes.begin(), tripletes.end());
+	// std::cout<<"B\n"<<matB<<"\n";
+	
 	solver.compute(matB);
 	if (solver.info() != Eigen::Success) {
 		// decomposition failed
