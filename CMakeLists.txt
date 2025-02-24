@@ -44,7 +44,11 @@ include(${PROJECT_NAME}Dependencies)
 include(PrependCurrentPath)
 include(Sparse_InterpUtils)
 
-
+igl_include(core)
+igl_include(predicates)
+igl_include(opengl)
+igl_include(glfw)
+igl_include(restricted triangle)
 
 ############################
 # B spline library.
@@ -56,7 +60,7 @@ SI_set_source_group(${SPLINE_SOURCES})
 add_library(splines ${SPLINE_SOURCES})
 #target_sources(splines PRIVATE ${SPLINE_SOURCES})
 target_include_directories(splines PUBLIC ${PROJECT_BINARY_DIR}/include)
-target_link_libraries(splines PUBLIC igl::core igl::predicates igl::opengl_glfw igl::triangle Eigen3::Eigen)
+target_link_libraries(splines PUBLIC igl::core igl::predicates igl::opengl igl::glfw igl_restricted::triangle Eigen3::Eigen)
 target_compile_definitions(splines PUBLIC
     SI_MESH_DIR="${CMAKE_CURRENT_SOURCE_DIR}/app/meshes/")
 ###############################
@@ -79,7 +83,7 @@ add_executable(${PROJECT_NAME}_bin
 	app/test.cpp
   )
 target_include_directories(${PROJECT_NAME}_bin PUBLIC ${PROJECT_BINARY_DIR}/include)
-target_link_libraries(${PROJECT_NAME}_bin PUBLIC splines igl::core igl::opengl_glfw)
+target_link_libraries(${PROJECT_NAME}_bin PUBLIC splines igl::core igl::opengl igl::glfw)
 target_link_libraries(${PROJECT_NAME}_bin PUBLIC compare)
 
 add_executable(example_bin

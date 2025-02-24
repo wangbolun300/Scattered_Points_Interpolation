@@ -26,19 +26,19 @@ endfunction()
 function(sparse_interp_download_eigen)
   sparse_interp_download_project(eigen
   GIT_REPOSITORY           https://gitlab.com/libeigen/eigen.git
-	GIT_TAG       3.3.7
+	GIT_TAG       3.4.0
   )
 endfunction()
 
 
 
 # libigl for timing and mesh processing
-function(sparse_interp_download_libigl)
-   sparse_interp_download_project(libigl
-   GIT_REPOSITORY https://github.com/libigl/libigl.git
-   GIT_TAG        aea868bd1fc64f71afecd2c51e51507a99d8e3e5
-  )
-endfunction()
+# function(sparse_interp_download_libigl)
+#    sparse_interp_download_project(libigl
+#    GIT_REPOSITORY https://github.com/libigl/libigl.git
+#    GIT_TAG v2.4.0
+#   )
+# endfunction()
 
 # A modern string formatting library
 function(sparse_interp_download_fmt)

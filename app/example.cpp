@@ -31,7 +31,7 @@ void run_mesh_reconstruction()
 	surface.V = surface.U;					// the initial V knot vector
 	int target_steps = 10;					// the number of iterations for constructing lists $L$.
 	bool enable_max_fix_nbr = true;			// progressively update the knot vectors to make the two knot vectors balanced in length.
-	double delta = 0.9;						// the parameter to improve the solving stability
+	double delta = 0.4;						// the parameter to improve the solving stability
 	double per = 0.5;						// the parameter inherited from [Wen-Ke Wang et al, 2008, CAD]
 	// generate knot vectors to make sure the data points can be interpolated
 	surface.generate_interpolation_knot_vectors(surface.degree1, surface.degree2, surface.U, surface.V, param, delta, per, target_steps, enable_max_fix_nbr);

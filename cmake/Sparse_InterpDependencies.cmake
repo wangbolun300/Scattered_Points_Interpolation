@@ -35,13 +35,25 @@ endif()
 
 
   # libigl for timing
-if(NOT TARGET igl::core)
-  sparse_interp_download_libigl()
+# if(NOT TARGET igl::core)
+#   # sparse_interp_download_libigl()
 
-    # Import libigl targets
-    list(APPEND CMAKE_MODULE_PATH "${SPARSE_EXTERNAL}/libigl/cmake")
-    include(libigl)
-  endif()
+#   #   # Import libigl targets
+#   #   list(APPEND CMAKE_MODULE_PATH "${SPARSE_EXTERNAL}/libigl/cmake")
+#   #   include(libigl)
+  
+#   endif()
+if(NOT TARGET igl::core)
+include(FetchContent)
+FetchContent_Declare(
+    libigl
+    GIT_REPOSITORY https://github.com/libigl/libigl.git
+    GIT_TAG v2.5.0
+)
+FetchContent_MakeAvailable(libigl)
+endif()
+
+
 if(CCD_WRAPPER_WITH_BENCHMARK)
 
   
