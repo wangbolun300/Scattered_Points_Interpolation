@@ -14,6 +14,7 @@
 
 namespace SIBSplines
 {
+	std::string example_root_path(SI_MESH_DIR);
 	using namespace examples;
 	using namespace comparison;
 
@@ -1254,5 +1255,328 @@ namespace SIBSplines
 
 		std::cout << "final surface size " << surface.nu() + 1 << " " << surface.nv() + 1
 				  << " total control points " << (surface.nu() + 1) * (surface.nv() + 1) << std::endl;
+	}
+	
+	void run_temperature_fitting()
+	{
+		std::vector<std::vector<double>> stations, border;
+		read_csv_data_lbl(example_root_path + "ShanxiStations.csv", stations);
+		read_csv_data_lbl(example_root_path + "ShanxiBorder.csv", border);
+		
+		std::cout << "there are " << stations.size() << " stations\n";
+		std::vector<int> stationIds(stations.size());
+		std::vector<std::vector<double>> temps(stations.size()), tempsRaw;
+		read_csv_data_lbl(example_root_path + "ShanxiTemperatures.csv", tempsRaw);
+		std::cout<<"there are "<<tempsRaw.size()<<" rows of temp data, on avg each station has "<<double(tempsRaw.size()) / stations.size()<<" data\n";
+		std::cout<<"the cols "<<tempsRaw[0].size()<<"\n";
+		for(int i=0;i<10;i++)
+		{
+			for(auto ele : tempsRaw[i])
+			{
+				std::cout<<ele<<",";
+			}
+			std::cout<<"\n";
+		}
+		Eigen::MatrixXd param(stations.size(),2), paramb(border.size(), 3);
+		Eigen::Vector2d cmin(stations[0][1], stations[0][2]), cmax(stations[0][1], stations[0][2]);
+		for (int i=0;i<stations.size();i++)
+		{
+			stationIds[i] = stations[i][0];
+			param(i,0) = stations[i][1];
+			param(i,1) = stations[i][2];
+			
+		}
+		for (int i = 0; i < border.size(); i++)
+		{
+			paramb(i, 0) = border[i][1]; // note that the x and y for border is swapped
+			paramb(i, 1) = border[i][0];
+			paramb(i, 2) = 0;
+			if (paramb(i, 0) < cmin[0])
+			{
+				cmin[0] = paramb(i, 0);
+			}
+			if (paramb(i, 1) < cmin[1])
+			{
+				cmin[1] = paramb(i, 1);
+			}
+			if (paramb(i, 0) > cmax[0])
+			{
+				cmax[0] = paramb(i, 0);
+			}
+			if (paramb(i, 1) > cmax[1])
+			{
+				cmax[1] = paramb(i, 1);
+			}
+		}
+		std::cout<<"min and max of the scene "<<cmin.transpose()<<" ,,, "<<cmax.transpose()<<"\n";
+		// rescale the model into [0,1]x[0,1]
+		double length = std::max(cmax[0]-cmin[0], cmax[1]-cmin[1]); // make the longer side fit in [0,1]
+		Eigen::Vector2d offset(0.05,0.05); // the model not too close to the boundary
+		// rescale the parameters
+		for (int i = 0; i < param.rows(); i++)
+		{
+			param.row(i) = (Eigen::Vector2d(param.row(i)) - cmin) * 0.9 / length + offset;
+		}
+		// for (int i = 0; i < paramb.rows(); i++)
+		// {
+		// 	paramb.row(i) = (Eigen::Vector2d(paramb.row(i)) - cmin) * 0.9 / length + offset; 
+		// }
+		// std::cout<<"param\n"<<param<<"\nparamb\n"<<paramb<<"\n";
+
+		// collect the data list
+		for (int i=0;i<tempsRaw.size();i++)
+		{
+			int stid = tempsRaw[i][0]; // the station id
+			int whichId = -1;
+			for(int j=0;j<stationIds.size();j++)
+			{
+				if(stid == stationIds[j])
+				{
+					whichId = j;
+					break;
+				}
+			}
+			if (whichId >= 0)
+			{
+				temps[whichId].push_back(tempsRaw[i].back());
+				if(i<10)
+				{
+					std::cout<<"print temp, "<<temps[whichId].back()<<"\n";
+				}
+			}
+		}
+		for(int i=0;i<temps.size()-1;i++)
+		{
+			if(temps[i].size()!=temps[i+1].size())
+			{
+				std::cout<<"error here 1 "<<temps[i].size()<<" "<<temps[i+1].size()<<"\n";
+				exit(0);
+			}
+		}
+		// there are 3 knot vectors: U, V, and T.
+		// compute the U and V knot vectors:
+		int degree = 3;
+		Bsurface surface;
+		int nbr = param.rows();					// the number of data points
+		surface.degree1 = degree;					// degree of u direction
+		surface.degree2 = degree;					// degree of v direction
+		surface.U = {{0, 0, 0, 0, 1, 1, 1, 1}}; // the initial U knot vector
+		surface.V = surface.U;					// the initial V knot vector
+		int target_steps = 10;					// the number of iterations for constructing lists $L$.
+		bool enable_max_fix_nbr = true;			// progressively update the knot vectors to make the two knot vectors balanced in length.
+		double delta = 0.9;						// the parameter to improve the solving stability
+		double per = 0.5;						// the parameter inherited from [Wen-Ke Wang et al, 2008, CAD]
+		
+		// generate knot vectors to make sure the data points can be interpolated
+		surface.generate_interpolation_knot_vectors(surface.degree1, surface.degree2, surface.U, surface.V, param, delta, per, target_steps, enable_max_fix_nbr);
+		int refinement = std::max(surface.nu() + 1, surface.nv() + 1) * 0.5;
+		std::cout<<"Refine the knot vectors by adding "<<refinement<<" knots.\n";
+		// refine the shape 
+		surface.RefineKnots(refinement);
+		std::cout << "knot vectors generated" << std::endl;
+		PartialBasis basis(surface);
+		int nbrTime = temps[0].size(); // the number of time steps
+		std::vector<std::vector<std::vector<Vector3d>>> CPs(nbrTime), CPAll; // the control points each layer, and the final control points
+		for (int i = 0; i < nbrTime; i++)
+		{
+			// clean the data, remove suspecious data
+			std::vector<Vector3d> datapoints;
+			std::vector<Vector2d> dataparams;
+			for(int j=0;j<temps.size();j++)
+			{
+				double temperature = temps[j][i];
+				if (temperature > 100 || temperature < -100) 
+				{
+					continue;
+				}
+				datapoints.push_back(Vector3d(param(j,0), param(j,1), temperature));
+				dataparams.push_back(Vector2d(param(j,0), param(j,1)));
+			}
+			Eigen::MatrixXd ver = vec_list_to_matrix(datapoints);
+			Eigen::MatrixXd par(dataparams.size(),2);
+			for (int j = 0; j < dataparams.size(); j++)
+			{
+				par.row(j) = dataparams[j];
+			}
+			// compute the control points of this layer
+			surface.solve_control_points_for_fairing_surface(surface, par, ver, basis);
+			CPs[i] = surface.control_points;
+		}
+		int ncpi = CPs[0].size();
+		int ncpj = CPs[0][0].size();
+		std::vector<double> T, parT;
+		// construct the third knot vector T using even parametrization
+		for(int i=0;i<nbrTime;i++)
+		{
+			parT.push_back(i*1.0 / (nbrTime - 1));
+		}
+		// make sure the last parameter is precisely 1
+		parT.back()=1;
+
+		// generate the knot vector T
+		T = {{0, 0, 0, 0, 1, 1, 1, 1}};
+		bool fullFixed;
+		T = fix_knot_vector_to_interpolate_curve_WKW(degree, T, parT, per, fullFixed, -1);
+		if (!fullFixed)
+		{
+			std::cout << "The knot vector is not properly generated!\n";
+			exit(0);
+		}
+		std::cout<<"T knots: ";
+		for(auto ele : T)
+		{
+			std::cout<<ele<<",";
+		}
+		std::cout<<"\n";
+		// solve the final control points
+		Bcurve curveTool;
+		curveTool.degree = degree;
+		curveTool.U = T;
+		CPAll.resize(ncpi);
+		for (int i = 0; i < ncpi; i++)
+		{
+			CPAll[i].resize(ncpj);
+			for (int j = 0; j < ncpj; j++)
+			{
+				std::vector<Vector3d> localdata(nbrTime);
+				for (int k = 0; k < nbrTime; k++)
+				{
+					localdata[k] = CPs[k][i][j];
+				}
+				curveTool.solve_control_points_for_fairing_curve(curveTool, parT, localdata, 0.5, 0.5);
+				CPAll[i][j] = curveTool.control_points;
+			}
+		}
+		std::cout << "all the control points are solved\n";
+		PolynomialBasis tBasisTool;
+		auto tbf = tBasisTool.calculate_single(degree, T); // obtain the basis functions of the knot vector T
+		std::cout << "basis functions T is computed\n";
+		// check interpolation errors
+		double error = 0;
+		for (int i = 0; i < temps.size(); i++)
+		{
+			for (int j = 0; j < temps[i].size(); j++)
+			{
+				double temperature = temps[i][j];
+				if (temperature < -100 || temperature > 100)
+				{
+					continue;
+				}
+				double u = param(i, 0);
+				double v = param(i, 1);
+				double t = parT[j];
+				Eigen::Vector3d fitting = surface.BSplineSurfacePoint(basis.Ubasis, basis.Vbasis, tbf, u, v, t, surface.U, surface.V, T, CPAll, degree, 
+				degree, degree);
+				double e = temperature - fitting[2];
+				if (e > error)
+				{
+					error = e;
+				}
+			}
+		}
+		std::cout << "maximal distance error is " << error << "\n";
+		// make surface of a given moment, plot the mesh, and the original data
+		auto shiftCoordBack=[](const Eigen::Vector2d &par, const Eigen::Vector2d& offset, const double length, const Eigen::Vector2d& cmin)
+		{
+			Eigen::Vector2d result;
+			result = (par-offset)*length/0.9+cmin;
+			return result;
+		};
+		Eigen::MatrixXi quads;
+		Eigen::MatrixXd vertices, points;
+		std::vector<Vector3d> vers;
+		int discretization = 150; // the mesh size
+		int moment = 10; // the moment-th step
+		double scale = 0.1; // re-scale the height
+		double itv = 1.0/discretization;
+		double t = parT[moment];
+		
+		for(int i=0;i<discretization;i++)
+		{
+			double u = i * itv;
+			for (int j = 0; j < discretization; j++)
+			{
+				double v = j * itv;
+				Eigen::Vector3d fitting = surface.BSplineSurfacePoint(basis.Ubasis, basis.Vbasis, tbf, u, v, t, surface.U, surface.V, T, CPAll, degree, 
+				degree, degree);
+				Vector2d par(fitting(0), fitting(1));
+				Vector2d shifted = shiftCoordBack(par, offset, length, cmin);
+				fitting[0] = shifted[0];
+				fitting[1] = shifted[1];
+				fitting[2] *= scale; // rescale for better visulize the temperature
+				vers.push_back(fitting);
+			}
+		}
+		vertices = vec_list_to_matrix(vers);
+		surface.constructRegularF(vertices.rows(), discretization, quads);
+		vers.clear();
+		for (int i = 0; i < temps.size(); i++)
+		{
+			double temperature = temps[i][moment];
+			if (temperature < -100 || temperature > 100)
+			{
+				continue;
+			}
+			double u = stations[i][1];
+			double v = stations[i][2];
+			temperature *= scale; // rescale for better visulize the temperature
+			vers.push_back(Eigen::Vector3d(u,v,temperature)); // push the original data
+		}
+		points = vec_list_to_matrix(vers);
+		// cut the quad mesh using the boundary info, and convert it into a triangular mesh
+		Eigen::MatrixXd Vclean;
+		Eigen::MatrixXi Fclean;
+		cutBoundaryGenerateTopology(vertices, quads, paramb, Vclean, Fclean);
+		std::vector<double> colors;
+		for (int i = 0; i < Vclean.rows(); i++)
+		{
+			colors.push_back(Vclean(i, 2) / scale);
+		}
+
+		// // export the ground truth
+		quads.resize(0,0);
+		// remind that the longitude is in an reversed direction, so we need to invert the tempeture
+		points.col(2) = -1 * points.col(2);
+		Vclean.col(2) = -1 * Vclean.col(2);
+		writeMesh(example_root_path+"Y2025M03D02H1800GroundTruth.obj",points, quads);
+		// the fitting result
+		writeMesh(example_root_path+"Y2025M03D02H1800.obj",Vclean, Fclean);
+		// the temperature as the color
+		write_csv(example_root_path+"Y2025M03D02H1800Color.csv", colors);
+		std::cout << "fitting result min tem " << *std::min_element(colors.begin(), colors.end()) << " max tem " << *std::max_element(colors.begin(), colors.end()) << "\n";
+		
+		// given a location, check the fitting result
+		int location = 10;
+		std::cout<<"checking a given location #"<<stations[location][0]<<", that locates at ("<<stations[location][1]<<", "<<stations[location][2]<<")\n";
+		double u = param(location, 0);
+		double v = param(location, 1);
+		colors.clear();
+		std::vector<double> times;
+		for(int i=0;i<discretization;i++)
+		{
+			double t = itv * i;
+			Eigen::Vector3d fitting = surface.BSplineSurfacePoint(basis.Ubasis, basis.Vbasis, tbf, u, v, t, surface.U, surface.V, T, CPAll, degree, 
+				degree, degree);
+			colors.push_back(fitting[2]);
+			times.push_back(t);
+		}
+		// the temperature at this location
+		write_csv(example_root_path+"FittingResultsGivenLocation.csv", colors);
+		write_csv(example_root_path+"FittingResultsGivenLocation_times.csv", times);
+		colors.clear();
+		times.clear();
+		for (int i = 0; i < temps[location].size(); i++)
+		{
+			double temperature = temps[location][i];
+			if (temperature < -100 || temperature > 100)
+			{
+				continue;
+			}
+			colors.push_back(temperature);
+			times.push_back(parT[i]);
+		}
+		// the ground truth temperature at this location
+		write_csv(example_root_path+"groundTruthGivenLocation.csv", colors);
+		write_csv(example_root_path+"groundTruthGivenLocation_times.csv", times);
 	}
 }

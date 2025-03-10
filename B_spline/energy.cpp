@@ -238,7 +238,36 @@ std::vector<double> PolynomialBasis::poly(const int id, const double value, cons
 	}
 	return result;
 }
-
+std::vector<std::vector<std::vector<double>>> PolynomialBasis::calculate_single(const int degree, const std::vector<double> &knotVector)
+{
+	std::vector<std::vector<std::vector<double>>> pl;
+	int n = knotVector.size() - 2 - degree;
+	pl.resize(n + 1);
+	for (int i = degree; i < n + 1; i++) {// in interval [U[i], U[i+1])
+		pl[i].resize(degree + 1);
+		for (int j = 0; j < degree + 1; j++) {
+			pl[i][j] = Nip_func(i - degree + j, degree, knotVector[i], knotVector);
+		}
+	}
+	return pl;
+}
+std::vector<double> basisValues(const int whichItv, const int degree, const std::vector<std::vector<std::vector<double>>>&basis, const double param)
+{
+	std::vector<double> result(degree + 1);
+	for(int i=0;i<degree+1;i++)
+	{
+		if(whichItv>=basis.size())
+		{
+			std::cout<<"which itv "<<whichItv<<" basis size "<<basis.size()<<'\n';
+		}
+		if(basis[whichItv].size()==0)
+		{
+			std::cout<<"The basis whihcitv is empty, which itv "<<whichItv<<", the size of basis functions "<<basis.size()<<"\n";
+		}
+		result[i] = ply_operations::polynomial_value(basis[whichItv][i], param);
+	}
+	return result;
+}
 std::vector<std::vector<std::vector<double>>> PolynomialBasis::calculate(const bool uorv) {
 	std::vector<double> kv;
 	int degree;

@@ -38,4 +38,5 @@ void run_other_sampling_strategies(const int model, double &per_ours, const std:
 void run_pia(const int model, const int nbr_pts, const int max_itr, const double threadshold, const int cp_nbr_sqrt, const std::string &path);
 void run_pia_mesh_reconstruct(const std::string meshfile, const int max_itr, const double threadshold,
 	const int cp_nbr_sqrt, const std::string &path);
+void run_temperature_fitting();
 }

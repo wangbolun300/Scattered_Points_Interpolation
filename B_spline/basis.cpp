@@ -1,6 +1,7 @@
 #include"basis.h"
 #include<iostream>
 #include<assert.h>
+#include<fstream>
 namespace SIBSplines{
 // the B-spline basis function N_{i,0}(u). U is the knot vector
 double Ni0(const int i, const double u, const std::vector<double> &U) {
@@ -95,5 +96,68 @@ void print_vector(const std::vector<int>& input) {
 		std::cout << input[i] << ", ";
 	}
 	std::cout << std::endl;
+}
+bool read_csv_data_lbl(const std::string fname, std::vector<std::vector<double>> &data){
+    std::cout<<"reading "<<fname<<std::endl;
+    if (fname.length() == 0)
+        return false;
+	int count = 0;
+    std::ifstream infile;
+    std::vector<std::vector<double>> results;
+
+    infile.open(fname);
+    if (!infile.is_open())
+    {
+        std::cout << "Path Wrong!!!!" << std::endl;
+        std::cout << "path, " << fname << std::endl;
+        return false;
+    }
+
+    int l = 0;
+    while (infile) // there is input overload classfile
+    {
+        std::string s;
+        if (!getline(infile, s))
+            break;
+
+        if (s[0] != '#')
+        {
+            std::istringstream ss(s);
+            std::vector<double> record;
+            int c = 0;
+            while (ss)
+            {
+                std::string line;
+                if (!getline(ss, line, ','))
+                    break;
+                try
+                {
+
+                    record.push_back(std::stod(line));
+                    c++;
+
+                }
+                catch (const std::invalid_argument e)
+                {
+                    // std::cout << "NaN found in file " << fname
+                    //           <<  std::endl;
+					// 		  std::cout<<"line "<<line<<"\n";
+					// 		  std::cout<<"count "<<count<<"\n";
+					// 		  count++;
+                    e.what();
+                }
+            }
+
+            
+            results.push_back(record);
+        }
+    }
+    data = results;
+    if (!infile.eof())
+    {
+        std::cerr << "Could not read file " << fname << "\n";
+    }
+    std::cout<<fname<<" get readed"<<std::endl;
+    return true;
 }
 }

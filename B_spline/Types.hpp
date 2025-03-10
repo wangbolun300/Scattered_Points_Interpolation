@@ -41,6 +41,7 @@ namespace SIBSplines
 	class Bsurface
 	{
 	public:
+	Bsurface(){};
 		int degree1;
 		int degree2;
 		std::vector<double> U;
@@ -73,13 +74,44 @@ namespace SIBSplines
 		double max_interpolation_err(const Eigen::MatrixXd &ver, const Eigen::MatrixXd &param, Bsurface &surface);
 		void surface_visulization(Bsurface &surface, const int nbr, Eigen::MatrixXd &v, Eigen::MatrixXi &f);
 		Vector3d BSplineSurfacePoint(const Bsurface &surface, const double upara, const double vpara);
+		Vector3d BSplineSurfacePoint(const std::vector<std::vector<std::vector<double>>> &upolys, const std::vector<std::vector<std::vector<double>>> &vpolys,
+									 const std::vector<std::vector<std::vector<double>>> &tpolys, double u, double v, double t, const std::vector<double> &U, const std::vector<double> &V,
+									 const std::vector<double> &T, const std::vector<std::vector<std::vector<Vector3d>>> &CPs, const int udegree,
+									 const int vdegree, const int tdegree);
+		// insert in total n knots into U and V. 
+		void RefineKnots(int nbr);
+
+		void constructRegularF(const int vnbr, const int rnbr, Eigen::MatrixXi &F)
+		{
+
+			int cnbr = vnbr / rnbr;
+			F.resize((cnbr - 1) * (rnbr - 1), 4);
+			int fnbr = 0;
+			for (int i = 0; i < cnbr - 1; i++)
+			{
+				for (int j = 0; j < rnbr - 1; j++)
+				{
+					int v0 = i * rnbr + j;
+					int v1 = i * rnbr + j + 1;
+					int v2 = (i + 1) * rnbr + j + 1;
+					int v3 = (i + 1) * rnbr + j;
+					F(fnbr, 0) = v0;
+					F(fnbr, 1) = v1;
+					F(fnbr, 2) = v2;
+					F(fnbr, 3) = v3;
+					fnbr++;
+				}
+			}
+			// std::cout<<"check F, \n"<<F<<"\n";
+		}
 	};
 	class Bcurve
 	{
 	public:
+	Bcurve(){};
 		int degree;
 		std::vector<double> U;
-		double upara;
+		// double upara;
 		std::vector<Vector3d> control_points;
 		int nu(); // nu + 1 is the number of control points in u direction
 		bool curve_can_be_interpolated(const std::vector<double> &U, const int degree, const std::vector<double> &paras,
@@ -111,13 +143,15 @@ namespace SIBSplines
 		void init(Bsurface &surface);
 		std::vector<double> poly(const int id, const double value, const bool UVknot);
 		void clear();
+		// the (i,j) th element of the basis is the basis function defined on {U_i,U_{i+1}}, the j ranges from 0 to degree.
 		std::vector<std::vector<std::vector<double>>> Ubasis;
 		std::vector<std::vector<std::vector<double>>> Vbasis;
 		std::vector<double> Uknot;
 		std::vector<double> Vknot;
 		int degree1;
 		int degree2;
-
+		std::vector<std::vector<std::vector<double>>> calculate_single(const int degree, const std::vector<double> &knotVector);
+		
 	private:
 		int nu;
 		int nv;
@@ -143,7 +177,7 @@ namespace SIBSplines
 		int degree2;
 		void clear();
 
-	private:
+	// private:
 		std::vector<std::vector<std::vector<double>>> Ubasis;
 		std::vector<std::vector<std::vector<double>>> Vbasis;
 		std::vector<std::vector<std::vector<double>>> Ubasis_1;
@@ -174,6 +208,5 @@ namespace SIBSplines
 
 	std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, const std::vector<double> &init_vec,
 																 const std::vector<double> &paras, const double per, bool &fully_fixed, const int fix_nbr = -1);
-	
-	
-}
+	std::vector<double> basisValues(const int whichItv, const int degree, const std::vector<std::vector<std::vector<double>>> &basis, const double param);
+}	

@@ -120,16 +120,16 @@ void Bcurve::solve_control_points_for_fairing_curve(Bcurve& curve, const std::ve
 	assert(paras.size() == points.rows());
 	std::vector<Vector3d> cps(curve.nu() + 1);// control points
 	Eigen::MatrixXd A = curve_least_square_lambda_multiplier_left_part(curve, paras, a, b);
-	std::cout << "print A\n"<<A << std::endl;
+	// std::cout << "print A\n"<<A << std::endl;
 
 	for (int i = 0; i < 3; i++) {
 		Eigen::MatrixXd b = curve_least_square_lambda_multiplier_right_part(curve, paras, points, i);
 		double err = 0.0;
 
 		// solve the matrix contains the p and lambda
-		std::cout << "before solving" << std::endl;
+		// std::cout << "before solving" << std::endl;
 		Eigen::MatrixXd p_lambda = slove_linear_system(A, b, false, err);
-		std::cout << "after solving" << std::endl;
+		// std::cout << "after solving" << std::endl;
 		push_p_lambda_vector_to_control_points(p_lambda, i, cps);
 	}
 	curve.control_points = cps;

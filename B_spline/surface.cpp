@@ -34,6 +34,60 @@ Vector3d BSplineSurfacePoint_(const int degree1, const int degree2,
 Vector3d Bsurface::BSplineSurfacePoint(const Bsurface& surface, const double upara, const double vpara) {
 	return BSplineSurfacePoint_(surface.degree1, surface.degree2, surface.U, surface.V, upara, vpara, surface.control_points);
 }
+Vector3d Bsurface::BSplineSurfacePoint(const std::vector<std::vector<std::vector<double>>> &upolys, const std::vector<std::vector<std::vector<double>>> &vpolys,
+									   const std::vector<std::vector<std::vector<double>>> &tpolys, double u, double v, double t, const std::vector<double> &UKV, const std::vector<double> &VKV,
+									   const std::vector<double> &TKV, const std::vector<std::vector<std::vector<Vector3d>>> &CPs, const int udegree, 
+									   const int vdegree, const int tdegree)
+{
+	int uitv = -1, vitv = -1, titv = -1;
+	for (int i = udegree; i < UKV.size() - 1; i++)
+	{
+		if (u >= UKV[i] && u <= UKV[i + 1])
+		{
+			uitv = i;
+			break;
+		}
+	}
+	for (int i = vdegree; i < VKV.size() - 1; i++)
+	{
+		if (v >= VKV[i] && v <= VKV[i + 1])
+		{
+			vitv = i;
+			break;
+		}
+	}
+	for (int i = tdegree; i < TKV.size() - 1; i++)
+	{
+		if (t >= TKV[i] && t <= TKV[i + 1])
+		{
+			titv = i;
+			break;
+		}
+	}
+
+	if (uitv < 0 || vitv < 0 || titv < 0)
+	{
+		std::cout << "Out of Range in BSplineSurfacePoint!\n";
+	}
+	std::vector<double> uvalues = basisValues(uitv, udegree, upolys, u);
+	std::vector<double> vvalues = basisValues(vitv, vdegree, vpolys, v);
+	std::vector<double> tvalues = basisValues(titv, tdegree, tpolys, t);
+	Vector3d result(0,0,0);
+	for (int i = uitv - udegree; i < uitv + 1; i++)
+	{
+		double Nu = uvalues[i - uitv + udegree];
+		for (int j = vitv - vdegree; j < vitv + 1; j++)
+		{
+			double Nv = vvalues[j - vitv + vdegree];
+			for (int k = titv - tdegree; k < titv + 1; k++)
+			{
+				double Nt = tvalues[k - titv + tdegree];
+				result += CPs[i][j][k] * Nu * Nv * Nt;
+			}
+		}
+	}
+	return result;
+}
 // id_list may contain id, if contains, return the one right after id; if the one is the id is the last of id_list,
 	// still return id. this happens when:
 /*
@@ -975,9 +1029,65 @@ void B_spline_surface_to_mesh(Bsurface &surface, const int pnbr, Eigen::MatrixXd
 	}
 	std::cout<<"the surface is converted into a mesh\n";
 }
+void Bsurface::RefineKnots(int nbr)
+{
+	bool uorv = false; // 0 : u, 1 : v
+	int accumulate = 0;
+	auto insertOneKnot = [](std::vector<double> &knots)
+	{
+		int whichItv = -1;
+		double maxDiff = 0;
+		for (int i = 0; i < knots.size() - 1; i++)
+		{
+			if (knots[i + 1] - knots[i] > maxDiff)
+			{
+				whichItv = i;
+				maxDiff = knots[i + 1] - knots[i];
+			}
+		}
+		if (whichItv < 0)
+		{
+			std::cout << "wrong in insertOneKnot\n";
+			exit(0);
+		}
+		std::vector<double> result;
+		for (int i = 0; i < knots.size(); i++)
+		{
+			result.push_back(knots[i]);
+			if (i == whichItv)
+			{
+				result.push_back((knots[i] + knots[i + 1]) / 2);
+			}
+		}
+		knots = result;
+		return;
+	};
+	while(accumulate<=nbr)
+	{
+		auto knots = uorv ? V : U; // the knot vector under processing
+		auto other = uorv ? U : V; // the other knot vector
+		int toinsert = other.size() - knots.size() + 1;
+		for(int i=0;i<toinsert;i++)
+		{
+			insertOneKnot(knots);
+			accumulate++;
+		}
+		if(uorv)
+		{
+			V = knots;
+		}
+		else
+		{
+			U = knots;
+		}
 
-
-
+		uorv = !uorv;
+	}
+	std::cout << "post processing results, " << U.size() << " " << V.size() << std::endl;
+		print_vector(U);
+		print_vector(V);
+	return;
+}
 
 void Bsurface::surface_visulization(Bsurface& surface, const int nbr, Eigen::MatrixXd & v, Eigen::MatrixXi &f) {
 	B_spline_surface_to_mesh(surface, nbr, v, f);

@@ -100,6 +100,11 @@ int main(int argc, char *argv[]) {
 		std::string out = argv[2];
 		run_local_refine(out);
 	}
+	// a simple example for machine learning using B-spline basis
+	if (type == "temperature") 
+	{
+		run_temperature_fitting();
+	}
 	std::cout << "done!" << std::endl;
 	return 0;
 }

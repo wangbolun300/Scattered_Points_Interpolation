@@ -52,31 +52,23 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(libigl)
 endif()
-
-
-if(CCD_WRAPPER_WITH_BENCHMARK)
-
-  
-
-  # HDF5 Reader
-  #if(NOT TARGET HighFive::HighFive)
-  #  set(USE_EIGEN TRUE CACHE BOOL "Enable Eigen testing" FORCE)
-  #  ccd_wrapper_download_high_five()
-  #  add_subdirectory(${CCD_WRAPPER_EXTERNAL}/HighFive EXCLUDE_FROM_ALL)
-  #  add_library(HighFive::HighFive ALIAS HighFive)
-  #endif()
-
-  # String formatting
-  #if(NOT TARGET fmt::fmt)
-  #  ccd_wrapper_download_fmt()
-  #  add_subdirectory(${CCD_WRAPPER_EXTERNAL}/fmt)
-  #endif()
-
-  # json
-  #if(NOT TARGET nlohmann_json::nlohmann_json)
-  #  ccd_wrapper_download_json()
-  #  option(JSON_BuildTests "" OFF)
-  #  option(JSON_MultipleHeaders "" ON)
-  #  add_subdirectory(${CCD_WRAPPER_EXTERNAL}/json)
-  #endif()
+# install openmesh
+set(OM_FILE "${CMAKE_CURRENT_SOURCE_DIR}/external/openmesh.zip")
+set(OM_PATH "${CMAKE_CURRENT_SOURCE_DIR}/external/openmesh" )
+if(EXISTS "${OM_FILE}" OR EXISTS "${OM_PATH}")
+  message("LSC: OpenMesh source file exists")
+else()
+  if(NOT EXISTS "${OM_FILE}")
+    message("LSC: downloading OpenMesh")
+    file(DOWNLOAD https://www.graphics.rwth-aachen.de/media/openmesh_static/Releases/9.0/OpenMesh-9.0.zip ${OM_FILE})
+  endif()
 endif()
+if(NOT EXISTS "${OM_PATH}")
+    message("LSC: OpenMesh unzipping")
+    file(ARCHIVE_EXTRACT INPUT ${OM_FILE} DESTINATION ${OM_PATH})
+    message("LSC: OpenMesh is unzipped")
+else()
+    message("LSC: OpenMesh is already unzipped")
+endif()
+message("LSC: OpenMesh file: ${OM_PATH}/OpenMesh-9.0.0/")
+

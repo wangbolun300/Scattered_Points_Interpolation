@@ -50,6 +50,7 @@ igl_include(opengl)
 igl_include(glfw)
 igl_include(restricted triangle)
 
+add_subdirectory(${SPARSE_EXTERNAL}/openmesh/OpenMesh-9.0.0)
 ############################
 # B spline library.
 # igl -> splines
@@ -60,7 +61,7 @@ SI_set_source_group(${SPLINE_SOURCES})
 add_library(splines ${SPLINE_SOURCES})
 #target_sources(splines PRIVATE ${SPLINE_SOURCES})
 target_include_directories(splines PUBLIC ${PROJECT_BINARY_DIR}/include)
-target_link_libraries(splines PUBLIC igl::core igl::predicates igl::opengl igl::glfw igl_restricted::triangle Eigen3::Eigen)
+target_link_libraries(splines PUBLIC igl::core igl::predicates igl::opengl igl::glfw igl_restricted::triangle Eigen3::Eigen OpenMeshCore OpenMeshTools)
 target_compile_definitions(splines PUBLIC
     SI_MESH_DIR="${CMAKE_CURRENT_SOURCE_DIR}/app/meshes/")
 ###############################

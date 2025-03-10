@@ -32,12 +32,16 @@ void constrained_delaunay_triangulation(
 
 // given parameters and the connectivity, get the U and V parameters, and a map showing the positions of the points
 // in U and V
-void generate_UV_grid(const Eigen::MatrixXd& param, 
-	std::vector<double>& U, std::vector<double>&V, Eigen::MatrixXi& map);
-
+void generate_UV_grid(const Eigen::MatrixXd &param,
+					  std::vector<double> &U, std::vector<double> &V, Eigen::MatrixXi &map);
 
 // the returned value is sqrt distance. but sqrtD is un-squared
-double point_mesh_distance(const Eigen::MatrixXd ver, const Eigen::MatrixXd& Vmesh,
-	const Eigen::MatrixXi& Fmesh, Eigen::VectorXd &sqrD);
-
+double point_mesh_distance(const Eigen::MatrixXd ver, const Eigen::MatrixXd &Vmesh,
+						   const Eigen::MatrixXi &Fmesh, Eigen::VectorXd &sqrD);
+void writeMesh(const std::string filename, const Eigen::MatrixXd &ver, Eigen::MatrixXi &F);
+Eigen::MatrixXd vec_list_to_matrix(const std::vector<Eigen::Vector3d> &vec);
+std::vector<Eigen::Vector3d> mat_to_vec_list(const Eigen::MatrixXd &m);
+void cutBoundaryGenerateTopology(const Eigen::MatrixXd &Vquad, const Eigen::MatrixXi &Fquad, const Eigen::MatrixXd &Vcurve, Eigen::MatrixXd &Vout,
+								 Eigen::MatrixXi &Fout);
+void write_csv(const std::string &file, const std::vector<double> data);
 }

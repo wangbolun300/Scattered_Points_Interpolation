@@ -81,6 +81,13 @@
         "queue": "cpp",
         "random": "cpp",
         "stack": "cpp",
-        "xthread": "cpp"
+        "xthread": "cpp",
+        "bit": "cpp",
+        "*.tcc": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "memory_resource": "cpp",
+        "stop_token": "cpp",
+        "__nullptr": "cpp"
     }
 }

@@ -9,4 +9,5 @@ double kth_derivate_Nip(const int k, const int i,
 // parameterization for curve fitting
 std::vector<double> Centripetal_parameterization(std::vector<Vector3d>& pts);
 std::vector<double> Chord_parameterization(std::vector<Vector3d>& pts);
+bool read_csv_data_lbl(const std::string fname, std::vector<std::vector<double>> &data);
 }
