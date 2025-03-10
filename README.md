@@ -6,15 +6,15 @@ The implementation of the paper "[Scattered Points Interpolation with Globally S
 ## Introduction
 Our algorithm generates a single B-spline surface patch which interpolates the given scattered 3d data points. The inputs are the scattered 3d data points and their parametrization (in domain [0, 1] x [0, 1]). The output is the generated B-spline surface.
 
-The advantage of our algorithm is that the input data points do not need to be distributed in rows or in grid points (like tranditional interpolation methods always do), but can be scattered, non-uniformly distributed. The generated surfaces, as they are interpolation surfaces, can often maintain a high precision in shape reconstruction, and, often use less control points, thanks to the Proposition we proposed and proved in our paper.
+The advantage of our algorithm is that the input data points do not need to be distributed in rows or in grid points (like traditional interpolation methods always do), but can be scattered, and non-uniformly distributed. The generated surfaces, as they are interpolation surfaces, can often maintain a high precision in shape reconstruction, and, often use less control points, thanks to the Proposition we proposed and proved in our paper.
 
-The code is implemented in C++, containing functions for B-spline basis calculation, knot vector generation, thin-plate energy calculation, control points solving, and, some polynomial operators(+, -, x, /, differential, integration, etc.). We also have some other interpolation/ approximation algorithms implemented in our code. We hope the code can help the users feel convient and comfortable to use B-splines. 
+The code is implemented in C++, containing functions for B-spline basis calculation, knot vector generation, thin-plate energy calculation, control points solving, and, some polynomial operators(+, -, x, /, differential, integration, etc.). We also have some other interpolation/ approximation algorithms implemented in our code. We hope the code can help the users feel convenient and comfortable using B-splines. 
 
 This code is tested on Windows and Linux, and it probably works on Mac.
 
 ## Build
 
-Before build the code, you need to have CMake installed on your machine. To build the library and executable benchmark on Linux or macOS run:
+Before building the code, you need to have CMake installed on your machine. To build the library and executable benchmark on Linux or macOS run:
 
 ```sh
 mkdir build
@@ -43,7 +43,7 @@ Then, you can access the classes `Bcurve` and `Bsurface`. We have a tutorial exa
 }
 ```
 
-In `app/test.h` we also provide you some functions for some other classical methods we implemented, including Lofting method [Wen-Ke Wang et al, 2008, CAD], Multilevel B-spline [Seungyong Lee, et al., 1997, TVCG], Averaging method, [Piegl et al. 1996, The NURBS book] and IGA [Kineri et al. 2012, CAD]. We will continue to maintain the library, adding more methods for the users to choose (Actually, by assembling the existing functions, you can have many more trianditional methods. But we will provide you the interface, so that you do not need to look deep into the low-level functions).
+In `app/test.h` we also provide you some functions for some other classical methods we implemented, including the Lofting method [Wen-Ke Wang et al, 2008, CAD], Multilevel B-spline [Seungyong Lee, et al., 1997, TVCG], Averaging method, [Piegl et al. 1996, The NURBS book] and IGA [Kineri et al. 2012, CAD]. We will continue to maintain the library, adding more methods for the users to choose (Actually, by assembling the existing functions, you can have many more traditional methods. But we will provide you the interface so that you do not need to look deep into the low-level functions).
 ## Examples in our paper
 
 We provide some functions to run the results shown in our paper.
@@ -52,7 +52,7 @@ We provide some functions to run the results shown in our paper.
 ```bash
 ./Sparse_Interp_bin benchmarks delta per nbr outpath
 ```
-where `delta` and `per` are two input parameters, ranging from 0 to 1, we recommand that `delta = 0.9` and `per = 0.5`. `nbr` is the number of sampled points, we suggest to choose a number no more than 500. `outpath` is the output path. For example, on Windows, you can run `./Sparse_Interp_bin benchmarks 0.9 0.5 100 C:\\`.
+where `delta` and `per` are two input parameters, ranging from 0 to 1, we recommend that `delta = 0.9` and `per = 0.5`. `nbr` is the number of sampled points, we suggest to choose a number no more than 500. `outpath` is the output path. For example, on Windows, you can run `./Sparse_Interp_bin benchmarks 0.9 0.5 100 C:\\`.
 
 
 2. Mesh models 
@@ -79,13 +79,16 @@ It will produce the results in Figure 9.
 
 5. The Outputs of the examples
 
-After running the code, in `outpath` there will be a interpolation surface in `.obj` format, and for each interpolation surface, there is a corresponding `.csv` file recording its runtime, maximal interpolation error, and the number of control points. After running the benchmarks, the 6 benchmark models: Peak, Drop, Hyperbolic, Sinus, Bilinear and Snail will be output into `outpath`. After running the results in Figure 7 and Figure 9, the maximal energy for each iteration will also be written into the `.csv` files.
+After running the code, in `outpath` there will be an interpolation surface in `.obj` format, and for each interpolation surface, there is a corresponding `.csv` file recording its runtime, maximal interpolation error, and the number of control points. After running the benchmarks, the 6 benchmark models: Peak, Drop, Hyperbolic, Sinus, Bilinear and Snail will be output into `outpath`. After running the results in Figure 7 and Figure 9, the maximal energy for each iteration will also be written into the `.csv` files.
+## A temperature fitting example
+We added a new example to interpolate the temperature data in Shanxi Province. You can run `./Sparse_Interp_bin temperature` to predict the temperature in Shanxi province according to the temperature data provided every 3 hours from 12:00, 01, March 2025 to 09:00, 03, March 2025 by 108 weather stations. The generated data will be saved in `Scattered_Points_Interpolation/app/meshes/`. It shows our method can be used for more complicated problems in higher dimensions.
 
+Acknowledgment: The temperature dataset is provided by [China Meteorological Data Service Centre](https://data.cma.cn/en).
 ## Contact
 
 The code is far from being perfect, e.g. solving stability problem for large amount of data points. If you have problem using our code, or you have a bug to report, please contact us by `wangbolun@buaa.edu.cn`, or post an issue on GitHub. We'd appreciate to have your contribution. If you are using our code in your projects, please contact us and briefly tell us what you use it for. That will all become the motivation we maintaining the code.
 
 ## TODO
-1. replace the current sparse linear system solver since it is unefficient and momery-consuming.
-2. provide interface for classical least-square method for surface and curve interpolation.
+1. replace the current sparse linear system solver since it is inefficient and memory-consuming.
+2. provide an interface for classical least-square method for surface and curve interpolation.
 
