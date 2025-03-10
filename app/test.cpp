@@ -1538,6 +1538,7 @@ namespace SIBSplines
 		// remind that the longitude is in an reversed direction, so we need to invert the tempeture
 		points.col(2) = -1 * points.col(2);
 		Vclean.col(2) = -1 * Vclean.col(2);
+		std::cout<<"Predicting the temperature in Shanxi province at 18:00, 02, March 2025...\n";
 		writeMesh(example_root_path+"Y2025M03D02H1800GroundTruth.obj",points, quads);
 		// the fitting result
 		writeMesh(example_root_path+"Y2025M03D02H1800.obj",Vclean, Fclean);
@@ -1547,7 +1548,7 @@ namespace SIBSplines
 		
 		// given a location, check the fitting result
 		int location = 10;
-		std::cout<<"checking a given location #"<<stations[location][0]<<", that locates at ("<<stations[location][1]<<", "<<stations[location][2]<<")\n";
+		std::cout<<"checking a given location, Ningwu County, #"<<stations[location][0]<<", that locates at ("<<stations[location][1]<<", "<<stations[location][2]<<")\n";
 		double u = param(location, 0);
 		double v = param(location, 1);
 		colors.clear();
