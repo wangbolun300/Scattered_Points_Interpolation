@@ -3,4 +3,4 @@
 bin*
 *build*
 external*
-app/meshes*
+#app/meshes*
