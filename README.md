@@ -85,6 +85,7 @@ We added a new example to interpolate the temperature data in Shanxi Province. Y
 ![](./fig/Temperature.png)
 
 The figure shows the temperature as a height map that precisely passes through the ground-truths (red dots). The curve plot shows the fitting results in Ningwu County of Shanxi Province.
+
 Acknowledgment: The temperature dataset is provided by [China Meteorological Data Service Centre](https://data.cma.cn/en).
 ## Contact
 
