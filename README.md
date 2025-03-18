@@ -83,13 +83,13 @@ After running the code, in `outpath` there will be an interpolation surface in `
 ## A temperature fitting example
 We added a new example to interpolate the temperature data in Shanxi Province. You can run `./Sparse_Interp_bin temperature` to predict the temperature in Shanxi province according to the temperature data provided every 3 hours from 12:00, 01, March 2025 to 09:00, 03, March 2025 by 108 weather stations. The generated data will be saved in `Scattered_Points_Interpolation/app/meshes/`. It shows our method can be used for more complicated problems in higher dimensions.
 ![](./fig/Temperature.png)
-
+The figure shows the temperature as a height map that precisely passes through the ground-truths (red dots). The curve plot shows the fitting results in Ningwu County of Shanxi Province.
 Acknowledgment: The temperature dataset is provided by [China Meteorological Data Service Centre](https://data.cma.cn/en).
 ## Contact
 
-The code is far from being perfect, e.g. solving stability problem for large amount of data points. If you have problem using our code, or you have a bug to report, please contact us by `wangbolun@buaa.edu.cn`, or post an issue on GitHub. We'd appreciate to have your contribution. If you are using our code in your projects, please contact us and briefly tell us what you use it for. That will all become the motivation we maintaining the code.
+The code is far from being perfect, e.g. solving stability problems for large amounts of data points. If you have a problem using our code, or you have a bug to report, please contact us at `wangbolun@buaa.edu.cn`, or post an issue on GitHub. We'd appreciate to have your contribution. If you are using our code in your projects, please contact us and briefly tell us what you use it for. That will all become the motivation we maintaining the code.
 
 ## TODO
 1. replace the current sparse linear system solver since it is inefficient and memory-consuming.
-2. provide an interface for classical least-square method for surface and curve interpolation.
+2. provide an interface for the classical least-square method for surface and curve interpolation.
 
