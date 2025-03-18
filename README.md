@@ -82,6 +82,7 @@ It will produce the results in Figure 9.
 After running the code, in `outpath` there will be an interpolation surface in `.obj` format, and for each interpolation surface, there is a corresponding `.csv` file recording its runtime, maximal interpolation error, and the number of control points. After running the benchmarks, the 6 benchmark models: Peak, Drop, Hyperbolic, Sinus, Bilinear and Snail will be output into `outpath`. After running the results in Figure 7 and Figure 9, the maximal energy for each iteration will also be written into the `.csv` files.
 ## A temperature fitting example
 We added a new example to interpolate the temperature data in Shanxi Province. You can run `./Sparse_Interp_bin temperature` to predict the temperature in Shanxi province according to the temperature data provided every 3 hours from 12:00, 01, March 2025 to 09:00, 03, March 2025 by 108 weather stations. The generated data will be saved in `Scattered_Points_Interpolation/app/meshes/`. It shows our method can be used for more complicated problems in higher dimensions.
+![](./fig/Temperature.png)
 
 Acknowledgment: The temperature dataset is provided by [China Meteorological Data Service Centre](https://data.cma.cn/en).
 ## Contact
