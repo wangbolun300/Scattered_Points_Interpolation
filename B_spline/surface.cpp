@@ -2,6 +2,7 @@
 #include<sparse_interp/curve.h>
 #include <iomanip> 
 #include<sparse_interp/mesh_processing.h>
+#include<igl/write_triangle_mesh.h>
 
 namespace SIBSplines{
 int Bsurface::nu() {
@@ -971,6 +972,37 @@ void Bsurface::generate_interpolation_knot_vectors(int degree1, int degree2,
 	per_ours = per_ours_tmp;
 	return;	
 }
+void Bsurface::generate_approximation_knot_vectors(int degree1, int degree2,
+										 std::vector<double> &Uknot, std::vector<double> &Vknot,
+										 const int uCpNbr, const int vCpNbr)
+{
+	auto evenlyAssignKnotVector = [](const int pnbr, const int degree)
+	{
+		std::vector<double> U;
+		int nU = pnbr + degree + 1; // the number of control points.
+		U.resize(nU);
+		int nbrITV = nU - 1 - 2 * degree;
+
+		double itv = 1.0 / nbrITV;
+		for (int i = 0; i < nU; i++)
+		{
+			if (i < degree + 1)
+			{
+				U[i] = 0;
+				continue;
+			}
+			if (i >= pnbr)
+			{
+				U[i] = 1;
+				continue;
+			}
+			U[i] = (i - degree) * itv;
+		}
+		return U;
+	};
+	Uknot = evenlyAssignKnotVector(uCpNbr, degree1);
+	Vknot = evenlyAssignKnotVector(vCpNbr, degree2);
+}
 double Bsurface::max_interpolation_err(const Eigen::MatrixXd&ver, const Eigen::MatrixXd& param, Bsurface& surface) {
 	double err = 0;
 	for (int i = 0; i < ver.rows(); i++) {
@@ -1006,15 +1038,17 @@ Eigen::MatrixXd Bsurface::interpolation_err_for_apprximation(const Eigen::Matrix
 	return result;
 }
 
-void B_spline_surface_to_mesh(Bsurface &surface, const int pnbr, Eigen::MatrixXd &ver, Eigen::MatrixXi& faces) {
+void B_spline_surface_to_mesh(Bsurface &surface, const int pnbr, Eigen::MatrixXd &ver, Eigen::MatrixXi& faces, std::vector<Eigen::Vector2d>& paras) {
 	std::vector<std::vector<Vector3d>> pts;
 	ver.resize(pnbr*pnbr, 3);
+	paras.resize(pnbr * pnbr);
 	int verline = 0;
 	for (int i = 0; i < pnbr; i++) {
 		for (int j = 0; j < pnbr; j++) {
 			double upara = double(i) / (pnbr - 1);
 			double vpara = double(j) / (pnbr - 1);
 			ver.row(verline) = surface.BSplineSurfacePoint(surface, upara, vpara);
+			paras[verline] = Eigen::Vector2d(upara, vpara);
 			verline++;
 		}
 	}
@@ -1090,7 +1124,14 @@ void Bsurface::RefineKnots(int nbr)
 }
 
 void Bsurface::surface_visulization(Bsurface& surface, const int nbr, Eigen::MatrixXd & v, Eigen::MatrixXi &f) {
-	B_spline_surface_to_mesh(surface, nbr, v, f);
+	std::vector<Eigen::Vector2d> paras;
+	B_spline_surface_to_mesh(surface, nbr, v, f, paras);
+	return;
+}
+void Bsurface::surface_visulization(Bsurface& surface, const int nbr, Eigen::MatrixXd & v, Eigen::MatrixXi &f, Eigen::MatrixXd& parameters) {
+	std::vector<Eigen::Vector2d> paras;
+	B_spline_surface_to_mesh(surface, nbr, v, f, paras);
+	parameters = vector_to_matrix_2d(paras);
 	return;
 }
 // void surface_visulization(std::vector<Bsurface>& surfaces, const int pnbr, Eigen::MatrixXd & ver, 
@@ -1121,5 +1162,131 @@ void Bsurface::surface_visulization(Bsurface& surface, const int nbr, Eigen::Mat
 // 	}
 // 	return;
 // }
+	
+	void run_ours_convient_interface(const Eigen::MatrixXd& ver, const Eigen::MatrixXd& param, const std::string path,
+				 double &per_ours, const double per, bool enable_local_energy, Bsurface &surface)
+	{
+		double precision = 0;
+		Eigen::MatrixXi F;
+		// std::cout << "ver\n" << ver << std::endl;
+		int degree1 = 3;
+		int degree2 = 3;
+		std::vector<double> Uknot = {{0, 0, 0, 0, 1, 1, 1, 1}};
+		std::vector<double> Vknot = Uknot;
+		int target_steps = 10;
+		bool enable_max_fix_nbr = true;
+		std::cout << "before generating knot vectors" << std::endl;
+		std::cout << "data size " << ver.rows() << std::endl;
+		surface.generate_interpolation_knot_vectors(degree1, degree2, Uknot, Vknot, param, per_ours, per, target_steps, enable_max_fix_nbr);
+		Eigen::MatrixXd SPs;
+		Eigen::MatrixXi SFs;
+		surface.degree1 = 3;
+		surface.degree2 = 3;
+		surface.U = Uknot;
+		surface.V = Vknot;
+		int refinement = std::max(surface.nu() + 1, surface.nv() + 1) * 0.5;
+		if (!enable_local_energy)
+		{
+			// std::cout << "before refinement, nu and nv " << surface.nu() << " " << surface.nv() << "\n";
+			// std::cout << "Refine the knot vectors by adding " << refinement << " knots.\n";
+			// // refine the shape
+			// surface.RefineKnots(refinement);
+		}
 
+		std::cout << "before initialize the basis " << std::endl;
+		PartialBasis basis(surface);
+		std::cout << "initialize the basis done" << std::endl;
+		std::cout << "before solving control points" << std::endl;
+		surface.solve_control_points_for_fairing_surface(surface, param, ver, basis);
+		surface.surface_visulization(surface, 100, SPs, SFs);
+
+		if (enable_local_energy)
+		{
+			double timeitr = 0;
+			for (int i = 0; i < 50; i++)
+			{
+				Eigen::MatrixXd energy, euu, evv, euv;
+				energy = surface.surface_energy_calculation(surface, basis, 1, euu, evv, euv);
+				bool uorv;
+				int which;
+				double max_energy;
+				surface.detect_max_energy_interval(surface, energy, euu, evv, uorv, which, max_energy);
+				std::vector<double> Unew = surface.U;
+				std::vector<double> Vnew = surface.V;
+				if (!uorv)
+				{ // u get updated
+					double value = (Unew[which] + Unew[which + 1]) / 2;
+					surface.U = knot_vector_insert_one_value(Unew, value);
+				}
+				else
+				{
+					double value = (Vnew[which] + Vnew[which + 1]) / 2;
+					surface.V = knot_vector_insert_one_value(Vnew, value);
+				}
+				std::cout << "knot vector get inserted" << std::endl;
+				basis.clear();
+				basis.init(surface);
+				surface.solve_control_points_for_fairing_surface(surface, param, ver, basis);
+				std::cout << " control points solved" << std::endl;
+				surface.surface_visulization(surface, 100, SPs, SFs);
+
+				igl::write_triangle_mesh(path + "fitting_" + std::to_string(i) + ".obj", SPs, SFs);
+			}
+			return;
+		}
+
+		std::cout << "final U and V, " << surface.U.size() << " " << surface.V.size() << std::endl;
+		print_vector(surface.U);
+		print_vector(surface.V);
+		precision = surface.max_interpolation_err(ver, param, surface);
+		std::cout << "maximal interpolation error " << surface.max_interpolation_err(ver, param, surface) << std::endl;
+		bool write_file = true;
+		if (write_file)
+		{
+			Eigen::MatrixXi Pf;
+			igl::write_triangle_mesh(path + "fitting.obj", SPs, SFs);
+		}
+	}
+	void run_least_square_approximation_interface(const Eigen::MatrixXd &ver, const Eigen::MatrixXd &param, const std::string path,
+										const int uCpNbr, const int vCpNbr, Bsurface &surface, const double weight_fair)
+	{
+		double precision = 0;
+		Eigen::MatrixXi F;
+		// std::cout << "ver\n" << ver << std::endl;
+		int degree1 = 3;
+		int degree2 = 3;
+		std::vector<double> Uknot = {{0, 0, 0, 0, 1, 1, 1, 1}};
+		std::vector<double> Vknot = Uknot;
+		std::cout << "before generating knot vectors" << std::endl;
+		std::cout << "data size " << ver.rows() << std::endl;
+		surface.generate_approximation_knot_vectors(degree1, degree2, Uknot, Vknot, uCpNbr, vCpNbr);
+		Eigen::MatrixXd SPs;
+		Eigen::MatrixXi SFs;
+		surface.degree1 = 3;
+		surface.degree2 = 3;
+		surface.U = Uknot;
+		surface.V = Vknot;
+
+		std::cout << "before initialize the basis " << std::endl;
+		PartialBasis basis(surface);
+		std::cout << "initialize the basis done" << std::endl;
+		std::cout << "before solving control points" << std::endl;
+		surface.solve_control_points_for_fairing_surface(surface, weight_fair, param, ver, basis);
+		surface.surface_visulization(surface, 100, SPs, SFs);
+		std::cout << "final U and V, " << surface.U.size() << " " << surface.V.size() << std::endl;
+		print_vector(surface.U);
+		print_vector(surface.V);
+		precision = surface.max_interpolation_err(ver, param, surface);
+		double maxError = surface.max_interpolation_err(ver, param, surface);
+		std::cout << "maximal fitting error " << maxError << std::endl;
+		Eigen::Vector3d vmin, vmax;
+		getBoundingBox(ver, vmin, vmax);
+		std::cout << "relative maximal error " << maxError / (vmin - vmax).norm() << "\n";
+		bool write_file = true;
+		if (write_file)
+		{
+			Eigen::MatrixXi Pf;
+			igl::write_triangle_mesh(path + "fitting.obj", SPs, SFs);
+		}
+	}
 }

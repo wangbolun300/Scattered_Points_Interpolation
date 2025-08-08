@@ -88,6 +88,27 @@
         "concepts": "cpp",
         "memory_resource": "cpp",
         "stop_token": "cpp",
-        "__nullptr": "cpp"
+        "__nullptr": "cpp",
+        "graphicscontext": "cpp",
+        "charconv": "cpp",
+        "span": "cpp",
+        "cinttypes": "cpp",
+        "semaphore": "cpp",
+        "format": "cpp",
+        "text_encoding": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp",
+        "slist": "cpp",
+        "ranges": "cpp",
+        "valarray": "cpp",
+        "__bit_reference": "cpp",
+        "__hash_table": "cpp",
+        "__split_buffer": "cpp",
+        "__tree": "cpp",
+        "filesystem": "cpp",
+        "mixinvector": "cpp",
+        "dense_hash_map": "cpp",
+        "sparse_hash_map": "cpp",
+        "sparsetable": "cpp"
     }
 }

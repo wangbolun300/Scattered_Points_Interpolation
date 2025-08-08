@@ -1370,6 +1370,7 @@ namespace SIBSplines
 		// generate knot vectors to make sure the data points can be interpolated
 		surface.generate_interpolation_knot_vectors(surface.degree1, surface.degree2, surface.U, surface.V, param, delta, per, target_steps, enable_max_fix_nbr);
 		int refinement = std::max(surface.nu() + 1, surface.nv() + 1) * 0.5;
+		std::cout<<"before refinement, nu and nv "<<surface.nu()<<" "<<surface.nv()<<"\n";
 		std::cout<<"Refine the knot vectors by adding "<<refinement<<" knots.\n";
 		// refine the shape 
 		surface.RefineKnots(refinement);

@@ -44,4 +44,6 @@ std::vector<Eigen::Vector3d> mat_to_vec_list(const Eigen::MatrixXd &m);
 void cutBoundaryGenerateTopology(const Eigen::MatrixXd &Vquad, const Eigen::MatrixXi &Fquad, const Eigen::MatrixXd &Vcurve, Eigen::MatrixXd &Vout,
 								 Eigen::MatrixXi &Fout);
 void write_csv(const std::string &file, const std::vector<double> data);
+void obtainSurfaceParametrizationUsingQuadStrips();
+void getBoundingBox(const Eigen::MatrixXd& V, Eigen::Vector3d& vmin, Eigen::Vector3d& vmax);
 }

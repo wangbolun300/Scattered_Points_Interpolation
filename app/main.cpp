@@ -105,6 +105,10 @@ int main(int argc, char *argv[]) {
 	{
 		run_temperature_fitting();
 	}
+	if(type == "strips")
+	{
+		obtainSurfaceParametrizationUsingQuadStrips();
+	}
 	std::cout << "done!" << std::endl;
 	return 0;
 }

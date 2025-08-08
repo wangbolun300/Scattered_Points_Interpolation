@@ -617,10 +617,11 @@ const int coff_i, const int coff_j, PartialBasis& basis) {
 	return result;
 
 }
-// in interval [U[i], U[i+1])x[V[j], V[j+1])
-double discrete_surface_partial_value_squared(const int partial1, const int partial2,
-	const int i, const int j, Bsurface& surface,
-	PartialBasis& basis, const double u, const double v) {
+// in interval [U[i], U[i+1])x[V[j], V[j+1]), get the partial derivative of the surface: \sum N_i(u)^partial1 * N_j(v)^partial2 * Pij.
+Eigen::Vector3d discrete_surface_partial_vec(const int partial1, const int partial2,
+											 const int i, const int j, Bsurface &surface,
+											 PartialBasis &basis, const double u, const double v)
+{
 	int p = surface.degree1;
 	int q = surface.degree2;
 	Eigen::VectorXd Nl(p + 1);
@@ -642,7 +643,16 @@ double discrete_surface_partial_value_squared(const int partial1, const int part
 	double x = (Nl.transpose()*px*Nr);
 	double y = (Nl.transpose()*py*Nr);
 	double z = (Nl.transpose()*pz*Nr);
-	return x * x + y * y + z * z;
+	return Eigen::Vector3d(x, y, z);
+}
+// in interval [U[i], U[i+1])x[V[j], V[j+1])
+double discrete_surface_partial_value_squared(const int partial1, const int partial2,
+	const int i, const int j, Bsurface& surface,
+	PartialBasis& basis, const double u, const double v) {
+	Eigen::Vector3d vector = discrete_surface_partial_vec(partial1, partial2,
+														  i, j, surface,
+														  basis, u, v);
+	return vector.squaredNorm();
 }
 
 // calculate thin-plate-energy in region [Ui, U(i+1)]x[Vj, V(j+1)]
@@ -903,18 +913,32 @@ void eqality_part_of_surface_least_square(Bsurface& surface, const Eigen::Matrix
 	std::vector<double> U = surface.U;
 	std::vector<double> V = surface.V;
 	for (int i = 0; i < paras.rows(); i++) {
-		for (int j = 0; j < psize + 1; j++) {
+		double u = paras(i, 0);
+		double v = paras(i, 1);
+		int uItv = intervalLocator(U, degree1, u);
+		int vItv = intervalLocator(V, degree2, v);
+		for (int j = 0; j < psize; j++) {
 			// figure out the jth control point corresponding to which Pij
 			int coff_i = j / (surface.nv() + 1);
 			int coff_j = j - coff_i * (surface.nv() + 1);
-			double u = paras(i, 0);
-			double v = paras(i, 1);
 			// the corresponding cofficient should be N_coffi(u) and N_coffj(v)
+			// coffi is from uItv-degree1,...uItv, and coffj is from vItv-degree2,...,vItv
+			if (coff_i < uItv - degree1 || coff_i > uItv || coff_j < vItv - degree2 || coff_j > vItv)
+			{
+				continue;
+			}
 			double N1 = Nip(coff_i, degree1, u, U);
 			double N2 = Nip(coff_j, degree2, v, V);
 			double value = N1 * N2;
-			tripletes.push_back(Trip(i+shifti, j+shiftj, value));
-			tripletes.push_back(Trip(j+shiftj, i+shifti, value));
+			if (shifti != 0 || shiftj != 0)
+			{
+				tripletes.push_back(Trip(i + shifti, j + shiftj, value));
+				tripletes.push_back(Trip(j + shiftj, i + shifti, value));
+			}
+			else
+			{
+				tripletes.push_back(Trip(i, j, value));
+			}
 		}
 	}
 	return;
@@ -1056,6 +1080,83 @@ void Bsurface::solve_control_points_for_fairing_surface(Bsurface& surface, const
 	}
 	push_control_point_list_into_surface(surface, cps);
 	return;
+}
+Eigen::SparseMatrix<double> make_block_diagonal(const Eigen::SparseMatrix<double>& A) {
+    int n = A.rows();
+	int m = A.cols();
+    Eigen::SparseMatrix<double> B(3 * n, 3 * m);
+    std::vector<Eigen::Triplet<double>> triplets;
+
+    for (int k = 0; k < A.outerSize(); ++k) {
+        for (Eigen::SparseMatrix<double>::InnerIterator it(A, k); it; ++it) {
+            for (int i = 0; i < 3; ++i) {
+                int row = i * n + it.row();
+                int col = i * m + it.col();
+                triplets.emplace_back(row, col, it.value());
+            }
+        }
+    }
+
+    B.setFromTriplets(triplets.begin(), triplets.end());
+    return B;
+}
+void Bsurface::solve_control_points_for_fairing_surface(Bsurface &surface, const double weightFair, const Eigen::MatrixXd &paras,
+														const Eigen::MatrixXd &points, PartialBasis &basis)
+{
+	int psize = (surface.nu() + 1)*(surface.nv() + 1);// total number of control points.
+	int parsize = paras.rows();
+	std::vector<Trip> tripletes;
+	
+	energy_part_of_surface_least_square(surface, basis, tripletes); // the fairness energy left part
+	SparseMatrixXd matE, matEx3, matA, matATx3, matATA, matATAx3, matAll;
+	matE.resize(psize, psize);
+	matE.setFromTriplets(tripletes.begin(), tripletes.end());
+	matEx3 = make_block_diagonal(matE);
+	tripletes.clear();
+	eqality_part_of_surface_least_square(surface, paras, 0, 0, tripletes); // the equality part
+	matA.resize(parsize, psize);
+	matA.setFromTriplets(tripletes.begin(), tripletes.end()); 
+	matATx3 = make_block_diagonal(matA.transpose());
+	matATA = matA.transpose() * matA;
+	matATAx3 = make_block_diagonal(matATA);
+	Eigen::VectorXd B;
+	B.resize(3 * parsize);
+	B.segment(0, parsize) = points.col(0);
+	B.segment(parsize, parsize) = points.col(1);
+	B.segment(parsize * 2, parsize) = points.col(2);
+	matAll = weightFair * matEx3 + (1 - weightFair) * matATAx3;
+	Eigen::VectorXd vec = (1 - weightFair) * matATx3 * B;
+
+	Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
+	solver.compute(matAll);
+	if (solver.info() != Eigen::Success) {
+		// decomposition failed
+		std::cout << "solving failed" << std::endl;
+		return;
+	}
+	Eigen::MatrixXd solution;
+
+	solution = solver.solve(vec);
+	if (solver.info() != Eigen::Success)
+	{
+		std::cout << "solving failed" << std::endl;
+		return;
+	}
+	// update control points.
+	int id = 0;
+	std::vector<std::vector<Vector3d>> control;
+	control.resize(surface.nu() + 1);
+	int vs = surface.nv() + 1;
+	for (int i = 0; i < control.size(); i++) {
+		control[i].resize(vs);
+		for (int j = 0; j < vs; j++) {
+			control[i][j][0] = solution(id, 0);
+			control[i][j][1] = solution(id + psize, 0);
+			control[i][j][2] = solution(id + psize * 2, 0);
+			id++;
+		}
+	}
+	surface.control_points = control;
 }
 void output_timing() {
 	std::cout << "get basis time " << time0 << std::endl;

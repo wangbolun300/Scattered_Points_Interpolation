@@ -61,6 +61,13 @@ namespace SIBSplines
 												 const double per_ours, const double per, const int target_steps, const bool enable_max_fix_nbr, per_too_large &per_flag);
 		void solve_control_points_for_fairing_surface(Bsurface &surface, const Eigen::MatrixXd &paras,
 													  const Eigen::MatrixXd &points, PartialBasis &basis);
+		// this version generates knot intervals evenly
+		void generate_approximation_knot_vectors(int degree1, int degree2,
+												 std::vector<double> &Uknot, std::vector<double> &Vknot,
+												 const int uCpNbr, const int vCpNbr);
+		// this version is a simple least-square solver that doesn't require interpolation.
+		void solve_control_points_for_fairing_surface(Bsurface &surface, const double weightFair, const Eigen::MatrixXd &paras,
+													  const Eigen::MatrixXd &points, PartialBasis &basis);
 		// calculate thin-plate-energy in region [Ui, U(i+1)]x[Vj, V(j+1)]
 		Eigen::MatrixXd surface_energy_calculation(Bsurface &surface, PartialBasis &basis,
 												   const int discrete, Eigen::MatrixXd &energy_uu, Eigen::MatrixXd &energy_vv, Eigen::MatrixXd &energy_uv);
@@ -73,6 +80,7 @@ namespace SIBSplines
 														   const Eigen::MatrixXd &param, Bsurface &surface, double &max_err);
 		double max_interpolation_err(const Eigen::MatrixXd &ver, const Eigen::MatrixXd &param, Bsurface &surface);
 		void surface_visulization(Bsurface &surface, const int nbr, Eigen::MatrixXd &v, Eigen::MatrixXi &f);
+		void surface_visulization(Bsurface &surface, const int nbr, Eigen::MatrixXd &v, Eigen::MatrixXi &f, Eigen::MatrixXd& parameters);
 		Vector3d BSplineSurfacePoint(const Bsurface &surface, const double upara, const double vpara);
 		Vector3d BSplineSurfacePoint(const std::vector<std::vector<std::vector<double>>> &upolys, const std::vector<std::vector<std::vector<double>>> &vpolys,
 									 const std::vector<std::vector<std::vector<double>>> &tpolys, double u, double v, double t, const std::vector<double> &U, const std::vector<double> &V,
@@ -190,7 +198,7 @@ namespace SIBSplines
 	// type converters
 	void vertices_to_edges(const Eigen::MatrixXd &pts, Eigen::MatrixXi &edges);
 	Eigen::MatrixXd vector_to_matrix_3d(const std::vector<Vector3d> &v);
-
+	Eigen::MatrixXd vector_to_matrix_2d(const std::vector<Vector2d> &v);
 	Eigen::MatrixXd slove_linear_system(const Eigen::MatrixXd &A, const Eigen::MatrixXd &b,
 										const bool check_error, double &relative_error);
 	void write_points(const std::string& file, const Eigen::MatrixXd& ver);
@@ -209,4 +217,12 @@ namespace SIBSplines
 	std::vector<double> fix_knot_vector_to_interpolate_curve_WKW(const int degree, const std::vector<double> &init_vec,
 																 const std::vector<double> &paras, const double per, bool &fully_fixed, const int fix_nbr = -1);
 	std::vector<double> basisValues(const int whichItv, const int degree, const std::vector<std::vector<std::vector<double>>> &basis, const double param);
+	void run_ours_convient_interface(const Eigen::MatrixXd& ver, const Eigen::MatrixXd& param, const std::string path,
+				 double &per_ours, const double per, bool enable_local_energy, Bsurface &surface); // by default, per_ours = 0.9, per = 0.5;
+	void run_least_square_approximation_interface(const Eigen::MatrixXd &ver, const Eigen::MatrixXd &param, const std::string path,
+										const int uCpNbr, const int vCpNbr, Bsurface &surface, const double weight_fair);
+	Eigen::Vector3d discrete_surface_partial_vec(const int partial1, const int partial2,
+											 const int i, const int j, Bsurface &surface,
+											 PartialBasis &basis, const double u, const double v);
+	int intervalLocator(const std::vector<double> &U, const int p, double &uvalue);
 }	

@@ -13,6 +13,9 @@
 #include <igl/point_mesh_squared_distance.h>
 #include <OpenMesh/Core/Mesh/PolyMesh_ArrayKernelT.hh>
 #include <igl/segment_segment_intersect.h>
+#include <igl/triangle_triangle_adjacency.h>
+#include <igl/opengl/glfw/Viewer.h>
+#include <igl/avg_edge_length.h>
 
 namespace SIBSplines
 {
@@ -46,6 +49,15 @@ namespace SIBSplines
 	Eigen::MatrixXd vector_to_matrix_3d(const std::vector<Vector3d> &v)
 	{
 		Eigen::MatrixXd result(v.size(), 3);
+		for (int i = 0; i < v.size(); i++)
+		{
+			result.row(i) = v[i];
+		}
+		return result;
+	}
+	Eigen::MatrixXd vector_to_matrix_2d(const std::vector<Vector2d> &v)
+	{
+		Eigen::MatrixXd result(v.size(), 2);
 		for (int i = 0; i < v.size(); i++)
 		{
 			result.row(i) = v[i];
@@ -1777,4 +1789,395 @@ namespace SIBSplines
 		fout << data.back() << std::endl;
 		fout.close();
 	}
+	// return the interval [U[i], U[i+1])
+	int intervalLocator(const std::vector<double> &U, const int p, double &uvalue)
+	{
+		int nu = U.size() - 2 - p;
+		int uint = nu + 1 - p; // nbr of u intervals
+		if (uvalue >= U.back())
+		{
+			uvalue = 1 - SCALAR_ZERO;
+			return uint - 1 + p;
+		}
+		if (uvalue <= U.front())
+		{
+			return p;
+		}
+		for (int i = 0; i < uint; i++)
+		{
+			if (U[i + p] <= uvalue && U[i + p + 1] > uvalue)
+			{
+				return i + p;
+			}
+		}
+		return -1;
+	}
+	// negative curvature is blue, positive is red, perc (0~1) means that any value higher or lower than perc * range, will be ignored.
+	void GaussianCurvature2Color(const Eigen::VectorXd &values, Eigen::MatrixXd &colors, const double perc)
+	{
+		double minvalue = values.minCoeff();
+		double maxvalue = values.maxCoeff();
+		colors.resize(values.size(), 3);
+		double range = std::max(abs(minvalue), abs(maxvalue));
+		double truncate = perc * range;
+		for (int i = 0; i < values.size(); i++)
+		{
+			double value = values[i];
+			if(value > 0) // positive, red
+			{
+				double c = 1 - value / truncate;
+				c = c < 0 ? 0 : c;
+				colors.row(i) << 1.0, c, c;
+			}
+			else // negative, blue
+			{
+				double c = 1 + value / truncate;
+				c = c < 0 ? 0 : c;
+				colors.row(i) <<  c, c, 1.0;
+			}
+		}
+	}
+	void GaussianCurvature2Color(const Eigen::VectorXd &values, Eigen::MatrixXd &colors, const double minvalue, const double maxvalue)
+	{
+		colors.resize(values.size(), 3);
+		double range = std::max(abs(minvalue), abs(maxvalue));
+		// int nbrFall = 0;
+		// double 
+		for (int i = 0; i < values.size(); i++)
+		{
+			double value = values[i];
+			if(value > 0) // positive, red
+			{
+				double c = 1 - value / maxvalue;
+				c = c < 0 ? 0 : c;
+				colors.row(i) << 1.0, c, c;
+			}
+			else // negative, blue
+			{
+				double c = 1 - value / minvalue;
+				c = c < 0 ? 0 : c;
+				colors.row(i) <<  c, c, 1.0;
+			}
+		}
+	}
+	double percentageAverage(const double perc, const Eigen::VectorXd &curvatures)
+	{
+		Eigen::VectorXd abso = curvatures.cwiseAbs();
+		std::vector<double> orderd(abso.data(), abso.data() + abso.size());
+		std::sort(orderd.begin(), orderd.end());
+		int size = perc * orderd.size();
+		double result = 0;
+		for (int i = 0; i < size; i++)
+		{
+			if (i < size - 1)
+			{
+				if (orderd[i] > orderd[i + 1])
+				{
+					std::cout << "WRONG in percentageAbsoluteGaussianCurvature\n";
+					exit(0);
+				}
+			}
+			result += orderd[i];
+		}
+		return result / size;
+	}
+	void visulizeGaussianCurvatureAndPrincipleDirections(Bsurface &surface, const int sampleDensity)
+	{
+		Eigen::MatrixXd Ver;
+		Eigen::MatrixXi Fac;
+		Eigen::MatrixXd parameters;
+		Eigen::MatrixXd directions0, directions1, directionU, directionV, direcPseuAsymp;
+		Eigen::VectorXd curvatures, miniCurvatures;
+
+		surface.surface_visulization(surface, sampleDensity, Ver, Fac, parameters);
+		PartialBasis basis(surface); // get the partial derivatives.
+		int p = surface.degree1;
+		int q = surface.degree2;
+		std::vector<double> U = surface.U;
+		std::vector<double> V = surface.V;
+		int nu = surface.nu(); // U[p]=0, U[nu+1]=1
+		int nv = surface.nv();
+		int datasize = parameters.rows();
+		directions0.resize(datasize, 3);
+		directions1.resize(datasize, 3);
+		directionU.resize(datasize, 3);
+		directionV.resize(datasize, 3);
+		direcPseuAsymp.resize(datasize, 3);
+
+		curvatures.resize(datasize);
+		miniCurvatures.resize(datasize);
+		for(int d = 0; d < datasize; d++)
+		{
+			double uvalue = parameters(d, 0);
+			double vvalue = parameters(d, 1);
+			int Ni = intervalLocator(U,  p,  uvalue);// interval is [U[Ni], U[Ni+1])
+			int Nj = intervalLocator(V,  q,  vvalue);
+			Eigen::Vector3d Su = discrete_surface_partial_vec(1, 0, Ni, Nj, surface, basis, uvalue, vvalue);
+			Eigen::Vector3d Sv = discrete_surface_partial_vec(0, 1, Ni, Nj, surface, basis, uvalue, vvalue);
+			Eigen::Vector3d Suu = discrete_surface_partial_vec(2, 0, Ni, Nj, surface, basis, uvalue, vvalue);
+			Eigen::Vector3d Svv = discrete_surface_partial_vec(0, 2, Ni, Nj, surface, basis, uvalue, vvalue);
+			Eigen::Vector3d Suv = discrete_surface_partial_vec(1, 1, Ni, Nj, surface, basis, uvalue, vvalue);
+			Eigen::Vector3d n = Su.cross(Sv).normalized();
+			double E = Su.dot(Su);
+			double F = Su.dot(Sv);
+			double G = Sv.dot(Sv);
+			double L = Suu.dot(n);
+			double M = Suv.dot(n);
+			double N = Svv.dot(n);
+			Eigen::Matrix2d Mat, Mat1, Mat2;
+			Mat1 << G, -F, -F, E;
+			Mat2 << L, M, M, N;
+			// Mat << L * G - M * F, M * E - L * F, M * E - L * F, N * E - M * F;
+			// Mat = Mat / (E * G - F * F);
+			Mat = Mat1 * Mat2 / (E * G - F * F);
+			// solve the eigen values
+			Eigen::EigenSolver<Eigen::MatrixXd> es(Mat);
+			Eigen::VectorXcd eigenvalues = es.eigenvalues();
+			Eigen::MatrixXcd eigenvectors = es.eigenvectors();
+			double GaussianCurvature = (L * N - M * M) / (E * G - F * F);
+			// double meanCurvature = (E * N + G * L - 2 * F * M) / 2 / (E * G - F * F);
+			// double kmax = meanCurvature + sqrt(meanCurvature * meanCurvature - GaussianCurvature);
+			// double kmin = meanCurvature - sqrt(meanCurvature * meanCurvature - GaussianCurvature);
+			// Eigen::Vector2d uv0(-(N - kmin * G), M - kmin * F), uv1(-(N - kmax * G), M - kmax * F);
+			// uv0.normalize();
+			// uv1.normalize();
+			// double u0 = uv0[0], v0 = uv0[1], u1 = uv1[0], v1 = uv1[1];
+			double u0 = eigenvectors(0,0).real();
+			double v0 = eigenvectors(1,0).real();
+			double u1 = eigenvectors(0,1).real();
+			double v1 = eigenvectors(1,1).real();
+			Eigen::Vector3d dir0Scaled = (Su * u0 + Sv * v0).normalized(); // * eigenvalues[0].real();
+			Eigen::Vector3d dir1Scaled = (Su * u1 + Sv * v1).normalized(); // * eigenvalues[1].real();
+			double c0 = eigenvalues[0].real();
+			double c1 = eigenvalues[1].real();
+			Eigen::Vector3d direAsym;
+			double minimalCurvature;
+			// if (c0 * c1 < 0) // negative surface, find its asymptotic direction
+			// {
+			// 	// a*c0+b*c1 = 0 to get the parametric direction,
+			// 	// a*Su + b * Sv to get the 3d direction.
+			// 	double a = -c1;
+			// 	double b = c0;
+			// 	direAsym = a * Su + b * Sv;
+			// 	direAsym.normalize();
+			// 	minimalCurvature = 0;
+			// }
+			// else // positive, find its minimal principle direction
+			// {
+				if (abs(c0) < abs(c1))
+				{
+					direAsym = Su;
+					minimalCurvature = c0;
+				}
+				else
+				{
+					direAsym = Sv;
+					minimalCurvature = c1;
+				}
+				direAsym.normalize();
+			// }
+
+			if (d < 0)
+			{
+				// std::cout << "test output Eigen Vectors \n"
+				// 		  << eigenvectors.real() << "\n";
+				// std::cout<<"Mat \n"<<Mat<<"\n";
+				std::cout<<"u0v0u1v1 "<<u0<<" "<<v0<<" "<<u1<<" "<<v1<<"\n";
+				std::cout << "Su, " << Su.transpose() << ", Sv, " << Sv.transpose() << ", dot " << Su.normalized().dot(Sv.normalized()) << "\n";
+				std::cout << "dir0 " << dir0Scaled.transpose() << " dir1 " << dir1Scaled.transpose() << ", dot " << dir0Scaled.dot(dir1Scaled) << "\n\n";
+			}
+			if (dir0Scaled.dot(dir1Scaled) > 0.1)
+			{
+				std::cout << "ERROR: super inaccurate principle directions, dot product " << dir0Scaled.dot(dir1Scaled) << "\n";
+			}
+			directions0.row(d) = dir0Scaled;
+			directions1.row(d) = dir1Scaled;
+			directionU.row(d) = Su.normalized();
+			directionV.row(d) = Sv.normalized();
+			direcPseuAsymp.row(d) = direAsym;
+			curvatures[d] = GaussianCurvature;
+			miniCurvatures[d] = minimalCurvature;
+		}
+		double percentage = 0.8;
+		std::cout << "max Gaussian Curvature " << curvatures.maxCoeff() << ", min Gaussian Curvature " << curvatures.minCoeff() << " avg, " << curvatures.cwiseAbs().sum() / datasize << "\n";
+		std::cout << "abso avg of first " << percentage << " of GK: " << percentageAverage(percentage, curvatures) << "\n";
+		std::cout << "max minimal curvature " << miniCurvatures.maxCoeff() << " min minimal curvature " << miniCurvatures.minCoeff() << " avg, " << miniCurvatures.sum() / datasize << "\n";
+		// visulize
+		igl::opengl::glfw::Viewer viewer;
+		bool viewMinimalCurvatureDirection = true;
+		viewer.data().set_mesh(Ver, Fac);
+		// viewer.data().set_data(curvatures);
+		Eigen::MatrixXd colorMat;
+		GaussianCurvature2Color(curvatures, colorMat, -0.03, 0.03);
+		viewer.data().set_colors(colorMat);
+		const double avg = igl::avg_edge_length(Ver, Fac) * 0.5;
+		const Eigen::RowVector3d red(0.8, 0.2, 0.2), blue(0.2, 0.2, 0.8), green(0.2, 0.8, 0.2);
+		if(viewMinimalCurvatureDirection)
+		{
+			viewer.data().add_edges(Ver + direcPseuAsymp* avg, Ver - direcPseuAsymp* avg, green);
+		}
+		else
+		{
+			viewer.data().add_edges(Ver + directions0 * avg, Ver - directions0 * avg, red);
+			viewer.data().add_edges(Ver + directions1 * avg, Ver - directions1 * avg, blue);
+		}
+
+		// Hide wireframe
+		viewer.data().show_lines = false;
+
+		viewer.launch();
+	}
+	void getBoundingBox(const Eigen::MatrixXd& V, Eigen::Vector3d& vmin, Eigen::Vector3d& vmax)
+	{
+		double xmin = V(0, 0);
+		double xmax = V(0, 0);
+		double ymin = V(0, 1);
+		double ymax = V(0, 1);
+		double zmin = V(0, 2);
+		double zmax = V(0, 2);
+		for (int i = 0; i < V.rows(); i++)
+		{
+			double x = V(i, 0);
+			double y = V(i, 1);
+			double z = V(i, 2);
+			if (xmin > x)
+			{
+				xmin = x;
+			}
+			if (xmax < x)
+			{
+				xmax = x;
+			}
+			if (ymin > y)
+			{
+				ymin = y;
+			}
+			if (ymax < y)
+			{
+				ymax = y;
+			}
+			if (zmin > z)
+			{
+				zmin = z;
+			}
+			if (zmax < z)
+			{
+				zmax = z;
+			}
+		}
+		vmin = Eigen::Vector3d(xmin, ymin, zmin);
+		vmax = Eigen::Vector3d(xmax, ymax, zmax);
+	}
+	// this function takes a quad strip as a reference surface, and project the quad strip to the surface to obtain sampled point
+	void obtainSurfaceParametrizationUsingQuadStrips()
+	{
+		std::string meshFolder = SI_MESH_DIR;
+		std::string filePath = meshFolder + "approximate/";
+		std::string fileQuadStrip = filePath + "catched.obj";
+		std::string fileMesh = filePath + "mesh.obj";
+		std::string filePointOut = filePath + "pts.obj";
+		std::string fileSampleOut = filePath + "samples.obj";
+		// sampling density for u and v directions, in each quad. The total number of sampling points is sampleU x sampleV x nbrQuads
+		int uCpNbr = 30;
+		int vCpNbr = 15;
+		double weight_fair = 0.001;
+		int sampleU = 10;
+		int sampleV = 20;
+		double discardRatio = 10; // discard a point if the point-mesh distance is d times the average.
+		double boundaryLayer = 0.01;
+		Eigen::MatrixXd Vref, Vsurf;
+		Eigen::MatrixXi Fref, Fsurf;
+		igl::readOBJ(fileQuadStrip, Vref, Fref);
+		igl::readOBJ(fileMesh, Vsurf, Fsurf);
+		Eigen::MatrixXi TT, TTi;
+		igl::triangle_triangle_adjacency(Fsurf, TT, TTi);
+		// the quad is arranged as v0v1v3v2, v2v3v5v4...
+		int nbrQuads = Fref.rows();
+		// assume that each quad's parametric domain is (0, 1/nbrQuads)x(0, 1) 
+		std::vector<Eigen::Vector3d> samples;
+		std::vector<Eigen::Vector2d> paras;
+		for (int i = 0; i < nbrQuads; i++)
+		{
+			Eigen::Vector3d V00 = Vref.row(2 * i + 1);
+			Eigen::Vector3d V01 = Vref.row(2 * i + 3);
+			Eigen::Vector3d V11 = Vref.row(2 * i + 2);
+			Eigen::Vector3d V10 = Vref.row(2 * i);
+			double uitv = 1.0 / (sampleU);
+			double vitv = 1.0 / (sampleV);
+			int ulimit = sampleU;
+			if(i == nbrQuads - 1)
+			{
+				ulimit = sampleU + 1;
+			}
+			for (int j = 0; j < ulimit; j++)
+			{
+				for (int k = 0; k < sampleV + 1; k++)
+				{
+					// get local parameters
+					double ut = uitv * (j);
+					double vt = vitv * (k);
+					Eigen::Vector3d v0 = (V10 - V00) * vt + V00;
+					Eigen::Vector3d v1 = (V11 - V01) * vt + V01;
+					Eigen::Vector3d Pt = (v1 - v0) * ut + v0; // the position of the target point
+					samples.push_back(Pt);
+					double upara = ut / nbrQuads + i * 1.0 / nbrQuads;
+					// rescale the parameters such that parameters not show on boundary layers.
+					upara = upara * (1 - boundaryLayer * 2) + boundaryLayer;
+					vt = vt * (1 - boundaryLayer * 2) + boundaryLayer;
+					paras.push_back(Eigen::Vector2d(upara, vt));
+				}
+			}
+		}
+		// apply point-mesh distance query
+		Eigen::VectorXi I; // face indices
+		Eigen::MatrixXd C; // closest points
+		Eigen::VectorXd sqrD; // squared distances
+		Eigen::MatrixXd sampleVers(samples.size(), 3);
+		int pnbr = samples.size();
+		for(int i=0;i<pnbr;i++)
+		{
+			sampleVers.row(i) = samples[i];
+		}
+		igl::point_mesh_squared_distance(sampleVers, Vsurf, Fsurf, sqrD, I, C);
+		// filter out distances;
+		double avgDis = 0;
+		std::vector<double> distances(pnbr, 0);
+		for (int i = 0; i < pnbr; i++)
+		{
+			distances[i] = sqrt(sqrD[i]);
+			avgDis += distances[i];
+		}
+		avgDis/=pnbr;
+		double threadshold = discardRatio * avgDis;
+		std::vector<bool> ptsKeep(pnbr, true);
+		std::vector<Eigen::Vector3d> VListOut;
+		std::vector<Eigen::Vector2d> paraOut;
+		for (int i = 0; i < pnbr; i++) // discard too far points or boundary points.
+		{
+			int fid = I[i];
+			bool is_boundary = TT(fid, 0) < 0 || TT(fid, 1) < 0 || TT(fid, 2) < 0;
+			if (distances[i] > threadshold || is_boundary)
+			{
+				ptsKeep[i] = false;
+			}
+			else
+			{
+				VListOut.push_back(C.row(i));
+				paraOut.push_back(paras[i]);
+			}
+		}
+		Eigen::MatrixXd Vout = vector_to_matrix_3d(VListOut);
+		Eigen::MatrixXd paramOut = vector_to_matrix_2d(paraOut);
+		Eigen::MatrixXi Fout;
+		write_triangle_mesh(filePointOut, Vout, Fout);
+		write_triangle_mesh(fileSampleOut, vector_to_matrix_3d(samples), Fout);
+		double delta = 0.1;
+		double per = 0.5;
+		Bsurface surface;
+		// run_ours_convient_interface(Vout, paramOut, filePath, delta, per, false, surface);
+		run_least_square_approximation_interface(Vout, paramOut, filePath, uCpNbr, vCpNbr, surface, weight_fair);
+		visulizeGaussianCurvatureAndPrincipleDirections(surface, 50);
+		// progressive_iterative_approximation(surface, param, ver, max_itr, threadshold);
+	}
+
 }
