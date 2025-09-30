@@ -87,6 +87,11 @@ We added a new example to interpolate the temperature data in Shanxi Province. Y
 The figure shows the temperature as a height map that precisely passes through the ground-truths (red dots). The curve plot shows the fitting results in Ningwu County of Shanxi Province.
 
 Acknowledgment: The temperature dataset is provided by [China Meteorological Data Service Centre](https://data.cma.cn/en).
+## A least square fitting example of real-world data.
+You can run `./Sparse_Interp_bin strips` to test an example where we use the traditional least square method to fit a triangle mesh obtained by 3D scanning. For noisy data that does not require extremely high fitting precision, the least square fitting method is preferred, since the users can use fewer control points and user-specific weights to obtain smoother fitting results. 
+![](./fig/fitting_least_square.png)
+In this example, we use a simple yet effective method to obtain the sampling points and their parametrization: (a) shows the input mesh obtained by a 3D scanner. To fit the surface patch that is closer to the viewer, we attach a strip-shaped quad mesh (b) to the target surface (you can use any 3D editor like Blender to do it). We sample the quad mesh (c) and project the sampling points to the surface to obtain the data points to fit (d). In this way, the parametrization of the data points can be obtained from the quad mesh, since the quad mesh provides an injection that attaches the parameters to each data point. The final B-spline fitting surface is shown in (e), where the number of control points is $30\times15$, and the weight for fairness is $0.001$, and the maximum relative fitting error is $0.0065$ of the diagonal length of the AABB of the surface.
+
 ## Contact
 
 The code is far from being perfect, e.g. solving stability problems for large amounts of data points. If you have a problem using our code, or you have a bug to report, please contact us at `wangbolun@buaa.edu.cn`, or post an issue on GitHub. We'd appreciate to have your contribution. If you are using our code in your projects, please contact us and briefly tell us what you use it for. That will all become the motivation we maintaining the code.
@@ -94,4 +99,5 @@ The code is far from being perfect, e.g. solving stability problems for large am
 ## TODO
 1. replace the current sparse linear system solver since it is inefficient and memory-consuming.
 2. provide an interface for the classical least-square method for surface and curve interpolation.
+
 
